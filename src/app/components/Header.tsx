@@ -1,3 +1,4 @@
+'use client';
 import { Search, User, ShoppingBag, Heart, Package } from 'lucide-react';
 import imgLogo from "../../assets/5676604e0b77f8f7fab1059f85830e7e1f6769d8.png";
 import Image from 'next/image';

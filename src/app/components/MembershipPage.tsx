@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
 import Navigation from './Navigation';
-import Footer from './Footer';
 import { Check, CreditCard, ShoppingBag, Award } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import imgDentistBanner from "../../assets/c8ec12adbc9f613a5f0a89229b073feec22a9769.png";
@@ -41,9 +40,9 @@ export default function MembershipPage({
   });
 
   const plans = {
-    monthly: { price: '₹5,000', period: 'month', total: 5000, savings: 0 },
-    sixMonth: { price: '₹5,000', period: 'month', total: 30000, savings: 15, bestValue: true },
-    annual: { price: '₹5,000', period: 'month', total: 60000, savings: 30 },
+    monthly: { price: '₹1,999', period: 'month', total: 1999, savings: 0 },
+    sixMonth: { price: '₹4,999', period: 'month', total: 4999, savings: 15, bestValue: true },
+    annual: { price: '₹10,999', period: 'month', total: 10999, savings: 30 },
   };
 
   const benefits = [
@@ -101,7 +100,7 @@ export default function MembershipPage({
       toast.error('Please fill in all required fields');
       return;
     }
-    
+
     toast.success('🎉 Subscription successful!', {
       description: `You've subscribed to the ${selectedPlan === 'sixMonth' ? '6-Month' : selectedPlan === 'annual' ? 'Annual' : 'Monthly'} plan`,
       duration: 3000,
@@ -111,20 +110,14 @@ export default function MembershipPage({
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Toaster position="top-right" richColors />
-      
-      {/* Header */}
-      <Header 
-        cartCount={cartCount}
-        onCartClick={onCartClick}
-      />
 
       {/* Navigation */}
-      <Navigation 
+      <Navigation
         currentPage="membership"
         onBrandClick={onBrandClick}
         onBuyingGuideClick={onBuyingGuideClick}
         onEventsClick={onEventsClick}
-        onMembershipClick={() => {}}
+        onMembershipClick={() => { }}
         onFreebiesClick={onFreebiesClick}
         onBestSellerClick={onBestSellerClick}
         onClinicSetupClick={onClinicSetupClick}
@@ -134,13 +127,13 @@ export default function MembershipPage({
       <div className="w-full px-4 md:px-6 lg:px-8 mt-6 animate-fade-in">
         <div className="max-w-[1400px] mx-auto">
           <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[16/9] md:aspect-[3/1]">
-            <Image 
-              src={imgDentistBanner} 
+            <Image
+              src={imgDentistBanner}
               alt="Dental Membership"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 via-blue-900/60 to-transparent" />
-            
+
             {/* Hero Text */}
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 lg:px-24">
               <h1 className="text-white text-4xl md:text-5xl lg:text-7xl font-bold mb-4 drop-shadow-2xl">
@@ -158,7 +151,7 @@ export default function MembershipPage({
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 mt-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {benefits.map((benefit, index) => (
-            <div 
+            <div
               key={index}
               className="bg-white rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 animate-fade-in-up border-2 border-gray-100"
               style={{ animationDelay: `${index * 100}ms` }}
@@ -186,25 +179,25 @@ export default function MembershipPage({
             onClick={() => handlePlanSelect('monthly')}
             className={`
               px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300
-              ${selectedPlan === 'monthly' 
-                ? 'bg-blue-600 text-white shadow-xl scale-105' 
+              ${selectedPlan === 'monthly'
+                ? 'bg-blue-600 text-white shadow-xl scale-105'
                 : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-600'
               }
             `}
           >
-            ₹5,000/month
+            ₹1,999/month
           </button>
           <button
             onClick={() => handlePlanSelect('sixMonth')}
             className={`
               px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 relative
-              ${selectedPlan === 'sixMonth' 
-                ? 'bg-blue-600 text-white shadow-xl scale-105' 
+              ${selectedPlan === 'sixMonth'
+                ? 'bg-blue-600 text-white shadow-xl scale-105'
                 : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-600'
               }
             `}
           >
-            ₹5,000/month
+            ₹4,999/6 month
             {plans.sixMonth.bestValue && (
               <span className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs px-3 py-1 rounded-full font-bold">
                 Best Value
@@ -215,13 +208,13 @@ export default function MembershipPage({
             onClick={() => handlePlanSelect('annual')}
             className={`
               px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300
-              ${selectedPlan === 'annual' 
-                ? 'bg-blue-600 text-white shadow-xl scale-105' 
+              ${selectedPlan === 'annual'
+                ? 'bg-blue-600 text-white shadow-xl scale-105'
                 : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-600'
               }
             `}
           >
-            ₹5,000/month
+            ₹10,999/year
           </button>
         </div>
 
@@ -245,7 +238,7 @@ export default function MembershipPage({
           {/* Form */}
           <div className="space-y-6">
             <h4 className="text-xl font-bold text-gray-900 mb-4">Complete Your Subscription</h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">
@@ -334,7 +327,7 @@ export default function MembershipPage({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
           {howItWorks.map((step, index) => (
-            <div 
+            <div
               key={index}
               className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 animate-fade-in-up text-center relative"
               style={{ animationDelay: `${index * 150}ms` }}
@@ -398,9 +391,6 @@ export default function MembershipPage({
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }
