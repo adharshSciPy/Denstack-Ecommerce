@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import Header from './Header';
+// import Header from './Header';
 import Navigation from './Navigation';
-import Footer from './Footer';
+// import Footer from './Footer';
 import { Search, ChevronRight, Heart, ShoppingCart, Star, Filter } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface CategoryBrowsePageProps {
   cartCount: number;
@@ -48,7 +49,7 @@ const categoryData: Category[] = [
       {
         name: 'Premium Brands',
         products: [
-          { id: 1, name: 'Dentsply Sirona Kit', price: '₹15,999', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
+          { id: 1, name: 'Dentsply Sirona Kit', price: '₹15,999', image: '../assets/5c5df5f1f1f483dc288431b284a2d711acd34829.png', rating: 4.8, inStock: true },
           { id: 2, name: 'Kerr Dental Set', price: '₹12,499', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
           { id: 3, name: '3M ESPE Collection', price: '₹18,999', image: 'https://via.placeholder.com/150', rating: 4.9, inStock: true },
           { id: 4, name: 'GC America Bundle', price: '₹14,799', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
@@ -282,6 +283,7 @@ interface ProductCardProps {
 function ProductCard({ product, isLiked, onToggleLike, onAddToCart }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
+
   return (
     <div
       className="group relative bg-white rounded-xl border-2 border-gray-200 hover:border-blue-400 overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-fade-in"
@@ -302,8 +304,8 @@ function ProductCard({ product, isLiked, onToggleLike, onAddToCart }: ProductCar
           onToggleLike();
         }}
         className={`absolute top-2 right-2 z-10 p-2 rounded-full transition-all duration-300 ${isLiked
-            ? 'bg-red-500 text-white scale-110'
-            : 'bg-white/80 text-gray-600 hover:bg-red-50 hover:text-red-500'
+          ? 'bg-red-500 text-white scale-110'
+          : 'bg-white/80 text-gray-600 hover:bg-red-50 hover:text-red-500'
           }`}
       >
         <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -380,6 +382,14 @@ export default function CategoryBrowsePage({
   const [selectedSubCategoryIndex, setSelectedSubCategoryIndex] = useState(0);
   const [localLikedProducts, setLocalLikedProducts] = useState<Set<number>>(likedProducts);
 
+  const router = useRouter();
+
+  const handleNavigation = (path: string, callback?: () => void) => {
+    router.push(path);
+    callback?.();
+  };
+
+
   const filteredCategories = categoryData.filter(cat =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -411,24 +421,24 @@ export default function CategoryBrowsePage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full px-6">
       <Toaster position="top-right" richColors />
 
-      <Header
+      {/* <Header
         cartCount={cartCount}
         searchQuery=""
         onSearchChange={() => { }}
         onCartClick={onCartClick || onBackToHome}
         onFavoritesClick={onBackToHome}
         favoritesCount={localLikedProducts.size}
-      />
+      /> */}
 
       <Navigation
         currentPage="category"
         onBrandClick={onBrandClick || onBackToHome}
         onBuyingGuideClick={onBuyingGuideClick || onBackToHome}
         onEventsClick={onEventsClick || onBackToHome}
-        onMembershipClick={onMembershipClick || onBackToHome}
+        onMembershipClick={() => handleNavigation('/membership', onMembershipClick)}
         onFreebiesClick={onFreebiesClick || onBackToHome}
         onBestSellerClick={onBestSellerClick || onBackToHome}
         onClinicSetupClick={onClinicSetupClick || onBackToHome}
@@ -631,7 +641,7 @@ export default function CategoryBrowsePage({
         </div>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {

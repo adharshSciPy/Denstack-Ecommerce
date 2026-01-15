@@ -1,13 +1,22 @@
 'use client';
 import { useState } from "react";
 import MembershipPage from "./components/MembershipPage";
+import CategoryBrowsePage from "./components/CategoryBrowsePage";
 
 export default function Home() {
   const [cartCount, setCartCount] = useState(0);
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans">
 
-      <MembershipPage
+      <CategoryBrowsePage
+        cartCount={cartCount}
+        onCartCountChange={setCartCount}
+        onBackToHome={() => {
+          console.log('Back to home clicked');
+        }}
+      />
+
+      {/* <MembershipPage
         cartCount={cartCount}
         onCartCountChange={setCartCount}
         onBackToHome={() => {
@@ -22,7 +31,7 @@ export default function Home() {
         onFreebiesClick={() => console.log("Freebies clicked")}
         onBestSellerClick={() => console.log("Best seller clicked")}
         onClinicSetupClick={() => console.log("Clinic setup clicked")}
-      />
+      /> */}
     </div>
   );
 }
