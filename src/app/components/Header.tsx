@@ -68,7 +68,7 @@ export default function Header({ cartCount = 0, searchQuery, onSearchChange, onC
             </button>
 
             <button
-              onClick={onFavoritesClick}
+              onClick={() => router.push('/favorites')}
               className="flex items-center gap-2 hover:text-cyan-600 transition-all duration-300 group relative hover:scale-105 active:scale-95"
             >
               <div className="relative">
