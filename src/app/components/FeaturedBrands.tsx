@@ -29,7 +29,7 @@ export default function FeaturedBrands() {
 
   return (
     <section className="py-12 mb-8">
-      <h2 className="text-center text-3xl lg:text-4xl font-bold mb-12">
+      <h2 className="text-center text-3xl lg:text-4xl text-black font-bold mb-12">
         Featured <span className="text-blue-600">Brands</span>
       </h2>
 

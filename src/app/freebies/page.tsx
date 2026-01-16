@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, Gift, Tag } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
@@ -213,22 +212,11 @@ export default function FreebiesPage({
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-      
-      {/* Header */}
-      <Header 
-        cartCount={cartCount}
-        onCartClick={onCartClick}
-      />
+    
 
       {/* Navigation */}
       <Navigation 
         currentPage="freebies"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Hero Banner */}
@@ -472,8 +460,6 @@ export default function FreebiesPage({
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

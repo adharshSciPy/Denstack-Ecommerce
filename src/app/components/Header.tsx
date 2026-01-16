@@ -2,6 +2,8 @@
 import { Search, User, ShoppingBag, Heart, Package } from 'lucide-react';
 import imgLogo from "../../assets/5676604e0b77f8f7fab1059f85830e7e1f6769d8.png";
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+
 
 interface HeaderProps {
   cartCount?: number;
@@ -16,6 +18,7 @@ interface HeaderProps {
 }
 
 export default function Header({ cartCount = 0, searchQuery, onSearchChange, onCartClick, onFavoritesClick, onOrdersClick, onLogoClick, onAccountClick, favoritesCount = 0 }: HeaderProps) {
+  const router = useRouter();
   return (
     <header className="border-b border-gray-300 bg-white sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-4">
@@ -42,7 +45,7 @@ export default function Header({ cartCount = 0, searchQuery, onSearchChange, onC
           {/* Account & Shopping */}
           <div className="order-2 lg:order-3 flex items-center gap-6">
             <button
-              onClick={onAccountClick}
+              onClick={() => router.push('/account')}
               className="flex items-center gap-2 hover:text-cyan-600 transition-all duration-300 group hover:scale-105 active:scale-95"
             >
               <User className="w-6 h-6 text-gray-600 group-hover:text-cyan-600 transition-colors" />

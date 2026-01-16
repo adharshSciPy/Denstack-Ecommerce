@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Navigation from './Navigation';
+import Navigation from '../components/Navigation';
 import { Check, CreditCard, ShoppingBag, Award } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import imgDentistBanner from "../../assets/c8ec12adbc9f613a5f0a89229b073feec22a9769.png";
@@ -114,13 +114,6 @@ export default function MembershipPage({
       {/* Navigation */}
       <Navigation
         currentPage="membership"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={() => { }}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Hero Banner */}

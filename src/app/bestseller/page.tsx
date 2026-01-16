@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, TrendingUp, Award, Zap } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
@@ -268,27 +267,10 @@ export default function BestSellerPage({
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-      
-      {/* Header */}
-      <Header 
-        cartCount={cartCount}
-        onCartClick={onCartClick}
-        onFavoritesClick={onFavoritesClick}
-        onOrdersClick={onOrdersClick}
-        onAccountClick={onAccountClick}
-        onLogoClick={onBackToHome}
-        favoritesCount={favoritesCount}
-      />
 
       {/* Navigation */}
       <Navigation 
         currentPage="bestseller"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Hero Banner */}
@@ -572,8 +554,7 @@ export default function BestSellerPage({
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer />
+      
     </div>
   );
 }

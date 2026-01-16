@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from '../components/Navigation';
 import { Play, CheckCircle, Phone, Mail, MapPin, User, Building, ChevronDown } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
@@ -158,31 +157,10 @@ export default function ClinicSetupPage({
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-      
-      {/* Header */}
-      <Header 
-        cartCount={cartCount}
-        onCartClick={onCartClick}
-        onLogoClick={onBackToHome}
-        onFavoritesClick={onFavoritesClick}
-        onOrdersClick={onOrdersClick}
-        onAccountClick={onAccountClick}
-        favoritesCount={favoritesCount}
-      />
 
       {/* Navigation */}
       <Navigation 
         currentPage="clinic-setup"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        // onFavoritesClick={onFavoritesClick}
-        onOrdersClick={onOrdersClick}
-        onAccountClick={onAccountClick}
-        favoritesCount={favoritesCount}
       />
 
       {/* Hero Section */}
@@ -463,8 +441,6 @@ export default function ClinicSetupPage({
         </div>
       </div>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

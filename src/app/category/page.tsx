@@ -1,6 +1,7 @@
+'use client';
 import { useState } from 'react';
 // import Header from './Header';
-import Navigation from './Navigation';
+import Navigation from '../components/Navigation';
 // import Footer from './Footer';
 import { Search, ChevronRight, Heart, ShoppingCart, Star, Filter } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -421,7 +422,7 @@ export default function CategoryBrowsePage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full px-6">
+    <div className="min-h-screen bg-gray-50 w-full px-0">
       <Toaster position="top-right" richColors />
 
       {/* <Header
@@ -435,14 +436,6 @@ export default function CategoryBrowsePage({
 
       <Navigation
         currentPage="category"
-        onBrandClick={onBrandClick || onBackToHome}
-        onBuyingGuideClick={onBuyingGuideClick || onBackToHome}
-        onEventsClick={onEventsClick || onBackToHome}
-        onMembershipClick={() => handleNavigation('/membership', onMembershipClick)}
-        onFreebiesClick={onFreebiesClick || onBackToHome}
-        onBestSellerClick={onBestSellerClick || onBackToHome}
-        onClinicSetupClick={onClinicSetupClick || onBackToHome}
-        onFullStoreDirectoryClick={onFullStoreDirectoryClick || onBackToHome}
       />
 
       {/* Main Content */}

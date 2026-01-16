@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from '../components/Navigation';
 import { Calendar, MapPin, Heart, ChevronDown, Clock, Users, TrendingUp, Filter, Search, Star } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
@@ -203,30 +202,10 @@ export default function EventsPage({
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-      
-      {/* Header */}
-      <Header 
-        cartCount={cartCount}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onCartClick={onCartClick}
-        onLogoClick={onBackToHome}
-        onFavoritesClick={onFavoritesClick}
-        onOrdersClick={onOrdersClick}
-        onAccountClick={onAccountClick}
-        favoritesCount={favoritesCount}
-      />
 
       {/* Navigation */}
       <Navigation 
         currentPage="events"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={() => {}}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Hero Banner */}
@@ -352,8 +331,6 @@ export default function EventsPage({
         )}
       </main>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }
