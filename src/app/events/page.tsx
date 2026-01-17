@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Navigation from '../components/Navigation';
 import { Calendar, MapPin, Heart, ChevronDown, Clock, Users, TrendingUp, Filter, Search, Star } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface EventsPageProps {
   cartCount: number;
@@ -23,9 +25,9 @@ interface EventsPageProps {
   favoritesCount?: number;
 }
 
-export default function EventsPage({ 
-  cartCount, 
-  onCartCountChange, 
+export default function EventsPage({
+  cartCount,
+  onCartCountChange,
   onBackToHome,
   onCartClick,
   onEventClick,
@@ -168,7 +170,7 @@ export default function EventsPage({
   const filteredEvents = events.filter(event => {
     const matchesCategory = selectedCategory === 'All Events' || event.category === selectedCategory;
     const matchesSearch = event.title.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
-                         event.location.toLowerCase().includes(localSearchQuery.toLowerCase());
+      event.location.toLowerCase().includes(localSearchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -199,12 +201,14 @@ export default function EventsPage({
     }
   };
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
       {/* Navigation */}
-      <Navigation 
+      <Navigation
         currentPage="events"
       />
 
@@ -212,13 +216,16 @@ export default function EventsPage({
       <div className="w-full px-4 md:px-6 lg:px-8 mt-6 animate-fade-in">
         <div className="max-w-[1760px] mx-auto">
           <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-[16/9] md:aspect-[3.5/1]">
-            <img 
-              src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200" 
+            <Image
+              src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200"
               alt="Dental Events & Conferences"
-              className="w-full h-full object-cover"
+              fill
+              priority
+              className="object-cover"
             />
+
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 via-blue-900/50 to-transparent" />
-            
+
             {/* Hero Text Overlay */}
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16">
               <h1 className="text-white text-3xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-2xl">
@@ -295,20 +302,21 @@ export default function EventsPage({
         {filteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
             {filteredEvents.map((event, index) => (
-              <div 
+              <div
                 key={event.id}
                 className="animate-fade-in-up"
-                style={{ 
+                style={{
                   animationDelay: `${index * 100}ms`,
                   animationFillMode: 'both'
                 }}
+                onClick={() => router.push(`/eventsdetail/${event.id}`)}
               >
                 <EventCard
                   {...event}
                   isLiked={likedEvents.has(event.id)}
                   onToggleLike={() => toggleLike(event.id)}
                   onRegister={() => handleRegister(event.title, event.spotsLeft === 0)}
-                  onCardClick={() => onEventClick(event.id)}
+                  onCardClick={() => router.push(`/eventsdetail/${event.id}`)}
                 />
               </div>
             ))}
@@ -353,20 +361,20 @@ interface EventCardProps {
   onCardClick: () => void;
 }
 
-function EventCard({ 
+function EventCard({
   id,
-  title, 
-  date, 
-  time, 
-  location, 
-  attendees, 
-  maxAttendees, 
+  title,
+  date,
+  time,
+  location,
+  attendees,
+  maxAttendees,
   category,
-  imageUrl, 
-  isLiked, 
+  imageUrl,
+  isLiked,
   isFeatured,
   spotsLeft,
-  onToggleLike, 
+  onToggleLike,
   onRegister,
   onCardClick
 }: EventCardProps) {
@@ -375,7 +383,7 @@ function EventCard({
   const isFull = spotsLeft === 0;
 
   return (
-    <div 
+    <div
       onClick={onCardClick}
       className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-500 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] animate-fade-in cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
@@ -405,30 +413,29 @@ function EventCard({
         className={`
           absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white
           flex items-center justify-center transition-all duration-300 shadow-lg
-          ${isLiked 
-            ? 'text-red-500 scale-110' 
+          ${isLiked
+            ? 'text-red-500 scale-110'
             : 'text-gray-400 hover:text-red-500 hover:scale-110'
           }
         `}
       >
-        <Heart 
-          className={`w-5 h-5 transition-all ${
-            isLiked ? 'fill-red-500' : 'fill-none'
-          }`}
+        <Heart
+          className={`w-5 h-5 transition-all ${isLiked ? 'fill-red-500' : 'fill-none'
+            }`}
         />
       </button>
 
       {/* Event Image */}
       <div className="relative bg-gray-100 aspect-[4/3] overflow-hidden">
-        <img 
-          src={imageUrl} 
+        <Image
+          src={imageUrl}
           alt={title}
-          className={`w-full h-full object-cover transition-transform duration-500 ${
-            isHovered ? 'scale-110' : 'scale-100'
-          }`}
+          fill
+          className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
+            }`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        
+
         {/* Category Tag */}
         <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold">
           {category}
@@ -471,12 +478,11 @@ function EventCard({
         {/* Progress Bar */}
         <div className="mb-4">
           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${
-                spotsLeft === 0 ? 'bg-red-500' :
-                isAlmostFull ? 'bg-orange-500' : 
-                'bg-blue-600'
-              }`}
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${spotsLeft === 0 ? 'bg-red-500' :
+                isAlmostFull ? 'bg-orange-500' :
+                  'bg-blue-600'
+                }`}
               style={{ width: `${(attendees / maxAttendees) * 100}%` }}
             />
           </div>
@@ -492,10 +498,10 @@ function EventCard({
           className={`
             w-full py-3.5 px-4 rounded-xl font-bold text-base
             transition-all duration-300
-            ${isFull 
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-              : isHovered 
-                ? 'bg-blue-700 text-white shadow-xl translate-y-[-2px]' 
+            ${isFull
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : isHovered
+                ? 'bg-blue-700 text-white shadow-xl translate-y-[-2px]'
                 : 'bg-blue-600 text-white shadow-lg'
             }
             hover:shadow-2xl active:scale-95
