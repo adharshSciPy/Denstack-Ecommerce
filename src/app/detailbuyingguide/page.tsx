@@ -1,13 +1,13 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from '../components/Navigation';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import imgFeatured from "../../assets/c775787539b7df72edc4d91a8047b6d271239a40.png";
 import img33211 from "../../assets/0815c4dbb681f7ea1c9955cfaec5ad8e6de976af.png";
 import { StaticImageData } from "next/image";
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 type ImageSource = string | StaticImageData;
 
 interface StepCardProps {
@@ -70,6 +70,8 @@ function StepCard({
             <Image 
               src={featuredImage} 
               alt={title}
+              width={800}
+              height={600}
               className={`w-full h-auto rounded-lg shadow-md transition-transform duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`}
             />
           </div>
@@ -132,6 +134,8 @@ function StepCard({
                     <Image 
                       src={product.imageUrl} 
                       alt={product.name}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-contain p-2"
                     />
                   </div>
@@ -485,30 +489,23 @@ export default function BuyingGuideDetailPage({
     });
   };
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-      
-      {/* Header */}
-      <Header 
-        cartCount={cartCount}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onCartClick={onCartClick}
-        onLogoClick={onBackToGuide}
-      />
 
       {/* Navigation */}
       <Navigation 
-        currentPage="buying-guide"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBackToGuide}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
-        onCategoryBrowseClick={onCategoryBrowseClick}
+        currentPage="detailbuyingguide"
+        // onBrandClick={onBrandClick}
+        // onBuyingGuideClick={onBackToGuide}
+        // onEventsClick={onEventsClick}
+        // onMembershipClick={onMembershipClick}
+        // onFreebiesClick={onFreebiesClick}
+        // onBestSellerClick={onBestSellerClick}
+        // onClinicSetupClick={onClinicSetupClick}
+        // onCategoryBrowseClick={onCategoryBrowseClick}
       />
 
       {/* Breadcrumb & Title Bar */}
@@ -517,7 +514,7 @@ export default function BuyingGuideDetailPage({
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm mb-2">
             <button 
-              onClick={onBackToGuide}
+              onClick={()=>router.push('/buying-guide')}
               className="hover:underline transition-all hover:text-cyan-100"
             >
               Buying Guide
@@ -604,8 +601,6 @@ export default function BuyingGuideDetailPage({
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

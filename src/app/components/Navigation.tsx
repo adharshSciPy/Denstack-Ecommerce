@@ -37,6 +37,7 @@ export default function Navigation({
       membership: 'Membership',
       brands: 'Brand',
       'buying-guide': 'Buying Guide',
+      detailbuyingguide: 'Buying Guide',
       freebies: 'Freebies',
       bestseller: 'Best Seller',
       events: 'Events',

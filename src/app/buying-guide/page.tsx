@@ -4,6 +4,7 @@ import Navigation from '../components/Navigation';
 import { Package, ShoppingBag } from 'lucide-react';
 import imgWomanDoctor from "../../assets/4090c47841ffbcbb1eeab65e6cfd315c5ad57280.png";
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface BuyingGuideCardProps {
     title: string;
@@ -171,6 +172,8 @@ export default function BuyingGuidePage({
         }
     ];
 
+    const router = useRouter();
+
     return (
         <div className="min-h-screen bg-gray-50">
 
@@ -190,7 +193,7 @@ export default function BuyingGuidePage({
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8 lg:py-12">
-                <div className="space-y-8 lg:space-y-12">
+                <div className="space-y-8 lg:space-y-12" onClick={() => router.push('/detailbuyingguide')}>
                     {guides.map((guide, index) => (
                         <BuyingGuideCard
                             key={index}

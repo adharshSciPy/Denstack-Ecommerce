@@ -2,6 +2,9 @@
 import { ChevronLeft } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Navigation from '../components/Navigation';
+import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+
 
 interface BrandDetailPageProps {
   brandId: number;
@@ -27,28 +30,33 @@ interface BrandDetailPageProps {
 }
 
 export default function BrandDetailPage({
-  brandId = 0,
-  brandName = 'Brand',
   cartCount = 0,
-  onCartCountChange = () => {},
-  onBackToBrands = () => {},
-  onCartClick = () => {},
+  onCartCountChange = () => { },
+  onBackToBrands = () => { },
+  onCartClick = () => { },
   likedProducts = new Set(),
-  onToggleLike = () => {},
+  onToggleLike = () => { },
   onProductClick,
-  onBrandClick = () => {},
-  onBuyingGuideClick = () => {},
-  onEventsClick = () => {},
-  onMembershipClick = () => {},
-  onFreebiesClick = () => {},
-  onBestSellerClick = () => {},
-  onClinicSetupClick = () => {},
-  onFavoritesClick = () => {},
-  onOrdersClick = () => {},
-  onAccountClick = () => {},
+  onBrandClick = () => { },
+  onBuyingGuideClick = () => { },
+  onEventsClick = () => { },
+  onMembershipClick = () => { },
+  onFreebiesClick = () => { },
+  onBestSellerClick = () => { },
+  onClinicSetupClick = () => { },
+  onFavoritesClick = () => { },
+  onOrdersClick = () => { },
+  onAccountClick = () => { },
   favoritesCount = 0,
 }: BrandDetailPageProps) {
   // Mock products for this brand
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const brandId = Number(searchParams.get('brandId')) || 0;
+  const brandName = searchParams.get('brandName') || 'Brand';
+
   const products = Array.from({ length: 24 }, (_, i) => ({
     id: brandId * 100 + i + 1,
     name: `${brandName} Premium Dental Equipment ${i + 1}`,
@@ -59,6 +67,8 @@ export default function BrandDetailPage({
   const addToCart = () => {
     onCartCountChange(cartCount + 1);
   };
+
+
 
   // Brand information
   const brandInfo = {
@@ -71,15 +81,15 @@ export default function BrandDetailPage({
 
   return (
     <div className="min-h-screen bg-white">
-    
-      <Navigation 
+
+      <Navigation
         currentPage="allbrands"
       />
 
       <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button
-          onClick={onBackToBrands}
+          onClick={() => router.push('/brands')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 group transition-all duration-300"
         >
           <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
@@ -105,7 +115,7 @@ export default function BrandDetailPage({
                 <p className="text-gray-600 text-lg mb-6 leading-relaxed">
                   {brandInfo.description}
                 </p>
-                
+
                 {/* Quick Stats */}
                 <div className="flex flex-wrap gap-4">
                   <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
@@ -218,7 +228,7 @@ export default function BrandDetailPage({
         </div>
       </main>
 
-    
+
     </div>
   );
 }
