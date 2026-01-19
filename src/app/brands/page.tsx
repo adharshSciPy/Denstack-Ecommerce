@@ -5,8 +5,41 @@ import FeaturedBrands from '../components/FeaturedBrands';
 import BrandAlphabetNav from '../components/BrandAlphabetNav';
 import BrandGrid from '../components/BrandGrid';
 
+interface BrandsPageProps {
+  cartCount: number;
+  onCartCountChange: (count: number) => void;
+  onBackToHome: () => void;
+  onCartClick: () => void;
+  onBuyingGuideClick: () => void;
+  onEventsClick: () => void;
+  onMembershipClick: () => void;  
+  onFreebiesClick: () => void;
+  onBestSellerClick: () => void;
+  onClinicSetupClick: () => void;
+  onFavoritesClick: () => void;
+  onOrdersClick: () => void;
+  onAccountClick: () => void;
+  favoritesCount: number;
+  onBrandDetailClick: (brandId: number, brandName: string) => void;
+}
 
-export default function BrandsPage() {
+export default function BrandsPage({
+  cartCount,
+  onCartCountChange,
+  onBackToHome,
+  onCartClick,
+  onBuyingGuideClick,
+  onEventsClick,
+  onMembershipClick,
+  onFreebiesClick,
+  onBestSellerClick,
+  onClinicSetupClick,
+  onFavoritesClick,
+  onOrdersClick,
+  onAccountClick,
+  favoritesCount,
+  onBrandDetailClick,
+}: BrandsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLetter, setSelectedLetter] = useState('');
 
@@ -30,7 +63,10 @@ export default function BrandsPage() {
           />
         </div>
 
-        <BrandGrid selectedLetter={selectedLetter} />
+        <BrandGrid 
+          selectedLetter={selectedLetter}
+          onBrandClick={onBrandDetailClick}
+        />
       </main>
 
     </div>

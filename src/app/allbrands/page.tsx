@@ -1,3 +1,4 @@
+'use client';
 import { ChevronLeft } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Navigation from '../components/Navigation';
@@ -26,26 +27,26 @@ interface BrandDetailPageProps {
 }
 
 export default function BrandDetailPage({
-  brandId,
-  brandName,
-  cartCount,
-  onCartCountChange,
-  onBackToBrands,
-  onCartClick,
-  likedProducts,
-  onToggleLike,
+  brandId = 0,
+  brandName = 'Brand',
+  cartCount = 0,
+  onCartCountChange = () => {},
+  onBackToBrands = () => {},
+  onCartClick = () => {},
+  likedProducts = new Set(),
+  onToggleLike = () => {},
   onProductClick,
-  onBrandClick,
-  onBuyingGuideClick,
-  onEventsClick,
-  onMembershipClick,
-  onFreebiesClick,
-  onBestSellerClick,
-  onClinicSetupClick,
-  onFavoritesClick,
-  onOrdersClick,
-  onAccountClick,
-  favoritesCount,
+  onBrandClick = () => {},
+  onBuyingGuideClick = () => {},
+  onEventsClick = () => {},
+  onMembershipClick = () => {},
+  onFreebiesClick = () => {},
+  onBestSellerClick = () => {},
+  onClinicSetupClick = () => {},
+  onFavoritesClick = () => {},
+  onOrdersClick = () => {},
+  onAccountClick = () => {},
+  favoritesCount = 0,
 }: BrandDetailPageProps) {
   // Mock products for this brand
   const products = Array.from({ length: 24 }, (_, i) => ({

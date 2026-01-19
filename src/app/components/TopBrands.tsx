@@ -3,7 +3,11 @@ import imgBrand2 from "../../assets/d695ef4689082281baeaef28ce02ac0ad68955f1.png
 import imgBrand3 from "../../assets/0d5cfd7bd0c5bcd891cdf3c7697a2dd222e01471.png";
 import Image from "next/image";
 
-export default function TopBrands() {
+interface TopBrandsProps {
+  onBrandClick?: (brandId: number, brandName: string) => void;
+}
+
+export default function TopBrands({ onBrandClick }: TopBrandsProps) {
   const brands = [
     { id: 1, name: 'Brand 1', image: imgBrand1 },
     { id: 2, name: 'Brand 2', image: imgBrand2 },
@@ -30,6 +34,7 @@ export default function TopBrands() {
                 animationDelay: `${index * 80}ms`,
                 animationFillMode: 'both'
               }}
+              onClick={() => onBrandClick?.(brand.id, brand.name)}
             >
               <div className="w-full aspect-square rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-500 group-hover:-translate-y-2 relative">
                 <Image 

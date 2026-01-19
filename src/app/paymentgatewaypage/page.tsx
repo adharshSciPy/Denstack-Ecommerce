@@ -1,8 +1,10 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Footer from './Footer';
+// import Header from './Header';
+// import Footer from './Footer';
 import { CreditCard, Smartphone, Building2, Wallet, DollarSign, Lock, Shield, Check, ChevronLeft, AlertCircle, QrCode } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface PaymentGatewayPageProps {
   amount: number;
@@ -14,12 +16,12 @@ interface PaymentGatewayPageProps {
 }
 
 export default function PaymentGatewayPage({
-  amount,
-  orderId,
-  cartCount,
-  onPaymentSuccess,
-  onPaymentCancel,
-  onCartClick
+  amount = 0,
+  orderId = '',
+  cartCount = 0,
+  onPaymentSuccess = () => {},
+  onPaymentCancel = () => {},
+  onCartClick = () => {}
 }: PaymentGatewayPageProps) {
   const [selectedMethod, setSelectedMethod] = useState<'card' | 'upi' | 'netbanking' | 'wallet' | 'cod' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -190,18 +192,20 @@ export default function PaymentGatewayPage({
     { name: 'Freecharge', logo: '⚡' }
   ];
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Toaster position="top-right" richColors />
       
-      <Header 
+      {/* <Header 
         cartCount={cartCount}
         searchQuery=""
         onSearchChange={() => {}}
         onCartClick={onCartClick}
         onFavoritesClick={() => {}}
         favoritesCount={0}
-      />
+      /> */}
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
@@ -537,7 +541,7 @@ export default function PaymentGatewayPage({
 
                 {/* Pay Button */}
                 <button
-                  onClick={handlePayment}
+                  onClick={()=> router.push('/orderconfirmation')}
                   disabled={isProcessing}
                   className={`
                     w-full py-4 rounded-xl font-bold text-lg transition-all
@@ -626,7 +630,7 @@ export default function PaymentGatewayPage({
         </div>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
 
       <style>{`
         @keyframes fade-in {

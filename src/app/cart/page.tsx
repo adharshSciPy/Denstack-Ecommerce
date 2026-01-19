@@ -1,11 +1,11 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from '../components/Navigation';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Percent } from 'lucide-react';
 import img33211 from "../../assets/0815c4dbb681f7ea1c9955cfaec5ad8e6de976af.png";
 import { StaticImageData } from "next/image";
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface CartItem {
   id: number;
@@ -271,7 +271,7 @@ export default function CartPage({
 
   const handleRemove = (id: number) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
-    onCartCountChange(cartCount - 1);
+    onCartCountChange?.(cartCount - 1);
   };
 
   const handleApplyCoupon = () => {
@@ -289,10 +289,12 @@ export default function CartPage({
 
   const isEmpty = cartItems.length === 0;
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header
+      {/* <Header
         cartCount={cartCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -302,18 +304,18 @@ export default function CartPage({
         onOrdersClick={onOrdersClick}
         onAccountClick={onAccountClick}
         favoritesCount={favoritesCount}
-      />
+      /> */}
 
       {/* Navigation */}
       <Navigation
-        currentPage="home"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
+        currentPage="cart"
+        // onBrandClick={onBrandClick}
+        // onBuyingGuideClick={onBuyingGuideClick}
+        // onEventsClick={onEventsClick}
+        // onMembershipClick={onMembershipClick}
+        // onFreebiesClick={onFreebiesClick}
+        // onBestSellerClick={onBestSellerClick}
+        // onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Page Title */}
@@ -345,7 +347,7 @@ export default function CartPage({
                 Looks like you haven't added any items to your cart yet. Start shopping to fill it up!
               </p>
               <button
-                onClick={onBackToHome}
+                onClick={() => router.push('/')}
                 className="px-8 py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-all font-semibold hover:shadow-lg hover:scale-105 inline-flex items-center gap-2"
               >
                 Continue Shopping
@@ -362,7 +364,7 @@ export default function CartPage({
                 <button
                   onClick={() => {
                     setCartItems([]);
-                    onCartCountChange(0);
+                    onCartCountChange?.(0);
                   }}
                   className="text-sm text-red-600 hover:text-red-700 font-semibold hover:underline"
                 >
@@ -483,7 +485,7 @@ export default function CartPage({
 
                 {/* Checkout Button */}
                 <button
-                  onClick={onCheckoutClick}
+                  onClick={() => router.push('/checkout')}
                   className="w-full py-4 bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-xl hover:from-blue-800 hover:to-blue-900 transition-all font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
                 >
                   Proceed to Checkout
@@ -501,7 +503,7 @@ export default function CartPage({
       </main>
 
       {/* Footer */}
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

@@ -1,6 +1,5 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Footer from './Footer';
 import Navigation from './Navigation';
 import { Heart, ShoppingCart, Star, Truck, Shield, RotateCcw, Award, Plus, Minus, Check, ChevronRight, Home, ChevronDown, Package, CreditCard, Headphones, Gift, Tag } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -207,7 +206,7 @@ export default function ProductDetailPage({
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
       
-      <Header 
+      {/* <Header 
         cartCount={cartCount}
         searchQuery=""
         onSearchChange={() => {}}
@@ -215,17 +214,17 @@ export default function ProductDetailPage({
         onFavoritesClick={onBackToHome}
         onLogoClick={onBackToHome}
         favoritesCount={0}
-      />
+      /> */}
 
       <Navigation 
         currentPage="products"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
+        // onBrandClick={onBrandClick}
+        // onBuyingGuideClick={onBuyingGuideClick}
+        // onEventsClick={onEventsClick}
+        // onMembershipClick={onMembershipClick}
+        // onFreebiesClick={onFreebiesClick}
+        // onBestSellerClick={onBestSellerClick}
+        // onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Breadcrumb */}
@@ -996,7 +995,7 @@ export default function ProductDetailPage({
         </div>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

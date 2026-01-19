@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
 import Navigation from './Navigation';
-import Footer from './Footer';
 import { Shield, Lock, Eye, FileText, UserCheck, Mail } from 'lucide-react';
 
 interface PrivacyPolicyPageProps {
@@ -46,7 +45,7 @@ export default function PrivacyPolicyPage({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header
+      {/* <Header
         cartCount={cartCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -56,17 +55,17 @@ export default function PrivacyPolicyPage({
         onOrdersClick={onOrdersClick}
         onAccountClick={onAccountClick}
         favoritesCount={favoritesCount}
-      />
+      /> */}
 
       {/* Navigation */}
       <Navigation
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
+        // onBrandClick={onBrandClick}
+        // onBuyingGuideClick={onBuyingGuideClick}
+        // onEventsClick={onEventsClick}
+        // onMembershipClick={onMembershipClick}
+        // onFreebiesClick={onFreebiesClick}
+        // onBestSellerClick={onBestSellerClick}
+        // onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Hero Section */}
@@ -247,10 +246,10 @@ export default function PrivacyPolicyPage({
       </div>
 
       {/* Footer */}
-      <Footer 
+      {/* <Footer 
         onPrivacyPolicyClick={onPrivacyPolicyClick}
         onTermsClick={onTermsClick}
-      />
+      /> */}
     </div>
   );
 }

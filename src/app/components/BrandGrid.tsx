@@ -11,9 +11,10 @@ type Brand = {
 
 interface BrandGridProps {
   selectedLetter: string;
+  onBrandClick?: (brandId: number, brandName: string) => void;
 }
 
-export default function BrandGrid({ selectedLetter }: BrandGridProps) {
+export default function BrandGrid({ selectedLetter, onBrandClick }: BrandGridProps) {
   // Mock brand data organized by letter - using exact Figma images
   const brandsByLetter: Record<string, Brand[]> = {
     A: [
@@ -187,6 +188,7 @@ export default function BrandGrid({ selectedLetter }: BrandGridProps) {
                 key={brand.id}
                 brand={brand}
                 index={index}
+                onBrandClick={onBrandClick}
               />
             ))}
           </div>

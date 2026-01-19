@@ -1,9 +1,9 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Footer from './Footer';
-import Navigation from './Navigation';
+import Navigation from '../components/Navigation';
 import { Package, Truck, CheckCircle, XCircle, Clock, Download, Eye, Home, ChevronRight, Filter } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface OrderHistoryPageProps {
   cartCount: number;
@@ -141,28 +141,23 @@ export default function OrderHistoryPage({
     toast.success('Items added to cart!');
   };
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
       
-      <Header 
-        cartCount={cartCount}
-        searchQuery=""
-        onSearchChange={() => {}}
-        onCartClick={onCartClick}
-        onFavoritesClick={onBackToHome}
-        favoritesCount={0}
-      />
+    
 
       <Navigation 
-        currentPage="orders"
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
+        currentPage="orderhistory"
+        // onBrandClick={onBrandClick}
+        // onBuyingGuideClick={onBuyingGuideClick}
+        // onEventsClick={onEventsClick}
+        // onMembershipClick={onMembershipClick}
+        // onFreebiesClick={onFreebiesClick}
+        // onBestSellerClick={onBestSellerClick}
+        // onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Breadcrumb */}
@@ -363,8 +358,6 @@ export default function OrderHistoryPage({
           </div>
         </div>
       </div>
-
-      <Footer />
 
       {/* Floating Back Button */}
       <button

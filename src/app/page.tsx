@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './components/Header';
 import Navigation from './components/Navigation';
-import Footer from './components/Footer';
 import HeroBanner from './components/HeroBanner';
 import PromoBanner from './components/PromoBanner';
 import TopBrands from './components/TopBrands';
@@ -12,7 +11,7 @@ import BrandsPage from './brands/page';
 import BrandDetailPage from './allbrands/page';
 import BuyingGuidePage from './buying-guide/page';
 import BuyingGuideDetailPage from './components/BuyingGuideDetailPage';
-import CartPage from './components/CartPage';
+import CartPage from './cart/page';
 import EventsPage from './events/page';
 import EventDetailsPage from './eventsdetail/[id]/page';
 import EventRegistrationPage from './components/EventRegistrationPage';
@@ -24,11 +23,11 @@ import ClinicSetupPage from './clinic-setup/page';
 import CategoryBrowsePage from './category/page';
 import FullStoreDirectoryPage from './components/FullStoreDirectoryPage';
 import ProductDetailPage from './components/ProductDetailPage';
-import CheckoutPage from './components/CheckoutPage';
-import PaymentGatewayPage from './components/PaymentgatewayPage';
-import OrderConfirmationPage from './components/OrderConfirmationPage';
-import OrderTrackingPage from './components/OrderTrackingPage';
-import OrderHistoryPage from './components/OrderHistoryPage';
+import CheckoutPage from './checkout/page';
+import PaymentGatewayPage from './paymentgatewaypage/page';
+import OrderConfirmationPage from './orderconfirmation/page';
+import OrderTrackingPage from './ordertracking/page';
+import OrderHistoryPage from './orderhistory/page';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsAndConditionsPage from './components/TermsAndConditionsPage';
 import AccountPage from './account/page';
@@ -68,7 +67,7 @@ export default function App() {
   if (currentPage === 'brands') {
     return (
       <div>
-        {/* <BrandsPage 
+        <BrandsPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -88,7 +87,7 @@ export default function App() {
             setSelectedBrandName(brandName);
             setCurrentPage('brand-detail');
           }}
-        /> */}
+        />
         <WhatsAppButton />
       </div>
     );
@@ -98,7 +97,7 @@ export default function App() {
   if (currentPage === 'brand-detail') {
     return (
       <div>
-        <BrandDetailPage 
+        <BrandDetailPage
           brandId={selectedBrandId}
           brandName={selectedBrandName}
           cartCount={cartCount}
@@ -180,7 +179,7 @@ export default function App() {
   if (currentPage === 'cart') {
     return (
       <div>
-        <CartPage 
+        <CartPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -206,7 +205,7 @@ export default function App() {
   if (currentPage === 'events') {
     return (
       <div>
-        <EventsPage 
+        <EventsPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -252,7 +251,7 @@ export default function App() {
   if (currentPage === 'event-registration') {
     return (
       <div>
-        <EventRegistrationPage 
+        <EventRegistrationPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToDetails={() => setCurrentPage('event-details')}
@@ -268,7 +267,7 @@ export default function App() {
   if (currentPage === 'membership') {
     return (
       <div>
-        <MembershipPage 
+        <MembershipPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -289,7 +288,7 @@ export default function App() {
   if (currentPage === 'freebies') {
     return (
       <div>
-        <FreebiesPage 
+        <FreebiesPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -314,7 +313,7 @@ export default function App() {
   if (currentPage === 'bestseller') {
     return (
       <div>
-        <BestSellerPage 
+        <BestSellerPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -343,7 +342,7 @@ export default function App() {
   if (currentPage === 'favorites') {
     return (
       <div>
-        <FavoritesPage 
+        <FavoritesPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -367,7 +366,7 @@ export default function App() {
   if (currentPage === 'clinic-setup') {
     return (
       <div>
-        <ClinicSetupPage 
+        <ClinicSetupPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -392,7 +391,7 @@ export default function App() {
   if (currentPage === 'category-browse') {
     return (
       <div>
-        <CategoryBrowsePage 
+        <CategoryBrowsePage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -438,7 +437,7 @@ export default function App() {
   if (currentPage === 'product-detail') {
     return (
       <div>
-        <ProductDetailPage 
+        <ProductDetailPage
           productId={selectedProductId}
           cartCount={cartCount}
           onCartCountChange={setCartCount}
@@ -464,7 +463,7 @@ export default function App() {
   if (currentPage === 'checkout') {
     return (
       <div>
-        <CheckoutPage 
+        <CheckoutPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToCart={() => setCurrentPage('cart')}
@@ -484,7 +483,7 @@ export default function App() {
   if (currentPage === 'payment-gateway') {
     return (
       <div>
-        <PaymentGatewayPage 
+        <PaymentGatewayPage
           amount={paymentAmount}
           orderId={currentOrderId}
           cartCount={cartCount}
@@ -503,7 +502,7 @@ export default function App() {
   if (currentPage === 'order-confirmation') {
     return (
       <div>
-        <OrderConfirmationPage 
+        <OrderConfirmationPage
           orderId={currentOrderId}
           cartCount={cartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -522,7 +521,7 @@ export default function App() {
   if (currentPage === 'order-tracking') {
     return (
       <div>
-        <OrderTrackingPage 
+        <OrderTrackingPage
           orderId={currentOrderId}
           cartCount={cartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -537,7 +536,7 @@ export default function App() {
   if (currentPage === 'order-history') {
     return (
       <div>
-        <OrderHistoryPage 
+        <OrderHistoryPage
           cartCount={cartCount}
           onBackToHome={() => setCurrentPage('home')}
           onCartClick={() => setCurrentPage('cart')}
@@ -562,7 +561,7 @@ export default function App() {
   if (currentPage === 'account') {
     return (
       <div>
-        <AccountPage 
+        <AccountPage
           cartCount={cartCount}
           onBackToHome={() => setCurrentPage('home')}
           onCartClick={() => setCurrentPage('cart')}
@@ -586,7 +585,7 @@ export default function App() {
   if (currentPage === 'privacy-policy') {
     return (
       <div>
-        <PrivacyPolicyPage 
+        <PrivacyPolicyPage
           cartCount={cartCount}
           onBackToHome={() => setCurrentPage('home')}
           onCartClick={() => setCurrentPage('cart')}
@@ -613,7 +612,7 @@ export default function App() {
   if (currentPage === 'terms-and-conditions') {
     return (
       <div>
-        <TermsAndConditionsPage 
+        <TermsAndConditionsPage
           cartCount={cartCount}
           onBackToHome={() => setCurrentPage('home')}
           onCartClick={() => setCurrentPage('cart')}
@@ -640,7 +639,7 @@ export default function App() {
   if (currentPage === 'all-products') {
     return (
       <div>
-        <AllProductsPage 
+        <AllProductsPage
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
@@ -671,7 +670,7 @@ export default function App() {
   // Render Home Page
   return (
     <div className="min-h-screen bg-white">
-      <Header 
+      {/* <Header 
         cartCount={cartCount} 
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -681,28 +680,20 @@ export default function App() {
         onLogoClick={() => setCurrentPage('home')}
         onAccountClick={() => setCurrentPage('account')}
         favoritesCount={likedProducts.size}
-      />
-      {/* <Navigation 
-        onBrandClick={() => setCurrentPage('brands')}
-        onBuyingGuideClick={() => setCurrentPage('buying-guide')}
-        onEventsClick={() => setCurrentPage('events')}
-        onMembershipClick={() => setCurrentPage('membership')}
-        onFreebiesClick={() => setCurrentPage('freebies')}
-        onBestSellerClick={() => setCurrentPage('bestseller')}
-        onClinicSetupClick={() => setCurrentPage('clinic-setup')}
-        onCategoryBrowseClick={() => setCurrentPage('category-browse')}
-        onFullStoreDirectoryClick={() => setCurrentPage('full-store-directory')}
       /> */}
+      <Navigation
+        currentPage="/"
+      />
       <main>
         <HeroBanner />
         <PromoBanner />
-        {/* <TopBrands onBrandClick={(brandId: number, brandName: string) => {
+        <TopBrands onBrandClick={(brandId: number, brandName: string) => {
           setSelectedBrandId(brandId);
           setSelectedBrandName(brandName);
           setCurrentPage('brand-detail');
-        }} /> */}
+        }} />
         <TopCategories onCategoryClick={() => setCurrentPage('category-browse')} />
-        <ProductGrid 
+        <ProductGrid
           likedProducts={likedProducts}
           onToggleLike={toggleLike}
           onAddToCart={addToCart}
@@ -710,9 +701,9 @@ export default function App() {
             setSelectedProductId(productId);
             setCurrentPage('product-detail');
           }}
-          // onViewAllClick={() => setCurrentPage('all-products')}
+        // onViewAllClick={() => setCurrentPage('all-products')}
         />
-        <FeaturedProducts 
+        <FeaturedProducts
           likedProducts={likedProducts}
           onToggleLike={toggleLike}
           onAddToCart={addToCart}
@@ -720,13 +711,13 @@ export default function App() {
             setSelectedProductId(productId);
             setCurrentPage('product-detail');
           }}
-          // onViewAllClick={() => setCurrentPage('all-products')}
+        // onViewAllClick={() => setCurrentPage('all-products')}
         />
       </main>
-      <Footer 
+      {/* <Footer 
         onPrivacyPolicyClick={() => setCurrentPage('privacy-policy')}
         onTermsClick={() => setCurrentPage('terms-and-conditions')}
-      />
+      /> */}
       <WhatsAppButton />
     </div>
   );

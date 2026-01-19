@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
 import Navigation from './Navigation';
-import Footer from './Footer';
 import { 
   ArrowLeft, User, Mail, Phone, Building, MapPin, 
   CreditCard, Calendar, CheckCircle, AlertCircle, Users, Clock
@@ -128,17 +127,17 @@ export default function EventRegistrationPage({
       <Toaster position="top-right" richColors />
       
       {/* Header */}
-      <Header 
+      {/* <Header 
         cartCount={cartCount}
         onCartClick={onCartClick}
-      />
+      /> */}
 
       {/* Navigation */}
       <Navigation 
         currentPage="events"
-        onBrandClick={onBackToDetails}
-        onBuyingGuideClick={onBackToDetails}
-        onEventsClick={onBackToDetails}
+        // onBrandClick={onBackToDetails}
+        // onBuyingGuideClick={onBackToDetails}
+        // onEventsClick={onBackToDetails}
       />
 
       {/* Back Button */}
@@ -616,7 +615,7 @@ export default function EventRegistrationPage({
       </div>
 
       {/* Footer */}
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

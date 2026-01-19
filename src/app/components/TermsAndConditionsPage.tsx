@@ -1,7 +1,6 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
 import Navigation from './Navigation';
-import Footer from './Footer';
 import { FileText, Scale, AlertCircle, Package, CreditCard, RefreshCw } from 'lucide-react';
 
 interface TermsAndConditionsPageProps {
@@ -46,7 +45,7 @@ export default function TermsAndConditionsPage({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header
+      {/* <Header
         cartCount={cartCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -56,17 +55,17 @@ export default function TermsAndConditionsPage({
         onOrdersClick={onOrdersClick}
         onAccountClick={onAccountClick}
         favoritesCount={favoritesCount}
-      />
+      /> */}
 
       {/* Navigation */}
       <Navigation
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
+        // onBrandClick={onBrandClick}
+        // onBuyingGuideClick={onBuyingGuideClick}
+        // onEventsClick={onEventsClick}
+        // onMembershipClick={onMembershipClick}
+        // onFreebiesClick={onFreebiesClick}
+        // onBestSellerClick={onBestSellerClick}
+        // onClinicSetupClick={onClinicSetupClick}
       />
 
       {/* Hero Section */}
@@ -266,10 +265,10 @@ export default function TermsAndConditionsPage({
       </div>
 
       {/* Footer */}
-      <Footer 
+      {/* <Footer 
         onPrivacyPolicyClick={onPrivacyPolicyClick}
         onTermsClick={onTermsClick}
-      />
+      /> */}
     </div>
   );
 }

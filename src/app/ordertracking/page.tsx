@@ -1,6 +1,5 @@
+'use client';
 import { useState } from 'react';
-import Header from './Header';
-import Footer from './Footer';
 import { Package, Truck, MapPin, CheckCircle, Clock, Phone, Mail, Home, ChevronRight, Search } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
@@ -73,14 +72,14 @@ export default function OrderTrackingPage({
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
       
-      <Header 
+      {/* <Header 
         cartCount={cartCount}
         searchQuery=""
         onSearchChange={() => {}}
         onCartClick={onCartClick}
         onFavoritesClick={onBackToHome}
         favoritesCount={0}
-      />
+      /> */}
 
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-200">
@@ -288,7 +287,7 @@ export default function OrderTrackingPage({
         )}
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
 
       {/* Floating Back Button */}
       <button

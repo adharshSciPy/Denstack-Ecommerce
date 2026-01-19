@@ -11,9 +11,10 @@ interface Brand {
 interface BrandCardProps {
   brand: Brand;
   index: number;
+  onBrandClick?: (brandId: number, brandName: string) => void;
 }
 
-export default function BrandCard({ brand, index }: BrandCardProps) {
+export default function BrandCard({ brand, index, onBrandClick }: BrandCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -30,6 +31,7 @@ export default function BrandCard({ brand, index }: BrandCardProps) {
       <div 
         className="bg-[#eaebfd] rounded-md transition-all duration-500 hover:shadow-[0px_-2px_10px_0px_rgba(89,29,221,0.5),0px_-2px_40px_0px_rgba(89,29,221,0.15),0px_-0.5px_0px_0px_rgba(255,255,255,0.5)] hover:-translate-y-2 cursor-pointer relative overflow-hidden shadow-[0px_-2px_10px_0px_rgba(89,29,221,0.5),0px_-2px_40px_0px_rgba(89,29,221,0.15),0px_-0.5px_0px_0px_rgba(255,255,255,0.5)]"
         style={{ aspectRatio: '1.68 / 1' }}
+        onClick={() => onBrandClick?.(brand.id, brand.name)}
       >
         {/* Decorative pattern background */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">

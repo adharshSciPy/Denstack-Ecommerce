@@ -1,8 +1,8 @@
+'use client';
 import { useState, useEffect } from 'react';
-import Header from './Header';
-import Footer from './Footer';
 import { CheckCircle, Package, Truck, MapPin, Calendar, Download, Share2, Home } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface OrderConfirmationPageProps {
   orderId: string;
@@ -27,15 +27,15 @@ export default function OrderConfirmationPage({
 
   const orderDetails = {
     orderId: orderId,
-    orderDate: new Date().toLocaleDateString('en-IN', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+    orderDate: new Date().toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     }),
-    estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+    estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     }),
     items: [
       { name: 'Dental Impression Tray Kit', quantity: 2, price: 1299 },
@@ -62,10 +62,12 @@ export default function OrderConfirmationPage({
     toast.success('Order details copied to clipboard!');
   };
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Toaster position="top-right" richColors />
-      
+
       {/* Confetti Animation */}
       {confettiActive && (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
@@ -83,15 +85,15 @@ export default function OrderConfirmationPage({
           ))}
         </div>
       )}
-      
-      <Header 
+
+      {/* <Header 
         cartCount={cartCount}
         searchQuery=""
         onSearchChange={() => {}}
         onCartClick={onCartClick}
         onFavoritesClick={onBackToHome}
         favoritesCount={0}
-      />
+      /> */}
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Success Message */}
@@ -178,7 +180,7 @@ export default function OrderConfirmationPage({
         {/* Order Details */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Details</h2>
-          
+
           {/* Items */}
           <div className="space-y-3 mb-6">
             {orderDetails.items.map((item, index) => (
@@ -227,14 +229,14 @@ export default function OrderConfirmationPage({
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={() => onTrackOrder(orderDetails.orderId)}
+            onClick={() => router.push("/ordertracking")}
             className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all hover:scale-105 shadow-lg"
           >
             <Truck className="w-5 h-5" />
             Track Order
           </button>
           <button
-            onClick={onBackToHome}
+            onClick={() => router.push('/')}
             className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all hover:scale-105 shadow-lg"
           >
             <Home className="w-5 h-5" />
@@ -259,7 +261,7 @@ export default function OrderConfirmationPage({
         </div>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
 
       <style>{`
         @keyframes confetti {
