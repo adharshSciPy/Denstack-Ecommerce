@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, TrendingUp, Award, Zap } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -192,6 +193,7 @@ export default function BestSellerPage({
   onProductClick,
   favoritesCount
 }: BestSellerPageProps) {
+  const router = useRouter();
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set([1, 3, 6, 9, 12, 15]));
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [selectedPriceRange, setSelectedPriceRange] = useState('All Prices');
@@ -540,7 +542,7 @@ export default function BestSellerPage({
                 isLiked={likedProducts.has(product.id)}
                 onToggleLike={() => toggleLike(product.id)}
                 onAddToCart={() => handleAddToCart(product.name)}
-                onProductClick={() => onProductClick?.(product.id)}
+                onProductClick={() => router.push(`/productdetailpage/${product.id}`)}
               />
             </div>
           ))}

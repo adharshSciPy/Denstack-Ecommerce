@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Navigation from '../components/Navigation';
-import { Heart, ChevronDown, Star, Gift, Tag } from 'lucide-react';
+import { Heart, ChevronDown, Star, Gift, Tag, Clock, Bell } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
 interface FreebiesPageProps {
@@ -168,6 +168,8 @@ export default function FreebiesPage({
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [showRatingFilter, setShowRatingFilter] = useState(false);
   const [showSortFilter, setShowSortFilter] = useState(false);
+  const [isLaunchingSoon, setIsLaunchingSoon] = useState(true);
+  const [notificationEmail, setNotificationEmail] = useState('');
 
   const brands = ['All Brands', 'Rovena', 'DentalPro', 'MediEquip', 'HealthCare', 'DentalTech'];
   const priceRanges = ['All Prices', 'Under $500', '$500 - $1000', '$1000 - $2000', 'Over $2000'];
@@ -185,7 +187,7 @@ export default function FreebiesPage({
       : i % 3 === 1 
         ? 'Free Maintenance Service for 1 Year'
         : 'Free Installation + 2 Year Warranty',
-    rating: Math.floor(Math.random() * 2) + 4, // 4 or 5 stars
+    rating: (i % 2) + 4, // Consistent rating based on index: 4 or 5
   }));
 
   const toggleLike = (productId: number) => {
@@ -209,10 +211,175 @@ export default function FreebiesPage({
     });
   };
 
+  const handleNotifyMe = () => {
+    if (!notificationEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    if (!notificationEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    toast.success('📧 Notification enabled!', {
+      description: `We'll notify you when the new freebies collection launches`,
+      duration: 3000,
+    });
+    setNotificationEmail('');
+  };
+
+  // Launching Soon Page Component
+  if (isLaunchingSoon) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <Toaster position="top-right" richColors />
+        
+        {/* Navigation */}
+        <Navigation 
+          currentPage="freebies"
+        />
+
+        {/* Toggle Button */}
+        <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 mt-6">
+          <button
+            onClick={() => setIsLaunchingSoon(false)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg"
+          >
+            📦 Browse Freebies Collection
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            {/* Animated Coming Soon Icon */}
+            <div className="mb-8 relative inline-block">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full blur-2xl opacity-40 animate-pulse"></div>
+              <div className="relative bg-white rounded-full p-8 shadow-2xl">
+                <Clock className="w-24 h-24 text-blue-600 mx-auto animate-bounce" />
+              </div>
+            </div>
+
+            {/* Heading */}
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 drop-shadow-lg">
+              Coming Soon
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-700 mb-2 font-semibold">
+              Exciting New Freebies Collection
+            </p>
+            <p className="text-lg text-gray-600 mb-12 max-w-xl mx-auto">
+              We're preparing something amazing for you! A brand new collection of exclusive freebies with incredible offers and premium gifts.
+            </p>
+
+            {/* Countdown Info */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 mb-12 border-2 border-blue-200">
+              <p className="text-gray-700 mb-6 text-lg">
+                🎁 Launching in Q2 2026 with exclusive benefits for early customers
+              </p>
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-4">
+                  <p className="text-3xl font-bold text-blue-600">32</p>
+                  <p className="text-gray-600 text-sm">Days</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl p-4">
+                  <p className="text-3xl font-bold text-purple-600">14</p>
+                  <p className="text-gray-600 text-sm">Hours</p>
+                </div>
+                <div className="bg-gradient-to-br from-pink-100 to-pink-50 rounded-xl p-4">
+                  <p className="text-3xl font-bold text-pink-600">47</p>
+                  <p className="text-gray-600 text-sm">Minutes</p>
+                </div>
+              </div>
+
+              {/* Features Coming Soon */}
+              <div className="text-left bg-gray-50 rounded-xl p-6 space-y-3">
+                <p className="font-bold text-gray-900 mb-4">What's Coming:</p>
+                <div className="space-y-2">
+                  <p className="flex items-center gap-3 text-gray-700">
+                    <Gift className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>Premium dental kits worth up to $200</span>
+                  </p>
+                  <p className="flex items-center gap-3 text-gray-700">
+                    <Tag className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                    <span>Extended warranties and free maintenance</span>
+                  </p>
+                  <p className="flex items-center gap-3 text-gray-700">
+                    <Star className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                    <span>Exclusive early-bird discounts</span>
+                  </p>
+                  <p className="flex items-center gap-3 text-gray-700">
+                    <Clock className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                    <span>Free installation and consultation</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Notification Signup */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">Be the First to Know</h2>
+              <p className="text-blue-100 mb-6">
+                Get exclusive early access and special launch offers when we go live
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={notificationEmail}
+                  onChange={(e) => setNotificationEmail(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleNotifyMe()}
+                  className="flex-1 px-4 py-3 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <button
+                  onClick={handleNotifyMe}
+                  className="px-8 py-3 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition-all hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                  <Bell className="w-5 h-5" />
+                  Notify Me
+                </button>
+              </div>
+              <p className="text-blue-100 text-sm mt-4">
+                ✓ No spam, just launch updates and exclusive offers
+              </p>
+            </div>
+
+            {/* FAQ Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h3>
+              <div className="space-y-4 text-left">
+                <div className="border-b border-gray-200 pb-4">
+                  <p className="font-semibold text-gray-900 mb-2">When will the new freebies collection launch?</p>
+                  <p className="text-gray-600">We're targeting Q2 2026 for our full launch. Stay tuned for updates!</p>
+                </div>
+                <div className="border-b border-gray-200 pb-4">
+                  <p className="font-semibold text-gray-900 mb-2">Will current customers get priority access?</p>
+                  <p className="text-gray-600">Absolutely! Early subscribers will receive exclusive early access and special discounts.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 mb-2">How much value will the free gifts have?</p>
+                  <p className="text-gray-600">Our freebies collection items come with gifts worth $150-$300, absolutely free!</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-    
+      
+      {/* Toggle Button */}
+      <div className="fixed top-40 right-4 md:right-8 z-50">
+        <button
+          onClick={() => setIsLaunchingSoon(true)}
+          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105 active:scale-95 text-sm md:text-base"
+        >
+          🎁 Around the corner
+        </button>
+      </div>
 
       {/* Navigation */}
       <Navigation 

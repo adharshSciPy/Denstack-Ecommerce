@@ -37,7 +37,7 @@ export default function Header({ cartCount = 0, searchQuery, onSearchChange, onC
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 border border-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-300 hover:shadow-md"
+                className="w-full pl-12 pr-4 py-2.5 border text-black border-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-300 hover:shadow-md"
               />
             </div>
           </div>

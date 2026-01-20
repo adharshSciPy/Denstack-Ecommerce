@@ -22,7 +22,7 @@ import FavoritesPage from './favorites/page';
 import ClinicSetupPage from './clinic-setup/page';
 import CategoryBrowsePage from './category/page';
 import FullStoreDirectoryPage from './components/FullStoreDirectoryPage';
-import ProductDetailPage from './components/ProductDetailPage';
+import ProductDetailPage from './productdetailpage/[id]/page';
 import CheckoutPage from './checkout/page';
 import PaymentGatewayPage from './paymentgatewaypage/page';
 import OrderConfirmationPage from './orderconfirmation/page';
@@ -33,12 +33,14 @@ import TermsAndConditionsPage from './components/TermsAndConditionsPage';
 import AccountPage from './account/page';
 import WhatsAppButton from './components/WhatsAppButton';
 import AllProductsPage from './components/AllProductPage';
+import { useRouter } from 'next/navigation';
 
 export default function App() {
+  const router = useRouter();
   const [cartCount, setCartCount] = useState(16);
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set([2, 3]));
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState<'home' | 'brands' | 'brand-detail' | 'buying-guide' | 'buying-guide-detail' | 'cart' | 'events' | 'event-details' | 'event-registration' | 'membership' | 'freebies' | 'bestseller' | 'favorites' | 'clinic-setup' | 'category-browse' | 'full-store-directory' | 'product-detail' | 'checkout' | 'payment-gateway' | 'order-confirmation' | 'order-tracking' | 'order-history' | 'account' | 'privacy-policy' | 'terms-and-conditions' | 'all-products'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'brands' | 'brand-detail' | 'buying-guide' | 'buying-guide-detail' | 'cart' | 'events' | 'event-details' | 'event-registration' | 'membership' | 'freebies' | 'bestseller' | 'favorites' | 'clinic-setup' | 'category-browse' | 'full-store-directory' | 'productdetailpage/[id]' | 'checkout' | 'payment-gateway' | 'order-confirmation' | 'order-tracking' | 'order-history' | 'account' | 'privacy-policy' | 'terms-and-conditions' | 'all-products'>('home');
   const [selectedEventId, setSelectedEventId] = useState(0);
   const [selectedProductId, setSelectedProductId] = useState(1);
   const [currentOrderId, setCurrentOrderId] = useState('');
@@ -108,7 +110,7 @@ export default function App() {
           onToggleLike={toggleLike}
           onProductClick={(productId: number) => {
             setSelectedProductId(productId);
-            setCurrentPage('product-detail');
+            setCurrentPage('productdetailpage/[id]');
           }}
           onBrandClick={() => setCurrentPage('brands')}
           onBuyingGuideClick={() => setCurrentPage('buying-guide')}
@@ -301,7 +303,7 @@ export default function App() {
           onClinicSetupClick={() => setCurrentPage('clinic-setup')}
           onProductClick={(productId) => {
             setSelectedProductId(productId);
-            setCurrentPage('product-detail');
+            setCurrentPage('productdetailpage/[id]');
           }}
         />
         <WhatsAppButton />
@@ -329,7 +331,7 @@ export default function App() {
           onClinicSetupClick={() => setCurrentPage('clinic-setup')}
           onProductClick={(productId: number) => {
             setSelectedProductId(productId);
-            setCurrentPage('product-detail');
+            setCurrentPage('productdetailpage/[id]');
           }}
           favoritesCount={likedProducts.size}
         />
@@ -434,7 +436,7 @@ export default function App() {
   }
 
   // Render Product Detail Page
-  if (currentPage === 'product-detail') {
+  if (currentPage === 'productdetailpage/[id]') {
     return (
       <div>
         <ProductDetailPage
@@ -658,7 +660,7 @@ export default function App() {
           onToggleLike={toggleLike}
           onProductClick={(productId: number) => {
             setSelectedProductId(productId);
-            setCurrentPage('product-detail');
+            setCurrentPage('productdetailpage/[id]');
           }}
           favoritesCount={likedProducts.size}
         />
@@ -698,8 +700,7 @@ export default function App() {
           onToggleLike={toggleLike}
           onAddToCart={addToCart}
           onProductClick={(productId: number) => {
-            setSelectedProductId(productId);
-            setCurrentPage('product-detail');
+            router.push(`/productdetailpage/${productId}`);
           }}
         // onViewAllClick={() => setCurrentPage('all-products')}
         />
@@ -708,8 +709,7 @@ export default function App() {
           onToggleLike={toggleLike}
           onAddToCart={addToCart}
           onProductClick={(productId: number) => {
-            setSelectedProductId(productId);
-            setCurrentPage('product-detail');
+            router.push(`/productdetailpage/${productId}`);
           }}
         // onViewAllClick={() => setCurrentPage('all-products')}
         />
