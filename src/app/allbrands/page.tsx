@@ -68,7 +68,12 @@ export default function BrandDetailPage({
     onCartCountChange(cartCount + 1);
   };
 
-
+  const handleProductClick = (productId: number) => {
+    router.push(`/productdetailpage/${productId}`);
+    if (onProductClick) {
+      onProductClick(productId);
+    }
+  };
 
   // Brand information
   const brandInfo = {
@@ -213,7 +218,7 @@ export default function BrandDetailPage({
                   isLiked={likedProducts.has(product.id)}
                   onToggleLike={onToggleLike}
                   onAddToCart={addToCart}
-                  onProductClick={onProductClick}
+                  onProductClick={handleProductClick}
                 />
               </div>
             ))}
