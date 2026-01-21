@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, Gift, Tag, Clock, Bell } from 'lucide-react';
@@ -170,8 +170,30 @@ export default function FreebiesPage({
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [showRatingFilter, setShowRatingFilter] = useState(false);
   const [showSortFilter, setShowSortFilter] = useState(false);
-  const [isLaunchingSoon, setIsLaunchingSoon] = useState(true);
+  const [isLaunchingSoon, setIsLaunchingSoon] = useState<boolean | null>(null);
   const [notificationEmail, setNotificationEmail] = useState('');
+
+  // Initialize state from localStorage - only runs once on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('freebiesPageState');
+    if (savedState !== null) {
+      setIsLaunchingSoon(JSON.parse(savedState));
+    } else {
+      setIsLaunchingSoon(true);
+    }
+  }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (isLaunchingSoon !== null) {
+      localStorage.setItem('freebiesPageState', JSON.stringify(isLaunchingSoon));
+    }
+  }, [isLaunchingSoon]);
+
+  // Don't render until state is hydrated
+  if (isLaunchingSoon === null) {
+    return null;
+  }
 
   const brands = ['All Brands', 'Rovena', 'DentalPro', 'MediEquip', 'HealthCare', 'DentalTech'];
   const priceRanges = ['All Prices', 'Under $500', '$500 - $1000', '$1000 - $2000', 'Over $2000'];
