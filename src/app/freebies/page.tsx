@@ -189,7 +189,7 @@ export default function FreebiesPage({
       : i % 3 === 1 
         ? 'Free Maintenance Service for 1 Year'
         : 'Free Installation + 2 Year Warranty',
-    rating: (i % 2) + 4, // Consistent rating based on index: 4 or 5
+    rating: (i % 2) + 4,
   }));
 
   const toggleLike = (productId: number) => {
@@ -477,7 +477,7 @@ export default function FreebiesPage({
                         setSelectedBrand(brand);
                         setShowBrandFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         selectedBrand === brand ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
@@ -506,7 +506,7 @@ export default function FreebiesPage({
                         setSelectedPriceRange(range);
                         setShowPriceFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         selectedPriceRange === range ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
@@ -535,7 +535,7 @@ export default function FreebiesPage({
                         setSelectedRating(rating);
                         setShowRatingFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         selectedRating === rating ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
@@ -564,7 +564,7 @@ export default function FreebiesPage({
                         setSortBy(option);
                         setShowSortFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         sortBy === option ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >

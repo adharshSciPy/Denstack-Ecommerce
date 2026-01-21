@@ -399,7 +399,7 @@ export default function BestSellerPage({
                         setSelectedBrand(brand);
                         setShowBrandFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         selectedBrand === brand ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
@@ -428,7 +428,7 @@ export default function BestSellerPage({
                         setSelectedPriceRange(range);
                         setShowPriceFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         selectedPriceRange === range ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
@@ -457,7 +457,7 @@ export default function BestSellerPage({
                         setSelectedRating(rating);
                         setShowRatingFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         selectedRating === rating ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
@@ -486,7 +486,7 @@ export default function BestSellerPage({
                         setSortBy(option);
                         setShowSortFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors ${
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
                         sortBy === option ? 'bg-blue-100 font-semibold' : ''
                       }`}
                     >
