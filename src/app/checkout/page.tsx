@@ -166,7 +166,7 @@ export default function CheckoutPage({
                                             type="text"
                                             value={billingInfo.fullName}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, fullName: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             placeholder="Enter your full name"
                                             required
                                         />
@@ -181,7 +181,7 @@ export default function CheckoutPage({
                                             type="email"
                                             value={billingInfo.email}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, email: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             placeholder="your@email.com"
                                             required
                                         />
@@ -196,7 +196,7 @@ export default function CheckoutPage({
                                             type="tel"
                                             value={billingInfo.phone}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, phone: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             placeholder="+91 98765 43210"
                                             required
                                         />
@@ -210,7 +210,7 @@ export default function CheckoutPage({
                                         <textarea
                                             value={billingInfo.address}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, address: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             rows={3}
                                             placeholder="Street address, building name, etc."
                                             required
@@ -223,7 +223,7 @@ export default function CheckoutPage({
                                             type="text"
                                             value={billingInfo.city}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, city: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             placeholder="City"
                                             required
                                         />
@@ -235,7 +235,7 @@ export default function CheckoutPage({
                                             type="text"
                                             value={billingInfo.state}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, state: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             placeholder="State"
                                             required
                                         />
@@ -247,7 +247,7 @@ export default function CheckoutPage({
                                             type="text"
                                             value={billingInfo.pincode}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, pincode: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             placeholder="123456"
                                             required
                                         />
@@ -258,7 +258,7 @@ export default function CheckoutPage({
                                         <select
                                             value={billingInfo.country}
                                             onChange={(e) => setBillingInfo({ ...billingInfo, country: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                         >
                                             <option>India</option>
                                             <option>USA</option>
@@ -305,7 +305,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={shippingInfo.fullName}
                                                 onChange={(e) => setShippingInfo({ ...shippingInfo, fullName: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                 placeholder="Recipient name"
                                             />
                                         </div>
@@ -316,7 +316,7 @@ export default function CheckoutPage({
                                                 type="tel"
                                                 value={shippingInfo.phone}
                                                 onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                 placeholder="+91 98765 43210"
                                             />
                                         </div>
@@ -326,7 +326,7 @@ export default function CheckoutPage({
                                             <textarea
                                                 value={shippingInfo.address}
                                                 onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                 rows={3}
                                                 placeholder="Delivery address"
                                             />
@@ -338,7 +338,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={shippingInfo.city}
                                                 onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
 
@@ -348,7 +348,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={shippingInfo.state}
                                                 onChange={(e) => setShippingInfo({ ...shippingInfo, state: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
 
@@ -358,7 +358,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={shippingInfo.pincode}
                                                 onChange={(e) => setShippingInfo({ ...shippingInfo, pincode: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
                                     </div>
@@ -434,7 +434,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={cardInfo.cardNumber}
                                                 onChange={(e) => setCardInfo({ ...cardInfo, cardNumber: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                 placeholder="1234 5678 9012 3456"
                                                 maxLength={19}
                                             />
@@ -446,7 +446,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={cardInfo.cardName}
                                                 onChange={(e) => setCardInfo({ ...cardInfo, cardName: e.target.value })}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                 placeholder="Name on card"
                                             />
                                         </div>
@@ -458,7 +458,7 @@ export default function CheckoutPage({
                                                     type="text"
                                                     value={cardInfo.expiryDate}
                                                     onChange={(e) => setCardInfo({ ...cardInfo, expiryDate: e.target.value })}
-                                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                    className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                     placeholder="MM/YY"
                                                     maxLength={5}
                                                 />
@@ -470,7 +470,7 @@ export default function CheckoutPage({
                                                     type="password"
                                                     value={cardInfo.cvv}
                                                     onChange={(e) => setCardInfo({ ...cardInfo, cvv: e.target.value })}
-                                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                    className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                     placeholder="123"
                                                     maxLength={3}
                                                 />
@@ -493,7 +493,7 @@ export default function CheckoutPage({
                                                 type="text"
                                                 value={upiId}
                                                 onChange={(e) => setUpiId(e.target.value)}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                                 placeholder="yourname@paytm"
                                             />
                                         </div>
@@ -510,7 +510,7 @@ export default function CheckoutPage({
                                         <select
                                             value={selectedBank}
                                             onChange={(e) => setSelectedBank(e.target.value)}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                                         >
                                             <option value="">Choose a bank</option>
                                             <option value="sbi">State Bank of India</option>

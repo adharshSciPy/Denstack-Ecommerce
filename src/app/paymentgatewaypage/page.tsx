@@ -310,7 +310,7 @@ export default function PaymentGatewayPage({
                         type="text"
                         value={cardNumber}
                         onChange={handleCardNumberChange}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                        className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                         placeholder="1234 5678 9012 3456"
                       />
                     </div>
@@ -321,7 +321,7 @@ export default function PaymentGatewayPage({
                         type="text"
                         value={cardName}
                         onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                        className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                         placeholder="JOHN DOE"
                       />
                     </div>
@@ -333,7 +333,7 @@ export default function PaymentGatewayPage({
                           type="text"
                           value={expiryDate}
                           onChange={handleExpiryChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                          className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                           placeholder="MM/YY"
                         />
                       </div>
@@ -343,7 +343,7 @@ export default function PaymentGatewayPage({
                           type="password"
                           value={cvv}
                           onChange={handleCvvChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                          className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
                           placeholder="123"
                         />
                       </div>
@@ -400,7 +400,7 @@ export default function PaymentGatewayPage({
                             type="text"
                             value={upiId}
                             onChange={(e) => setUpiId(e.target.value)}
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-green-500 focus:outline-none"
+                            className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:border-green-500 focus:outline-none"
                             placeholder="yourname@paytm"
                           />
                         </div>
