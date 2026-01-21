@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, Gift, Tag, Clock, Bell } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -159,6 +160,7 @@ export default function FreebiesPage({
   onClinicSetupClick,
   onProductClick
 }: FreebiesPageProps) {
+  const router = useRouter();
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set([0, 2, 5, 8]));
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [selectedPriceRange, setSelectedPriceRange] = useState('All Prices');
@@ -209,6 +211,11 @@ export default function FreebiesPage({
       description: `${productName.slice(0, 40)}...`,
       duration: 2000,
     });
+  };
+
+  const handleProductClick = (productId: number) => {
+    router.push(`/productdetailpage/${productId}`);
+    onProductClick?.(productId);
   };
 
   const handleNotifyMe = () => {
@@ -613,7 +620,7 @@ export default function FreebiesPage({
                 isLiked={likedProducts.has(product.id)}
                 onToggleLike={() => toggleLike(product.id)}
                 onAddToCart={() => handleAddToCart(product.name)}
-                onProductClick={() => onProductClick?.(product.id)}
+                onProductClick={() => handleProductClick(product.id)}
               />
             </div>
           ))}
