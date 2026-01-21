@@ -21,7 +21,7 @@ export default function Header({ cartCount = 0, searchQuery, onSearchChange, onC
   const router = useRouter();
   return (
     <header className="border-b border-gray-300 bg-white sticky top-0 z-50 shadow-sm">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-4 lg:py-0">
         <div className="flex items-center justify-between gap-4 flex-wrap lg:flex-nowrap">
           {/* Logo */}
           <div className="w-32 lg:w-36 flex-shrink-0 cursor-pointer hover:scale-105 transition-transform duration-300">
@@ -83,7 +83,7 @@ export default function Header({ cartCount = 0, searchQuery, onSearchChange, onC
             </button>
 
             <button
-              onClick={()=> router.push('/orderhistory')}
+              onClick={() => router.push('/orderhistory')}
               className="flex items-center gap-2 hover:text-cyan-600 transition-all duration-300 group relative hover:scale-105 active:scale-95"
             >
               <div className="relative">
