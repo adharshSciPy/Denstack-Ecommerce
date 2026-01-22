@@ -259,7 +259,7 @@ export default function EventDetailsPage({
                                     </div>
                                 </div>
 
-                                {/* <div className="flex items-start gap-3">
+                                <div className="flex items-start gap-3">
                                     <Users className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
                                     <div>
                                         <div className="font-bold text-gray-900">
@@ -269,11 +269,11 @@ export default function EventDetailsPage({
                                             {event.spotsLeft > 0 ? `${event.spotsLeft} spots remaining` : 'Event is full'}
                                         </div>
                                     </div>
-                                </div> */}
+                                </div>
                             </div>
 
                             {/* Progress Bar */}
-                            {/* <div className="mb-6">
+                            <div className="mb-6">
                                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                                     <div
                                         className={`h-full rounded-full transition-all duration-500 ${isFull ? 'bg-red-500' :
@@ -283,7 +283,7 @@ export default function EventDetailsPage({
                                         style={{ width: `${(event.attendees / event.maxAttendees) * 100}%` }}
                                     />
                                 </div>
-                            </div> */}
+                            </div>
 
                             {/* Status Alert */}
                             {isAlmostFull && !isFull && (

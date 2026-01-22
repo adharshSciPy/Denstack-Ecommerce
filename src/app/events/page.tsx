@@ -469,14 +469,14 @@ function EventCard({
           </div>
 
           {/* Attendees */}
-          {/* <div className="flex items-center gap-2 text-gray-600 text-sm">
+          <div className="flex items-center gap-2 text-gray-600 text-sm">
             <Users className="w-4 h-4 flex-shrink-0 text-blue-600" />
             <span className="font-medium text-gray-900">{attendees}/{maxAttendees} registered</span>
-          </div> */}
+          </div>
         </div>
 
         {/* Progress Bar */}
-        {/* <div className="mb-4">
+        <div className="mb-4">
           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${spotsLeft === 0 ? 'bg-red-500' :
@@ -486,7 +486,7 @@ function EventCard({
               style={{ width: `${(attendees / maxAttendees) * 100}%` }}
             />
           </div>
-        </div> */}
+        </div>
 
         {/* Register Button */}
         <button
