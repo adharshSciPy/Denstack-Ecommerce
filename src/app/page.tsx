@@ -14,7 +14,7 @@ import BuyingGuideDetailPage from './detailbuyingguide/page';
 import CartPage from './cart/page';
 import EventsPage from './events/page';
 import EventDetailsPage from './eventsdetail/[id]/page';
-import EventRegistrationPage from './components/EventRegistrationPage';
+import EventRegistrationPage from './eventRegisteration/page';
 import MembershipPage from './membership/page';
 import FreebiesPage from './freebies/page';
 import BestSellerPage from './bestseller/page';

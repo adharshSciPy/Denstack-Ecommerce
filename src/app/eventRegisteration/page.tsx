@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
-import Navigation from './Navigation';
+import Navigation from '../components/Navigation';
 import { 
   ArrowLeft, User, Mail, Phone, Building, MapPin, 
   CreditCard, Calendar, CheckCircle, AlertCircle, Users, Clock
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface EventRegistrationPageProps {
   eventId: number;
@@ -122,6 +123,8 @@ export default function EventRegistrationPage({
     }, 2000);
   };
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
@@ -134,7 +137,7 @@ export default function EventRegistrationPage({
 
       {/* Navigation */}
       <Navigation 
-        currentPage="events"
+        currentPage="eventRegistration"
         // onBrandClick={onBackToDetails}
         // onBuyingGuideClick={onBackToDetails}
         // onEventsClick={onBackToDetails}
@@ -143,7 +146,7 @@ export default function EventRegistrationPage({
       {/* Back Button */}
       <div className="container mx-auto px-4 md:px-6 lg:px-8 mt-6">
         <button
-          onClick={onBackToDetails}
+          onClick={() => router.push('/events')}
           className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
@@ -198,7 +201,7 @@ export default function EventRegistrationPage({
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
                         errors.firstName 
                           ? 'border-red-500 focus:border-red-600' 
                           : 'border-gray-200 focus:border-blue-500'
@@ -222,7 +225,7 @@ export default function EventRegistrationPage({
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
                         errors.lastName 
                           ? 'border-red-500 focus:border-red-600' 
                           : 'border-gray-200 focus:border-blue-500'
@@ -246,7 +249,7 @@ export default function EventRegistrationPage({
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
                         errors.email 
                           ? 'border-red-500 focus:border-red-600' 
                           : 'border-gray-200 focus:border-blue-500'
@@ -270,7 +273,7 @@ export default function EventRegistrationPage({
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
                         errors.phone 
                           ? 'border-red-500 focus:border-red-600' 
                           : 'border-gray-200 focus:border-blue-500'
@@ -304,7 +307,7 @@ export default function EventRegistrationPage({
                       name="organization"
                       value={formData.organization}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
                         errors.organization 
                           ? 'border-red-500 focus:border-red-600' 
                           : 'border-gray-200 focus:border-blue-500'
@@ -328,7 +331,7 @@ export default function EventRegistrationPage({
                       name="jobTitle"
                       value={formData.jobTitle}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
                         errors.jobTitle 
                           ? 'border-red-500 focus:border-red-600' 
                           : 'border-gray-200 focus:border-blue-500'
@@ -362,7 +365,7 @@ export default function EventRegistrationPage({
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                       placeholder="123 Main Street"
                     />
                   </div>
@@ -377,7 +380,7 @@ export default function EventRegistrationPage({
                         name="city"
                         value={formData.city}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                        className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                         placeholder="New York"
                       />
                     </div>
@@ -391,7 +394,7 @@ export default function EventRegistrationPage({
                         name="state"
                         value={formData.state}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                        className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                         placeholder="NY"
                       />
                     </div>
@@ -405,7 +408,7 @@ export default function EventRegistrationPage({
                         name="zipCode"
                         value={formData.zipCode}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                        className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                         placeholder="10001"
                       />
                     </div>
@@ -429,7 +432,7 @@ export default function EventRegistrationPage({
                       name="attendeeCount"
                       value={formData.attendeeCount}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                     >
                       <option value="1">1 Person</option>
                       <option value="2">2 People</option>
@@ -448,7 +451,7 @@ export default function EventRegistrationPage({
                       name="dietaryRestrictions"
                       value={formData.dietaryRestrictions}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                       placeholder="e.g., Vegetarian, Gluten-free, None"
                     />
                   </div>
@@ -462,7 +465,7 @@ export default function EventRegistrationPage({
                       value={formData.specialRequests}
                       onChange={handleInputChange}
                       rows={4}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors resize-none"
                       placeholder="Any special accommodations or questions?"
                     />
                   </div>
