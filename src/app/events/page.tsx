@@ -251,7 +251,7 @@ export default function EventsPage({
                 placeholder="Search events by name or location..."
                 value={localSearchQuery}
                 onChange={(e) => setLocalSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full pl-12 pr-4 py-3.5 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
