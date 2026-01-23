@@ -1,6 +1,7 @@
-import { Heart } from 'lucide-react';
-import ProductCard from './ProductCard';
-
+import { Heart } from "lucide-react";
+import { useState, useEffect } from "react";
+import ProductCard from "./ProductCard";
+import axios from "axios";
 interface ProductGridProps {
   likedProducts: Set<number>;
   onToggleLike: (id: number) => void;
@@ -8,27 +9,169 @@ interface ProductGridProps {
   onProductClick?: (productId: number) => void;
 }
 
-export default function ProductGrid({ likedProducts, onToggleLike, onAddToCart, onProductClick }: ProductGridProps) {
-  const products = Array.from({ length: 18 }, (_, i) => ({
-    id: i + 1,
-    name: 'Rovena Riva Series 6 Pcs. Wide Seating Claret Red Chair',
-    price: 789.67,
-    image: "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400",
-  }));
+interface FeaturedProduct {
+  _id: string;
+  product: {
+    _id: string;
+    name: string;
+    description: string;
+    image: string[];
+    variants: any[];
+    brand?: {
+      name: string;
+      brandId: string;
+    };
+    mainCategory?: {
+      categoryName: string;
+      mainCategoryId: string;
+    };
+    subCategory?: {
+      categoryName: string;
+      subCategoryId: string;
+    };
+    status: string;
+  };
+  title: string;
+  description: string;
+  badge: string | null;
+  order: number;
+  isActive: boolean;
+  startDate: string;
+  endDate: string | null;
+}
+
+export default function ProductGrid({
+  likedProducts,
+  onToggleLike,
+  onAddToCart,
+  onProductClick,
+}: ProductGridProps) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, []);
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await axios.get(
+        "http://localhost:8004/api/v1/landing/featured-products/getAll",
+      );
+      console.log(data);
+
+      // const data = await response.json();
+      console.log("API Response:", data); // Debug log
+
+      if (data) {
+        console.log(data);
+
+        const transformedProducts = data.data.data
+          .filter((item:FeaturedProduct) => item.product !== null)
+          .map((item: FeaturedProduct, index: number) => {
+            const product = item.product;
+
+            const imagePath = product.image?.[0];
+            const imageUrl = imagePath
+              ? `http://localhost:8004/${imagePath.startsWith("/") ? imagePath.slice(1) : imagePath}`
+              : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
+
+            return {
+              id: index + 1,
+              mongoId: product._id,
+              name: item.title || product.name,
+              price: product.variants?.[0]?.price || 0,
+              image: imageUrl,
+              badge: item.badge,
+              description: item.description,
+            };
+          });
+
+        console.log("Transformed products:", transformedProducts); // Debug log
+        setProducts(transformedProducts);
+      } else {
+        setError("Failed to fetch featured products");
+      }
+    } catch (err) {
+      console.error("Error fetching featured products:", err);
+      setError("Failed to load featured products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="container mx-auto px-4 py-12">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">
+            Featured Products
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-gray-200 animate-pulse rounded-lg h-80"
+            ></div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="container mx-auto px-4 py-12">
+        <div className="text-center py-12">
+          <p className="text-red-600 text-lg">{error}</p>
+          <button
+            onClick={fetchFeaturedProducts}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <section className="container mx-auto px-4 py-12">
+        <div className="text-center py-12">
+          <p className="text-gray-600 text-lg">
+            No featured products available
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="container mx-auto px-4 py-12">
       <div className="flex items-center justify-between mb-8 animate-fade-in">
-        <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">Featured Products</h2>
+        <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">
+          Featured Products
+        </h2>
         <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3">
           <span className="text-lg font-medium">View all</span>
-          <svg 
-            className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" 
-            fill="none" 
-            viewBox="0 0 24 24" 
+          <svg
+            className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
       </div>
@@ -40,7 +183,7 @@ export default function ProductGrid({ likedProducts, onToggleLike, onAddToCart, 
             className="animate-fade-in-up"
             style={{
               animationDelay: `${index * 50}ms`,
-              animationFillMode: 'both'
+              animationFillMode: "both",
             }}
           >
             <ProductCard
@@ -56,8 +199,18 @@ export default function ProductGrid({ likedProducts, onToggleLike, onAddToCart, 
 
       <button className="sm:hidden w-full mt-8 flex items-center justify-center gap-2 py-3 text-gray-900 hover:text-blue-600 transition-colors border border-gray-300 rounded-lg hover:border-blue-600 hover:shadow-md active:scale-95">
         <span className="font-medium">View all</span>
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
         </svg>
       </button>
     </section>
