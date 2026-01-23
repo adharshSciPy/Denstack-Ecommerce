@@ -306,7 +306,7 @@ export default function EventDetailsPage({
 
                             {/* Register Button */}
                             <button
-                                onClick={handleRegister}
+                                onClick={()=> router.push('/eventRegisteration')}
                                 className={`
                   w-full py-4 px-6 rounded-xl font-bold text-lg
                   transition-all duration-300 shadow-lg
