@@ -2,11 +2,12 @@ import { Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import axios from "axios";
+
 interface ProductGridProps {
-  likedProducts: Set<number>;
-  onToggleLike: (id: number) => void;
+  likedProducts: Set<string | number>;
+  onToggleLike: (id: string | number) => void;
   onAddToCart: () => void;
-  onProductClick?: (productId: number) => void;
+  onProductClick?: (productId: string | number) => void;
 }
 
 interface FeaturedProduct {
@@ -40,13 +41,26 @@ interface FeaturedProduct {
   endDate: string | null;
 }
 
+interface TransformedProduct {
+  id: string; // Changed to string to use MongoDB _id
+  mongoId: string;
+  name: string;
+  price: number;
+  image: string;
+  badge: string | null;
+  description: string;
+  stock?: number;
+  category?: string;
+  discount?: number;
+}
+
 export default function ProductGrid({
   likedProducts,
   onToggleLike,
   onAddToCart,
   onProductClick,
 }: ProductGridProps) {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<TransformedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,15 +78,14 @@ export default function ProductGrid({
       );
       console.log(data);
 
-      // const data = await response.json();
-      console.log("API Response:", data); // Debug log
+      console.log("API Response:", data);
 
       if (data) {
         console.log(data);
 
-        const transformedProducts = data.data.data
-          .filter((item:FeaturedProduct) => item.product !== null)
-          .map((item: FeaturedProduct, index: number) => {
+        const transformedProducts: TransformedProduct[] = data.data.data
+          .filter((item: FeaturedProduct) => item.product !== null)
+          .map((item: FeaturedProduct) => {
             const product = item.product;
 
             const imagePath = product.image?.[0];
@@ -81,17 +94,20 @@ export default function ProductGrid({
               : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
 
             return {
-              id: index + 1,
+              id: product._id, // Use MongoDB _id instead of index
               mongoId: product._id,
               name: item.title || product.name,
               price: product.variants?.[0]?.price || 0,
               image: imageUrl,
               badge: item.badge,
               description: item.description,
+              stock: product.variants?.[0]?.stock || 0,
+              category: product.mainCategory?.categoryName,
+              discount: product.variants?.[0]?.discount,
             };
           });
 
-        console.log("Transformed products:", transformedProducts); // Debug log
+        console.log("Transformed products:", transformedProducts);
         setProducts(transformedProducts);
       } else {
         setError("Failed to fetch featured products");
@@ -102,6 +118,13 @@ export default function ProductGrid({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper to check if product is liked (handles both string and number IDs)
+  const isProductLiked = (productId: string | number) => {
+    return likedProducts.has(productId) || 
+           likedProducts.has(String(productId)) || 
+           likedProducts.has(Number(productId));
   };
 
   if (loading) {
@@ -188,7 +211,7 @@ export default function ProductGrid({
           >
             <ProductCard
               product={product}
-              isLiked={likedProducts.has(product.id)}
+              isLiked={isProductLiked(product.id)}
               onToggleLike={onToggleLike}
               onAddToCart={onAddToCart}
               onProductClick={onProductClick}

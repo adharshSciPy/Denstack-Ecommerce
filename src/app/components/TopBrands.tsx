@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface TopBrand {
   _id: string;
@@ -21,6 +22,7 @@ interface TopBrandsProps {
 export default function TopBrands({ onBrandClick }: TopBrandsProps) {
   const [brands, setBrands] = useState<TopBrand[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchTopBrands = async () => {
@@ -50,8 +52,34 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
     fetchTopBrands();
   }, []);
 
+  const handleBrandClick = (item: TopBrand) => {
+    // Call the callback if provided
+    if (onBrandClick) {
+      onBrandClick(item.brandId._id, item.brandId.brandName);
+    }
+    
+    // Navigate to brand detail page with the TopBrand ID
+    router.push(`/brand-detail?brandId=${item._id}&brandName=${encodeURIComponent(item.brandId.brandName)}`);
+  };
+
   if (loading) {
-    return <div className="text-center py-10">Loading brands...</div>;
+    return (
+      <section className="container mx-auto px-4 py-12">
+        <div className="bg-gray-50 rounded-3xl p-6 sm:p-8 lg:p-12 shadow-md">
+          <h2 className="text-3xl lg:text-4xl mb-8 text-gray-900 font-semibold">
+            Top Brands
+          </h2>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-4 lg:gap-6">
+            {[...Array(9)].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="w-full aspect-square bg-gray-200 rounded-lg mb-3" />
+                <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -76,19 +104,16 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
                   animationDelay: `${index * 80}ms`,
                   animationFillMode: "both",
                 }}
-                onClick={() =>
-                  onBrandClick?.(
-                    item.brandId._id,
-                    item.brandId.brandName
-                  )
-                }
+                onClick={() => handleBrandClick(item)}
               >
                 <div className="w-full aspect-square rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-500 group-hover:-translate-y-2 relative">
                   <Image
                     src={imageUrl}
-                    alt={item.brandId.brandName}
+                    alt={item.brandId.brandName || "Brand logo"}
                     fill
+                    sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 11vw"
                     className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    unoptimized={!imagePath} // Use unoptimized for external URLs
                   />
 
                   {/* Hover border */}
