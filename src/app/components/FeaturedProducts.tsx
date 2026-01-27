@@ -1,23 +1,95 @@
-import imgFeatured1 from "../../assets/ef94a89ad56ec5cad74e343f739ed094ad97afeb.png";
-import imgFeatured2 from "../../assets/2937239b5154a780b43b5f6c8eb3d9c7b63264ad.png";
-import imgFeatured3 from "../../assets/6e46f3ffcddb8655555d98af899822f274328790.png";
-import imgFeatured4 from "../../assets/47026aa9cfb072a8fa58340b68c0f700b027b076.png";
-import imgFeatured5 from "../../assets/55cd8c220056066e6b45920e2f579fe8b348d1b9.png";
-import Image from "next/image";
+'use client';
 
-interface FeaturedProductsProps {
-  likedProducts: Set<number>;
-  onToggleLike: (id: number) => void;
-  onAddToCart: () => void;
-  onProductClick?: (productId: number) => void;
+import { useEffect, useState } from 'react';
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+interface MainCategory {
+  _id: string;
+  categoryName: string;
+  description?: string;
+  image?: string;
+  order: number;
 }
 
-export default function FeaturedProducts({ likedProducts, onToggleLike, onAddToCart, onProductClick }: FeaturedProductsProps) {
+interface FeaturedProductsProps {
+  onCategoryClick?: (categoryId: string, categoryName: string) => void;
+}
+
+export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsProps) {
+  const [categories, setCategories] = useState<MainCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const response = await fetch('http://localhost:8004/api/v1/landing/main/getAll?limit=5');
+        const data = await response.json();
+        
+        if (data.data) {
+          setCategories(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategories();
+  }, []);
+
+  const handleCategoryClick = (category: MainCategory) => {
+    // Call callback if provided
+    if (onCategoryClick) {
+      onCategoryClick(category._id, category.categoryName);
+    }
+    
+    // Navigate to category page with products
+    router.push(`/category/${category._id}?name=${encodeURIComponent(category.categoryName)}`);
+  };
+
+  if (loading) {
+    return (
+      <section className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl lg:text-2xl text-gray-900 font-semibold">Shop by Collection</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 lg:gap-3">
+          <div className="lg:col-span-5 lg:row-span-2 animate-pulse">
+            <div className="h-full bg-gray-200 rounded-lg min-h-[260px]" />
+          </div>
+          <div className="lg:col-span-7 animate-pulse">
+            <div className="h-full bg-gray-200 rounded-lg min-h-[125px]" />
+          </div>
+          <div className="lg:col-span-7 grid grid-cols-2 gap-2 lg:gap-3">
+            <div className="animate-pulse">
+              <div className="bg-gray-200 rounded-lg min-h-[125px]" />
+            </div>
+            <div className="animate-pulse">
+              <div className="bg-gray-200 rounded-lg min-h-[125px]" />
+            </div>
+          </div>
+          <div className="lg:col-span-12 animate-pulse">
+            <div className="bg-gray-200 rounded-lg min-h-[140px]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Get exactly 5 categories for the layout
+  const [cat1, cat2, cat3, cat4, cat5] = categories.slice(0, 5);
+
   return (
     <section className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl lg:text-2xl text-gray-900 font-semibold">Shop by Collection</h2>
-        <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3">
+        <button 
+          onClick={() => router.push('/categories')}
+          className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3"
+        >
           <span className="text-sm font-medium">View all</span>
           <svg 
             className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" 
@@ -32,98 +104,159 @@ export default function FeaturedProducts({ likedProducts, onToggleLike, onAddToC
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 lg:gap-3">
         {/* Large featured item */}
-        <div className="lg:col-span-5 lg:row-span-2 animate-fade-in-up" style={{ animationDelay: '0ms' }}>
-          <div className="group h-full rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer relative">
-            <div className="h-full overflow-hidden">
-              <Image 
-                src={imgFeatured1} 
-                alt="Featured collection" 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out min-h-[180px] lg:h-[260px]"
-              />
-            </div>
-            
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
-            {/* Text overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-              <h3 className="text-white text-sm font-semibold mb-1">Dental Instruments</h3>
-              <p className="text-white/90 text-xs">Explore our premium collection</p>
-            </div>
+        {cat1 && (
+          <div 
+            className="lg:col-span-5 lg:row-span-2 animate-fade-in-up cursor-pointer" 
+            style={{ animationDelay: '0ms' }}
+            onClick={() => handleCategoryClick(cat1)}
+          >
+            <div className="group h-full rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative">
+              <div className="h-full overflow-hidden">
+                <Image 
+                  src={cat1.image ? `http://localhost:8004${cat1.image}` : '/placeholder-category.jpg'}
+                  alt={cat1.categoryName}
+                  width={500}
+                  height={500}
+                  unoptimized
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out min-h-[180px] lg:h-[260px]"
+                />
+              </div>
+              
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              {/* Text overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                <h3 className="text-white text-sm font-semibold mb-1">{cat1.categoryName}</h3>
+                <p className="text-white/90 text-xs">{cat1.description || 'Explore our premium collection'}</p>
+              </div>
 
-            {/* Shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/20 to-white/0 -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000" />
-          </div>
-        </div>
-
-        {/* Medium items */}
-        <div className="lg:col-span-7 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer h-full relative hover:-translate-y-1">
-            <div className="h-full overflow-hidden">
-              <Image 
-                src={imgFeatured2} 
-                alt="Featured collection" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[125px]"
-              />
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/20 to-white/0 -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000" />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </div>
-        </div>
+        )}
+
+        {/* Medium item */}
+        {cat2 && (
+          <div 
+            className="lg:col-span-7 animate-fade-in-up cursor-pointer" 
+            style={{ animationDelay: '100ms' }}
+            onClick={() => handleCategoryClick(cat2)}
+          >
+            <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 h-full relative hover:-translate-y-1">
+              <div className="h-full overflow-hidden">
+                <Image 
+                  src={cat2.image ? `http://localhost:8004${cat2.image}` : '/placeholder-category.jpg'}
+                  alt={cat2.categoryName}
+                  width={700}
+                  height={250}
+                  unoptimized
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[125px]"
+                />
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              {/* Category name overlay */}
+              <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <h3 className="text-white text-sm font-semibold">{cat2.categoryName}</h3>
+              </div>
+              
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            </div>
+          </div>
+        )}
 
         <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2 lg:gap-3">
-          <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-            <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer relative hover:-translate-y-1">
-              <div className="overflow-hidden">
-                <Image 
-                  src={imgFeatured5} 
-                  alt="Featured collection" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[125px]"
-                />
+          {cat3 && (
+            <div 
+              className="animate-fade-in-up cursor-pointer" 
+              style={{ animationDelay: '200ms' }}
+              onClick={() => handleCategoryClick(cat3)}
+            >
+              <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
+                <div className="overflow-hidden">
+                  <Image 
+                    src={cat3.image ? `http://localhost:8004${cat3.image}` : '/placeholder-category.jpg'}
+                    alt={cat3.categoryName}
+                    width={350}
+                    height={250}
+                    unoptimized
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[125px]"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <h3 className="text-white text-sm font-semibold">{cat3.categoryName}</h3>
+                </div>
+                
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             </div>
-          </div>
+          )}
           
-          <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-            <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer relative hover:-translate-y-1">
-              <div className="overflow-hidden">
-                <Image 
-                  src={imgFeatured4} 
-                  alt="Featured collection" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[125px]"
-                />
+          {cat4 && (
+            <div 
+              className="animate-fade-in-up cursor-pointer" 
+              style={{ animationDelay: '300ms' }}
+              onClick={() => handleCategoryClick(cat4)}
+            >
+              <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
+                <div className="overflow-hidden">
+                  <Image 
+                    src={cat4.image ? `http://localhost:8004${cat4.image}` : '/placeholder-category.jpg'}
+                    alt={cat4.categoryName}
+                    width={350}
+                    height={250}
+                    unoptimized
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[125px]"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <h3 className="text-white text-sm font-semibold">{cat4.categoryName}</h3>
+                </div>
+                
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             </div>
-          </div>
+          )}
         </div>
 
         {/* Bottom wide item */}
-        <div className="lg:col-span-12 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-          <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer relative hover:-translate-y-1">
-            <div className="overflow-hidden">
-              <Image 
-                src={imgFeatured3} 
-                alt="Featured collection" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[140px]"
-              />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
-            {/* Center text overlay */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div className="text-center text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                <h3 className="text-base font-bold mb-1">Complete Clinic Setup</h3>
-                <p className="text-xs">Everything you need in one place</p>
+        {cat5 && (
+          <div 
+            className="lg:col-span-12 animate-fade-in-up cursor-pointer" 
+            style={{ animationDelay: '400ms' }}
+            onClick={() => handleCategoryClick(cat5)}
+          >
+            <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
+              <div className="overflow-hidden">
+                <Image 
+                  src={cat5.image ? `http://localhost:8004${cat5.image}` : '/placeholder-category.jpg'}
+                  alt={cat5.categoryName}
+                  width={1200}
+                  height={280}
+                  unoptimized
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out min-h-[120px] lg:h-[140px]"
+                />
               </div>
-            </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              {/* Center text overlay */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="text-center text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                  <h3 className="text-base font-bold mb-1">{cat5.categoryName}</h3>
+                  <p className="text-xs">{cat5.description || 'Everything you need in one place'}</p>
+                </div>
+              </div>
 
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
