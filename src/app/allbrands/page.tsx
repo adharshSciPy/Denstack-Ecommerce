@@ -19,7 +19,7 @@ interface Product {
 
 interface Brand {
   _id: string;
-  brandName: string;
+  name: string;
   description: string;
   brandLogo: string;
   status?: string;
@@ -254,7 +254,7 @@ export default function BrandDetailPage({
               <div className="w-32 h-32 lg:w-40 lg:h-40 bg-white rounded-2xl shadow-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                 <Image
                   src={getImageUrl(brand.brandLogo)}
-                  alt={brand.brandName}
+                  alt={brand.name}
                   fill
                   unoptimized // ✅ Added unoptimized
                   className="object-contain p-4"
@@ -264,10 +264,10 @@ export default function BrandDetailPage({
               {/* Brand Info */}
               <div className="flex-1">
                 <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-                  {brand.brandName}
+                  {brand.name}
                 </h1>
                 <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-                  {brand.description || `${brand.brandName} is a leading manufacturer of high-quality dental equipment and supplies. With decades of experience, they provide innovative solutions for dental professionals worldwide.`}
+                  {brand.description || `${brand.name} is a leading manufacturer of high-quality dental equipment and supplies. With decades of experience, they provide innovative solutions for dental professionals worldwide.`}
                 </p>
 
                 {/* Quick Stats */}
@@ -291,7 +291,7 @@ export default function BrandDetailPage({
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Products by {brand.brandName}
+                Products by {brand.name}
               </h2>
               <p className="text-gray-600 mt-2">
                 {brandData.productCount > 0 

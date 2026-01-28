@@ -9,14 +9,14 @@ interface TopBrand {
   order: number;
   brandId: {
     _id: string;
-    brandName: string;
+    name: string;
     brandLogo: string;
     description?: string;
   };
 }
 
 interface TopBrandsProps {
-  onBrandClick?: (brandId: string, brandName: string) => void;
+  onBrandClick?: (brandId: string, name: string) => void;
 }
 
 export default function TopBrands({ onBrandClick }: TopBrandsProps) {
@@ -55,11 +55,11 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
   const handleBrandClick = (item: TopBrand) => {
     // Call the callback if provided
     if (onBrandClick) {
-      onBrandClick(item.brandId._id, item.brandId.brandName);
+      onBrandClick(item.brandId._id, item.brandId.name);
     }
     
     // Navigate to brand detail page with the TopBrand ID
-    router.push(`/brand-detail?brandId=${item._id}&brandName=${encodeURIComponent(item.brandId.brandName)}`);
+    router.push(`/allbrands?brandId=${item._id}&brandName=${encodeURIComponent(item.brandId.name)}`);
   };
 
   if (loading) {
@@ -109,7 +109,7 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
                 <div className="w-full aspect-square rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-500 group-hover:-translate-y-2 relative">
                   <Image
                     src={imageUrl}
-                    alt={item.brandId.brandName || "Brand logo"}
+                    alt={item.brandId.name || "Brand logo"}
                     fill
                     sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 11vw"
                     className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
@@ -124,7 +124,7 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
                 </div>
 
                 <p className="text-xs sm:text-sm text-gray-700 text-center group-hover:text-blue-600 group-hover:font-medium transition-all duration-300">
-                  {item.brandId.brandName}
+                  {item.brandId.name}
                 </p>
               </div>
             );

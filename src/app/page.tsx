@@ -86,8 +86,8 @@ export default function App() {
           onOrdersClick={() => setCurrentPage('order-history')}
           onAccountClick={() => setCurrentPage('account')}
           favoritesCount={likedProducts.size}
-          onBrandDetailClick={(brandId: number, brandName: string) => {
-            router.push(`/allbrands?brandId=${brandId}`);
+          onBrandDetailClick={(brandId: number, name: string) => {
+            router.push(`/allbrands?brandId=${brandId}&brandName=${encodeURIComponent(name)}`);
           }}
         />
         <WhatsAppButton />
@@ -105,7 +105,7 @@ export default function App() {
           onBackToBrands={() => setCurrentPage('brands')}
           onCartClick={() => setCurrentPage('cart')}
           onProductClick={(productId: string) => {
-            router.push(`/productdetailpage/${productId}`);
+            router.push(`/allbrands/${productId}`);
           }}
           onBrandClick={() => setCurrentPage('brands')}
           onBuyingGuideClick={() => setCurrentPage('buying-guide')}
@@ -684,7 +684,7 @@ export default function App() {
       <main>
         <HeroBanner />
         <PromoBanner />
-        <TopBrands onBrandClick={(brandId: string, brandName: string) => {
+        <TopBrands onBrandClick={(brandId: string, name: string) => {
           router.push(`/allbrands?brandId=${brandId}`);
         }} />
         <TopCategories onCategoryClick={() => setCurrentPage('category-browse')} />

@@ -90,6 +90,8 @@ export default function BrandsPage({
         }
         
         const result = await response.json();
+
+        console.log('brands brands:', result);
         
         setBrands(result.data);
         setPagination({

@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
@@ -22,6 +22,7 @@ interface TopCategoriesProps {
 export default function TopCategories({
   onCategoryClick,
 }: TopCategoriesProps = {}) {
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +66,7 @@ export default function TopCategories({
   }
 
   return (
+
     <section className="container mx-auto px-4 py-12">
       <h2 className="text-3xl lg:text-4xl mb-8 text-gray-900 font-semibold">
         Top Categories
@@ -79,7 +81,7 @@ export default function TopCategories({
             <div
               key={category._id}
               className="group cursor-pointer animate-fade-in-up"
-              onClick={() => onCategoryClick?.(category.categoryId._id)}
+              onClick={() => router.push("/category")}
               style={{
                 animationDelay: `${index * 75}ms`,
                 animationFillMode: "both",
