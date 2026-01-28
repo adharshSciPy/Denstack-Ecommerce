@@ -45,17 +45,19 @@ export default function App() {
   const [selectedProductId, setSelectedProductId] = useState(1);
   const [currentOrderId, setCurrentOrderId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [selectedBrandId, setSelectedBrandId] = useState(1);
+  const [selectedBrandId, setSelectedBrandId] = useState('1');
   const [selectedBrandName, setSelectedBrandName] = useState('');
   const [selectedGuideId, setSelectedGuideId] = useState(1);
 
-  const toggleLike = (productId: number) => {
+  const toggleLike = (productId: number | string) => {
     setLikedProducts(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
+      // Convert string to number if needed for comparison
+      const id = typeof productId === 'string' ? parseInt(productId) : productId;
+      if (newSet.has(id)) {
+        newSet.delete(id);
       } else {
-        newSet.add(productId);
+        newSet.add(id);
       }
       return newSet;
     });
@@ -85,9 +87,7 @@ export default function App() {
           onAccountClick={() => setCurrentPage('account')}
           favoritesCount={likedProducts.size}
           onBrandDetailClick={(brandId: number, brandName: string) => {
-            setSelectedBrandId(brandId);
-            setSelectedBrandName(brandName);
-            setCurrentPage('brand-detail');
+            router.push(`/allbrands?brandId=${brandId}`);
           }}
         />
         <WhatsAppButton />
@@ -100,17 +100,12 @@ export default function App() {
     return (
       <div>
         <BrandDetailPage
-          brandId={selectedBrandId}
-          brandName={selectedBrandName}
           cartCount={cartCount}
           onCartCountChange={setCartCount}
           onBackToBrands={() => setCurrentPage('brands')}
           onCartClick={() => setCurrentPage('cart')}
-          likedProducts={likedProducts}
-          onToggleLike={toggleLike}
-          onProductClick={(productId: number) => {
-            setSelectedProductId(productId);
-            setCurrentPage('productdetailpage/[id]');
+          onProductClick={(productId: string) => {
+            router.push(`/productdetailpage/${productId}`);
           }}
           onBrandClick={() => setCurrentPage('brands')}
           onBuyingGuideClick={() => setCurrentPage('buying-guide')}
@@ -689,28 +684,20 @@ export default function App() {
       <main>
         <HeroBanner />
         <PromoBanner />
-        <TopBrands onBrandClick={(brandId: number, brandName: string) => {
-          setSelectedBrandId(brandId);
-          setSelectedBrandName(brandName);
-          setCurrentPage('brand-detail');
+        <TopBrands onBrandClick={(brandId: string, brandName: string) => {
+          router.push(`/allbrands?brandId=${brandId}`);
         }} />
         <TopCategories onCategoryClick={() => setCurrentPage('category-browse')} />
         <ProductGrid
-          likedProducts={likedProducts}
+          likedProducts={likedProducts as any}
           onToggleLike={toggleLike}
           onAddToCart={addToCart}
-          onProductClick={(productId: number) => {
+          onProductClick={(productId: string | number) => {
             router.push(`/productdetailpage/${productId}`);
           }}
         // onViewAllClick={() => setCurrentPage('all-products')}
         />
         <FeaturedProducts
-          likedProducts={likedProducts}
-          onToggleLike={toggleLike}
-          onAddToCart={addToCart}
-          onProductClick={(productId: number) => {
-            router.push(`/productdetailpage/${productId}`);
-          }}
         // onViewAllClick={() => setCurrentPage('all-products')}
         />
       </main>
