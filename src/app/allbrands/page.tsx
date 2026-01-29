@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import baseUrl from '../baseUrl';
 
 interface Product {
   _id: string;
@@ -26,7 +27,7 @@ interface Brand {
 }
 
 interface BrandData {
-  brand: {
+  topBrand: {
     _id: string;
     order: number;
     brandId: Brand;
@@ -56,8 +57,6 @@ interface BrandDetailPageProps {
   favoritesCount?: number;
 }
 
-const API_BASE_URL = 'http://localhost:8004';
-
 export default function BrandDetailPage({
   cartCount = 0,
   onCartCountChange = () => { },
@@ -82,7 +81,7 @@ export default function BrandDetailPage({
   const searchParams = useSearchParams();
 
   const brandId = searchParams.get('brandId');
-  
+
   const [brandData, setBrandData] = useState<BrandData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,9 +106,9 @@ export default function BrandDetailPage({
       try {
         setLoading(true);
         console.log('Fetching brand data for ID:', brandId); // Debug log
-        
+
         const response = await fetch(
-          `${API_BASE_URL}/api/v1/landing/top-brands/${brandId}`,
+          `${baseUrl}/api/v1/landing/top-brands/${brandId}`,
           { cache: 'no-store' }
         );
 
@@ -137,7 +136,7 @@ export default function BrandDetailPage({
     if (!imagePath) return 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
     // ✅ Clean up the path properly
     const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    return `${API_BASE_URL}${cleanPath}`;
+    return `${baseUrl}${cleanPath}`;
   };
 
   const addToCart = () => {
@@ -161,7 +160,7 @@ export default function BrandDetailPage({
       }
       return newSet;
     });
-    
+
     if (onToggleLike) {
       onToggleLike(productId);
     }
@@ -169,9 +168,9 @@ export default function BrandDetailPage({
 
   const getSortedProducts = () => {
     if (!brandData?.products) return [];
-    
+
     const productsCopy = [...brandData.products];
-    
+
     switch (sortBy) {
       case 'price-low':
         return productsCopy.sort((a, b) => a.price - b.price);
@@ -219,7 +218,7 @@ export default function BrandDetailPage({
     );
   }
 
-  const brand = brandData.brand.brandId;
+  const brand = brandData.topBrand.brandId;
   const sortedProducts = getSortedProducts();
 
   const convertedProducts = sortedProducts.map(product => ({
@@ -294,7 +293,7 @@ export default function BrandDetailPage({
                 Products by {brand.name}
               </h2>
               <p className="text-gray-600 mt-2">
-                {brandData.productCount > 0 
+                {brandData.productCount > 0
                   ? `Explore our complete range of ${brandData.productCount} products`
                   : 'No products available yet'}
               </p>
@@ -302,7 +301,7 @@ export default function BrandDetailPage({
 
             {/* Filter/Sort */}
             {brandData.productCount > 0 && (
-              <select 
+              <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"

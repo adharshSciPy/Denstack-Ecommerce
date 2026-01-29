@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import baseUrl from "../baseUrl";
 
 interface TopBrand {
   _id: string;
@@ -28,7 +29,7 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
     const fetchTopBrands = async () => {
       try {
         const res = await fetch(
-          "http://localhost:8004/api/v1/landing/top-brands/getAll",
+          `${baseUrl}/api/v1/landing/top-brands/getAll`,
           { cache: "no-store" }
         );
 
@@ -93,7 +94,7 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
           {brands.map((item, index) => {
             const imagePath = item.brandId.brandLogo;
             const imageUrl = imagePath
-              ? `http://localhost:8004/${imagePath.replace(/^\//, "")}`
+              ? `${baseUrl}/${imagePath.replace(/^\//, "")}`
               : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
 
             return (

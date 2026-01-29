@@ -42,9 +42,10 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
   };
 
   // Calculate final price with discount
+  const price = product.price ?? 0;
   const finalPrice = product.discount 
-    ? product.price - (product.price * product.discount / 100)
-    : product.price;
+    ? price - (price * product.discount / 100)
+    : price;
 
   const isOutOfStock = product.stock !== undefined && product.stock === 0;
 

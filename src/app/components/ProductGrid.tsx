@@ -2,6 +2,7 @@ import { Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import axios from "axios";
+import baseUrl from "../baseUrl";
 
 interface ProductGridProps {
   likedProducts: Set<string | number>;
@@ -74,7 +75,7 @@ export default function ProductGrid({
       setError(null);
 
       const data = await axios.get(
-        "http://localhost:8004/api/v1/landing/featured-products/getAll",
+        `${baseUrl}/api/v1/landing/featured-products/getAll`,
       );
       console.log(data);
 
@@ -90,7 +91,7 @@ export default function ProductGrid({
 
             const imagePath = product.image?.[0];
             const imageUrl = imagePath
-              ? `http://localhost:8004/${imagePath.startsWith("/") ? imagePath.slice(1) : imagePath}`
+              ? `${baseUrl}/${imagePath.startsWith("/") ? imagePath.slice(1) : imagePath}`
               : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
 
             return {

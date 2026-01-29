@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { StaticImageData } from "next/image";
+import baseUrl from "../baseUrl";
 
 type Brand = {
   id: number;
@@ -28,7 +29,7 @@ export default function BrandCard({ brand, index, onBrandClick }: BrandCardProps
   // Same image handling as ProductGrid
   const imagePath = brand.image;
   const imageUrl = imagePath && typeof imagePath === 'string'
-    ? `http://localhost:8004/${imagePath.startsWith('/') ? imagePath.slice(1) : imagePath}`
+    ? `${baseUrl}/${imagePath.startsWith('/') ? imagePath.slice(1) : imagePath}`
     : imagePath || null;
 
   console.log("BrandCard - Final imageUrl:", imageUrl);

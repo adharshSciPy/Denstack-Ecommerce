@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import baseUrl from "../baseUrl";
 
 interface Category {
   _id: string;
@@ -30,7 +31,7 @@ export default function TopCategories({
     async function fetchCategories() {
       try {
         const response = await fetch(
-          "http://localhost:8004/api/v1/landing/-/getAll",
+          `${baseUrl}/api/v1/landing/-/getAll`,
         );
         const data = await response.json();
 
@@ -75,7 +76,7 @@ export default function TopCategories({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6">
         {categories.map((category, index) => {
           // Construct the image URL
-          const imageUrl = `http://localhost:8004${category.imageUrl}`;
+          const imageUrl = `${baseUrl}${category.imageUrl}`;
 
           return (
             <div

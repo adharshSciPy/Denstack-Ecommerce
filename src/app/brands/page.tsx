@@ -5,6 +5,7 @@ import FeaturedBrands from '../components/FeaturedBrands';
 import BrandAlphabetNav from '../components/BrandAlphabetNav';
 import BrandGrid from '../components/BrandGrid';
 import { useRouter } from 'next/navigation';
+import baseUrl from '../baseUrl';
 
 interface Brand {
   _id: string;
@@ -82,7 +83,7 @@ export default function BrandsPage({
         setError(null);
         
         const response = await fetch(
-          `http://localhost:8004/api/v1/landing/brands/getAll?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}`
+          `${baseUrl}/api/v1/landing/brands/getAll?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}`
         );
         
         if (!response.ok) {

@@ -5,6 +5,7 @@ import { Heart, ShoppingCart, Star, Truck, Shield, RotateCcw, Award, Plus, Minus
 import { toast, Toaster } from 'sonner';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 interface ProductDetailPageProps {
     productId: number;

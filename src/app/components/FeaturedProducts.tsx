@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import baseUrl from '../baseUrl';
 
 interface MainCategory {
   _id: string;
@@ -24,7 +25,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const response = await fetch('http://localhost:8004/api/v1/landing/main/getAll?limit=5');
+        const response = await fetch(`${baseUrl}/api/v1/landing/main/getAll?limit=5`);
         const data = await response.json();
         
         if (data.data) {
@@ -113,7 +114,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
             <div className="group h-full rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative">
               <div className="h-full overflow-hidden">
                 <Image 
-                  src={cat1.image ? `http://localhost:8004${cat1.image}` : '/placeholder-category.jpg'}
+                  src={cat1.image ? `${baseUrl}${cat1.image}` : '/placeholder-category.jpg'}
                   alt={cat1.categoryName}
                   width={500}
                   height={500}
@@ -147,7 +148,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
             <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 h-full relative hover:-translate-y-1">
               <div className="h-full overflow-hidden">
                 <Image 
-                  src={cat2.image ? `http://localhost:8004${cat2.image}` : '/placeholder-category.jpg'}
+                  src={cat2.image ? `${baseUrl}${cat2.image}` : '/placeholder-category.jpg'}
                   alt={cat2.categoryName}
                   width={700}
                   height={250}
@@ -177,7 +178,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
               <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
                 <div className="overflow-hidden">
                   <Image 
-                    src={cat3.image ? `http://localhost:8004${cat3.image}` : '/placeholder-category.jpg'}
+                    src={cat3.image ? `${baseUrl}${cat3.image}` : '/placeholder-category.jpg'}
                     alt={cat3.categoryName}
                     width={350}
                     height={250}
@@ -205,7 +206,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
               <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
                 <div className="overflow-hidden">
                   <Image 
-                    src={cat4.image ? `http://localhost:8004${cat4.image}` : '/placeholder-category.jpg'}
+                    src={cat4.image ? `${baseUrl}${cat4.image}` : '/placeholder-category.jpg'}
                     alt={cat4.categoryName}
                     width={350}
                     height={250}
@@ -235,7 +236,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
             <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
               <div className="overflow-hidden">
                 <Image 
-                  src={cat5.image ? `http://localhost:8004${cat5.image}` : '/placeholder-category.jpg'}
+                  src={cat5.image ? `${baseUrl}${cat5.image}` : '/placeholder-category.jpg'}
                   alt={cat5.categoryName}
                   width={1200}
                   height={280}
