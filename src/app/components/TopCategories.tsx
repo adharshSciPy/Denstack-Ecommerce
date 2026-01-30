@@ -1,8 +1,7 @@
 "use client";
-import { useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import baseUrl from "../baseUrl";
 
 interface Category {
   _id: string;
@@ -23,7 +22,6 @@ interface TopCategoriesProps {
 export default function TopCategories({
   onCategoryClick,
 }: TopCategoriesProps = {}) {
-  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +29,7 @@ export default function TopCategories({
     async function fetchCategories() {
       try {
         const response = await fetch(
-          `${baseUrl}/api/v1/landing/-/getAll`,
+          "http://localhost:8004/api/v1/landing/-/getAll",
         );
         const data = await response.json();
 
@@ -67,7 +65,6 @@ export default function TopCategories({
   }
 
   return (
-
     <section className="container mx-auto px-4 py-12">
       <h2 className="text-3xl lg:text-4xl mb-8 text-gray-900 font-semibold">
         Top Categories
@@ -76,13 +73,13 @@ export default function TopCategories({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6">
         {categories.map((category, index) => {
           // Construct the image URL
-          const imageUrl = `${baseUrl}${category.imageUrl}`;
+          const imageUrl = `http://localhost:8004${category.imageUrl}`;
 
           return (
             <div
               key={category._id}
               className="group cursor-pointer animate-fade-in-up"
-              onClick={() => router.push("/category")}
+              onClick={() => onCategoryClick?.(category.categoryId._id)}
               style={{
                 animationDelay: `${index * 75}ms`,
                 animationFillMode: "both",
