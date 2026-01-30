@@ -29,9 +29,20 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
     const fetchTopBrands = async () => {
       try {
         const res = await fetch(
-          `${baseUrl}/api/v1/landing/top-brands/getAll`,
+          `${baseUrl.INVENTORY}/api/v1/landing/top-brands/getAll`,
           { cache: "no-store" }
         );
+
+        if (!res.ok) {
+          console.error('Failed to fetch top brands, status:', res.status);
+          throw new Error('Failed to fetch top brands');
+        }
+
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.error('Expected JSON but received:', contentType);
+          throw new Error('Invalid response from top brands endpoint');
+        }
 
         const result = await res.json();
 
@@ -94,7 +105,7 @@ export default function TopBrands({ onBrandClick }: TopBrandsProps) {
           {brands.map((item, index) => {
             const imagePath = item.brandId.brandLogo;
             const imageUrl = imagePath
-              ? `${baseUrl}/${imagePath.replace(/^\//, "")}`
+              ? `${baseUrl.INVENTORY}/${imagePath.replace(/^\//, "")}`
               : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
 
             return (

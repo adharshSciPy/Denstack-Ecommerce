@@ -74,45 +74,50 @@ export default function ProductGrid({
       setLoading(true);
       setError(null);
 
-      const data = await axios.get(
-        `${baseUrl}/api/v1/landing/featured-products/getAll`,
+      const response = await axios.get(
+        `${baseUrl.INVENTORY}/api/v1/landing/featured-products/getAll`,
       );
-      console.log(data);
 
-      console.log("API Response:", data);
-
-      if (data) {
-        console.log(data);
-
-        const transformedProducts: TransformedProduct[] = data.data.data
-          .filter((item: FeaturedProduct) => item.product !== null)
-          .map((item: FeaturedProduct) => {
-            const product = item.product;
-
-            const imagePath = product.image?.[0];
-            const imageUrl = imagePath
-              ? `${baseUrl}/${imagePath.startsWith("/") ? imagePath.slice(1) : imagePath}`
-              : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
-
-            return {
-              id: product._id, // Use MongoDB _id instead of index
-              mongoId: product._id,
-              name: item.title || product.name,
-              price: product.variants?.[0]?.price || 0,
-              image: imageUrl,
-              badge: item.badge,
-              description: item.description,
-              stock: product.variants?.[0]?.stock || 0,
-              category: product.mainCategory?.categoryName,
-              discount: product.variants?.[0]?.discount,
-            };
-          });
-
-        console.log("Transformed products:", transformedProducts);
-        setProducts(transformedProducts);
-      } else {
-        setError("Failed to fetch featured products");
+      // Defensive checks
+      if (response.status !== 200) {
+        throw new Error(`Unexpected status ${response.status} from featured-products endpoint`);
       }
+
+      const contentType = (response.headers && (response.headers['content-type'] || response.headers['Content-Type'])) || '';
+      if (!contentType.includes('application/json')) {
+        console.error('Featured products endpoint returned non-JSON content-type:', contentType);
+        throw new Error('Invalid response from featured products endpoint');
+      }
+
+      const payload = response.data;
+      const items: FeaturedProduct[] = payload?.data || payload || [];
+
+      const transformedProducts: TransformedProduct[] = items
+        .filter((item: FeaturedProduct) => item.product !== null)
+        .map((item: FeaturedProduct) => {
+          const product = item.product;
+
+          const imagePath = product.image?.[0];
+          const imageUrl = imagePath
+            ? `${baseUrl.INVENTORY}/${imagePath.startsWith("/") ? imagePath.slice(1) : imagePath}`
+            : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
+
+          return {
+            id: product._id, // Use MongoDB _id instead of index
+            mongoId: product._id,
+            name: item.title || product.name,
+            price: product.variants?.[0]?.price || 0,
+            image: imageUrl,
+            badge: item.badge,
+            description: item.description,
+            stock: product.variants?.[0]?.stock || 0,
+            category: product.mainCategory?.categoryName,
+            discount: product.variants?.[0]?.discount,
+          };
+        });
+
+      setProducts(transformedProducts);
+
     } catch (err) {
       console.error("Error fetching featured products:", err);
       setError("Failed to load featured products");
