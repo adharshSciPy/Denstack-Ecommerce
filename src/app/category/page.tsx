@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // import Header from './Header';
 import Navigation from '../components/Navigation';
 // import Footer from './Footer';
 import { Search, ChevronRight, Heart, ShoppingCart, Star, Filter } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
+import baseUrl from '../baseUrl';
 
 interface CategoryBrowsePageProps {
   cartCount: number;
@@ -20,18 +21,21 @@ interface CategoryBrowsePageProps {
   onBestSellerClick?: () => void;
   onClinicSetupClick?: () => void;
   onFullStoreDirectoryClick?: () => void;
-  likedProducts?: Set<number>;
-  onToggleLike?: (productId: number) => void;
-}
+  likedProducts?: Set<string>;
+  onToggleLike?: (productId: string) => void;
+} 
 
 interface Product {
-  id: number;
+  _id: string;
   name: string;
-  price: string;
+  price: number;
   image: string;
-  rating: number;
+  rating?: number;
   inStock: boolean;
-}
+  productId?: string;
+  subCategoryId?: string;
+  variants?: any[];
+} 
 
 interface SubCategory {
   name: string;
@@ -43,243 +47,16 @@ interface Category {
   subCategories: SubCategory[];
 }
 
-const categoryData: Category[] = [
-  {
-    name: 'Dental Brands',
-    subCategories: [
-      {
-        name: 'Premium Brands',
-        products: [
-          { id: 1, name: 'Dentsply Sirona Kit', price: '₹15,999', image: '../assets/5c5df5f1f1f483dc288431b284a2d711acd34829.png', rating: 4.8, inStock: true },
-          { id: 2, name: 'Kerr Dental Set', price: '₹12,499', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 3, name: '3M ESPE Collection', price: '₹18,999', image: 'https://via.placeholder.com/150', rating: 4.9, inStock: true },
-          { id: 4, name: 'GC America Bundle', price: '₹14,799', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      },
-      {
-        name: 'Value Brands',
-        products: [
-          { id: 5, name: 'Waldent Essential Kit', price: '₹6,999', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-          { id: 6, name: 'GDC Basic Set', price: '₹5,499', image: 'https://via.placeholder.com/150', rating: 4.4, inStock: true },
-          { id: 7, name: 'MANI Premium Pack', price: '₹7,999', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Pharmacy',
-    subCategories: [
-      {
-        name: 'Antibiotics',
-        products: [
-          { id: 8, name: 'Amoxicillin 500mg', price: '₹299', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 9, name: 'Metronidazole 400mg', price: '₹199', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 10, name: 'Clindamycin 300mg', price: '₹399', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-        ]
-      },
-      {
-        name: 'Pain Relief',
-        products: [
-          { id: 11, name: 'Ibuprofen 400mg', price: '₹149', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-          { id: 12, name: 'Paracetamol 650mg', price: '₹99', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 13, name: 'Aceclofenac SR', price: '₹249', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Offer Zone',
-    subCategories: [
-      {
-        name: 'Clearance Sale',
-        products: [
-          { id: 14, name: 'Dental Mirror Set (20% OFF)', price: '₹799', image: 'https://via.placeholder.com/150', rating: 4.3, inStock: true },
-          { id: 15, name: 'Glove Box Bundle (30% OFF)', price: '₹1,499', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-          { id: 16, name: 'Composite Kit (25% OFF)', price: '₹8,999', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      },
-      {
-        name: 'Buy 1 Get 1',
-        products: [
-          { id: 17, name: 'Prophy Paste Duo', price: '₹599', image: 'https://via.placeholder.com/150', rating: 4.4, inStock: true },
-          { id: 18, name: 'Cotton Roll Pack', price: '₹299', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'General Dentistry',
-    subCategories: [
-      {
-        name: 'Examination Instruments',
-        products: [
-          { id: 19, name: 'Dental Mirror #5', price: '₹299', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 20, name: 'Explorer Probe', price: '₹349', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 21, name: 'Tweezers Set', price: '₹499', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-        ]
-      },
-      {
-        name: 'Operative Instruments',
-        products: [
-          { id: 22, name: 'Excavator Spoon', price: '₹399', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 23, name: 'Burnisher Kit', price: '₹799', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 24, name: 'Filling Instruments Set', price: '₹1,299', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Equipments',
-    subCategories: [
-      {
-        name: 'Dental Chairs',
-        products: [
-          { id: 25, name: 'Hydraulic Dental Chair', price: '₹89,999', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-          { id: 26, name: 'Electric Dental Chair', price: '₹1,29,999', image: 'https://via.placeholder.com/150', rating: 4.9, inStock: true },
-        ]
-      },
-      {
-        name: 'Autoclaves',
-        products: [
-          { id: 27, name: 'Class B Autoclave 18L', price: '₹45,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 28, name: 'Class N Autoclave 12L', price: '₹29,999', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      },
-      {
-        name: 'Ultrasonic Scalers',
-        products: [
-          { id: 29, name: 'Piezo Scaler Pro', price: '₹18,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 30, name: 'Magnetostrictive Scaler', price: '₹15,999', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Student Section',
-    subCategories: [
-      {
-        name: 'Student Kits',
-        products: [
-          { id: 31, name: 'Complete Student Kit', price: '₹12,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 32, name: 'Basic Instrument Set', price: '₹6,999', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 33, name: 'Dissection Kit', price: '₹3,999', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-        ]
-      },
-      {
-        name: 'Study Materials',
-        products: [
-          { id: 34, name: 'Anatomy Atlas', price: '₹1,999', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-          { id: 35, name: 'Clinical Handbook', price: '₹1,499', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Restorative',
-    subCategories: [
-      {
-        name: 'Composite Resins',
-        products: [
-          { id: 36, name: 'Universal Composite A2', price: '₹2,499', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-          { id: 37, name: 'Flow Composite Kit', price: '₹1,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 38, name: 'Bulk Fill Composite', price: '₹2,999', image: 'https://via.placeholder.com/150', rating: 4.9, inStock: true },
-        ]
-      },
-      {
-        name: 'Bonding Agents',
-        products: [
-          { id: 39, name: '5th Gen Bonding', price: '₹1,299', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 40, name: '7th Gen Universal Bond', price: '₹1,799', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Endodontics',
-    subCategories: [
-      {
-        name: 'Rubber Dam Kits & Accessories',
-        products: [
-          { id: 41, name: 'Rubber Dam Kit', price: '₹1,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 42, name: 'Rubber Dam Sheet', price: '₹299', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 43, name: 'Rubber Dam Clamps', price: '₹599', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-          { id: 44, name: 'Rubber Dam Template', price: '₹399', image: 'https://via.placeholder.com/150', rating: 4.4, inStock: true },
-          { id: 45, name: 'Rubber Dam Frame', price: '₹499', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 46, name: 'Rubber Dam Punch Forceps', price: '₹1,299', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-        ]
-      },
-      {
-        name: 'Endo Diagnosis',
-        products: [
-          { id: 47, name: 'Apex Locator Digital', price: '₹8,999', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-          { id: 48, name: 'Electric Pulp Tester', price: '₹4,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 49, name: 'Endo Ice Spray', price: '₹599', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-        ]
-      },
-      {
-        name: 'Cavity Access',
-        products: [
-          { id: 50, name: 'Endo Access Bur Kit', price: '₹1,999', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 51, name: 'Gates Glidden Drills', price: '₹899', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 52, name: 'Peeso Reamers Set', price: '₹1,299', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      },
-      {
-        name: 'Cleaning And Shaping',
-        products: [
-          { id: 53, name: 'Rotary File System', price: '₹3,999', image: 'https://via.placeholder.com/150', rating: 4.9, inStock: true },
-          { id: 54, name: 'K-Files Stainless Steel', price: '₹599', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 55, name: 'H-Files Set', price: '₹649', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 56, name: 'Hedstrom Files', price: '₹699', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-        ]
-      },
-      {
-        name: 'Intracanal Medicaments',
-        products: [
-          { id: 57, name: 'Calcium Hydroxide Paste', price: '₹499', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 58, name: 'Ledermix Paste', price: '₹899', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 59, name: 'Formocresol Solution', price: '₹299', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-        ]
-      },
-      {
-        name: 'Post & Core',
-        products: [
-          { id: 60, name: 'Fiber Post Kit', price: '₹2,999', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-          { id: 61, name: 'Metal Post Set', price: '₹1,999', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-          { id: 62, name: 'Core Build Up Material', price: '₹1,499', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-        ]
-      },
-      {
-        name: 'Obturation',
-        products: [
-          { id: 63, name: 'Gutta Percha Points', price: '₹399', image: 'https://via.placeholder.com/150', rating: 4.7, inStock: true },
-          { id: 64, name: 'Endodontic Sealer', price: '₹899', image: 'https://via.placeholder.com/150', rating: 4.8, inStock: true },
-          { id: 65, name: 'Thermoplastic Obturator', price: '₹12,999', image: 'https://via.placeholder.com/150', rating: 4.9, inStock: true },
-          { id: 66, name: 'Spreaders & Pluggers Set', price: '₹1,299', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Full Store Directory',
-    subCategories: [
-      {
-        name: 'Browse All Categories',
-        products: [
-          { id: 67, name: 'Featured Product 1', price: '₹999', image: 'https://via.placeholder.com/150', rating: 4.5, inStock: true },
-          { id: 68, name: 'Featured Product 2', price: '₹1,299', image: 'https://via.placeholder.com/150', rating: 4.6, inStock: true },
-        ]
-      }
-    ]
-  }
-];
+// Categories are now fetched from the API. Static sample data has been removed in favor of dynamic fetching.
+// See the fetching logic inside the CategoryBrowsePage component.
+const categoryData: Category[] = [];
 
 interface ProductCardProps {
   product: Product;
   isLiked: boolean;
   onToggleLike: () => void;
   onAddToCart: () => void;
-}
+} 
 
 function ProductCard({ product, isLiked, onToggleLike, onAddToCart }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -335,7 +112,7 @@ function ProductCard({ product, isLiked, onToggleLike, onAddToCart }: ProductCar
 
         {/* Price */}
         <div className="text-lg font-bold text-blue-600 mb-3">
-          {product.price}
+          {product.price ? `₹${product.price.toLocaleString()}` : '-'}
         </div>
 
         {/* Add to Cart Button */}
@@ -379,9 +156,9 @@ export default function CategoryBrowsePage({
   onToggleLike
 }: CategoryBrowsePageProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(7); // Default to Endodontics
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [selectedSubCategoryIndex, setSelectedSubCategoryIndex] = useState(0);
-  const [localLikedProducts, setLocalLikedProducts] = useState<Set<number>>(likedProducts);
+  const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(likedProducts);
 
   const router = useRouter();
 
@@ -390,15 +167,284 @@ export default function CategoryBrowsePage({
     callback?.();
   };
 
+  // API state: fetch main categories and subcategories on demand (cached)
+  const [categoriesApi, setCategoriesApi] = useState<any[]>([]);
+  const [subCategoriesMap, setSubCategoriesMap] = useState<Record<string, any[]>>({});
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const filteredCategories = categoryData.filter(cat =>
+  // Normalize ID values that may come as strings or MongoDB objects { $oid: '...' }
+  const getId = (val: any): string | undefined => {
+    if (!val) return undefined;
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') {
+      if (val.$oid) return String(val.$oid);
+      if (val._id && typeof val._id === 'string') return val._id;
+      if (val._id && val._id.$oid) return String(val._id.$oid);
+      if (val.id) return String(val.id);
+      if (val.subCategoryId) return String(val.subCategoryId);
+    }
+    return undefined;
+  }; 
+
+  useEffect(() => {
+    const fetchMain = async () => {
+      setLoadingCategories(true);
+      setApiError(null);
+      try {
+        const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getAll`);
+        if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
+        const json = await res.json();
+        setCategoriesApi(json.data || []);
+        // prefetch subcategories for first category
+        if (json.data && json.data.length > 0) {
+          fetchSubCategories(json.data[0]._id);
+        }
+      } catch (err: any) {
+        setApiError(err.message || 'Error fetching categories');
+        toast.error(err.message || 'Error fetching categories');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchMain();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchSubCategories = async (parentId: string) => {
+    if (!parentId) return;
+    if (subCategoriesMap[parentId]) return; // cached
+    setLoadingSubcategories(true);
+    setApiError(null);
+
+    const candidates = [
+      `${baseUrl.INVENTORY}/api/v1/landing/sub/getByParent/${parentId}`,
+      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parentId=${parentId}`,
+      `${baseUrl.INVENTORY}/api/v1/landing/sub/getSub?parentId=${parentId}`,
+      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parentCategory=${parentId}`,
+      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parentCategoryId=${parentId}`,
+      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parent=${parentId}`,
+      `${baseUrl.INVENTORY}/api/v1/landing/sub/getSub?parentCategoryId=${parentId}`,
+    ];
+
+    try {
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const json = await res.json();
+          if (json?.data && json.data.length > 0) {
+            const normalized = json.data.map((item: any) => ({
+              ...item,
+              _id: getId(item._id ?? item.id ?? item.subCategoryId ?? item.categoryId ?? item._id) ?? (item._id ?? item.id ?? item.subCategoryId ?? item.categoryId)
+            }));
+            setSubCategoriesMap(prev => ({ ...prev, [parentId]: normalized }));
+            return;
+          }
+        } catch (e) {
+          // ignore and try next
+        }
+      }
+
+      // Final fallback: fetch all and filter by parentCategory._id
+      try {
+        const allRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getAll`);
+        if (allRes.ok) {
+          const allJson = await allRes.json();
+          const allData = allJson?.data || [];
+          // Consider multiple possible parent references (parentCategory, mainCategory, parent, etc.)
+          const filtered = allData.filter((item: any) => {
+            const possibleParent = item.parentCategory ?? item.mainCategory ?? item.parent ?? item.parentCategoryId ?? item.mainCategoryId ?? item.categoryId;
+            if (!possibleParent) return false;
+            const pId = getId(possibleParent);
+            if (typeof possibleParent === 'string' && possibleParent === parentId) return true;
+            if (pId && pId === parentId) return true;
+            // also accept direct object equality
+            if (possibleParent === parentId) return true;
+            return false;
+          });
+          if (filtered.length > 0) {
+            const normalized = filtered.map((item: any) => ({
+              ...item,
+              _id: getId(item._id ?? item.id ?? item.subCategoryId ?? item.categoryId ?? item._id) ?? (item._id ?? item.id ?? item.subCategoryId ?? item.categoryId)
+            }));
+            setSubCategoriesMap(prev => ({ ...prev, [parentId]: normalized }));
+            console.debug('Found subcategories from getAll fallback', parentId, normalized.length);
+            return;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // If still no subcategories found, cache empty array
+      setSubCategoriesMap(prev => ({ ...prev, [parentId]: [] }));
+    } catch (err: any) {
+      setApiError(err.message || 'Error fetching subcategories');
+      toast.error(err.message || 'Error fetching subcategories');
+      setSubCategoriesMap(prev => ({ ...prev, [parentId]: [] }));
+    } finally {
+      setLoadingSubcategories(false);
+    }
+  };
+
+  // Products state & fetch helpers (cached by subcategory id)
+  const [productsMap, setProductsMap] = useState<Record<string, Product[]>>({});
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  // Debugging helpers
+  const [lastFetchedJson, setLastFetchedJson] = useState<any | null>(null);
+  const [showRawProducts, setShowRawProducts] = useState(false);
+
+  const mapApiProductToProduct = (p: any): Product => {
+    const variant = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants[0] : null;
+    const price = variant ? (variant.clinicDiscountPrice ?? variant.discountPrice1 ?? variant.originalPrice ?? 0) : 0;
+    const imagePath = Array.isArray(p.image) && p.image.length > 0 ? p.image[0] : '';
+
+    const id = getId(p._id ?? p._id?.$oid ?? p.id);
+    const productName = p.name ?? p.title ?? '';
+    const subCategoryId = getId(p.subCategory ?? p.subCategoryId ?? p.subCategory?._id);
+
+    return {
+      _id: id ?? String(Math.random()), // fallback to avoid undefined
+      name: productName,
+      price,
+      image: imagePath ? `${baseUrl.INVENTORY}${imagePath}` : '/uploads/placeholder.png',
+      rating: p.rating ?? 0,
+      inStock: Array.isArray(p.variants) ? p.variants.some((v: any) => v.stock && v.stock > 0) : (p.stock ?? true),
+      productId: p.productId,
+      subCategoryId,
+      variants: p.variants
+    };
+  }; 
+
+  const fetchProductsBySubCategory = async (subCategoryId: string, force = false) => {
+    if (!subCategoryId) return;
+    if (!force && productsMap[subCategoryId]) return; // cached
+    setLoadingProducts(true);
+    setProductsError(null);
+    setLastFetchedJson(null);
+    try {
+      console.debug(`Fetching products for subCategoryId: ${subCategoryId}`);
+      const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/products/bySubCategory/${subCategoryId}`);
+      if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
+      const json = await res.json();
+      setLastFetchedJson(json);
+      const data = json?.data || [];
+      console.debug(`Fetched ${data.length} products for ${subCategoryId}`, data?.[0]);
+      const mapped = data.map(mapApiProductToProduct);
+
+      // Cache under requested id
+      setProductsMap(prev => ({ ...prev, [subCategoryId]: mapped }));
+
+      // Also cache under any subCategory keys found in product.subCategory (e.g., subCategoryId, _id)
+      if (data.length) {
+        const altKeys = new Set<string>();
+        // extract normalized ids from raw data
+        data.forEach((p: any) => {
+          const sId = getId(p.subCategory) ?? getId(p.subCategoryId);
+          if (sId) altKeys.add(sId);
+        });
+        // also include any subCategoryId we added while mapping
+        mapped.forEach((mp: Product) => {
+          if (mp.subCategoryId) altKeys.add(mp.subCategoryId);
+        });
+        // remove the requested id (already set)
+        altKeys.delete(subCategoryId);
+        if (altKeys.size) {
+          setProductsMap(prev => {
+            const next = { ...prev };
+            altKeys.forEach(k => { next[k] = mapped; });
+            console.debug('Also caching products under alternative subcategory keys:', Array.from(altKeys));
+            return next;
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching products for', subCategoryId, err);
+      setProductsError(err.message || 'Error fetching products');
+      toast.error(err.message || 'Error fetching products');
+      setProductsMap(prev => ({ ...prev, [subCategoryId]: [] }));
+    } finally {
+      setLoadingProducts(false);
+    }
+  }; 
+
+  // Derived UI categories matching previous structure (no products yet)
+  const uiCategories: Category[] = categoriesApi.map(c => ({
+    name: c.categoryName,
+    subCategories: (subCategoriesMap[c._id] || []).map((sc: any) => ({ name: sc.categoryName, products: [] }))
+  }));
+
+  const filteredCategories = uiCategories.filter(cat =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const selectedCategory = filteredCategories[selectedCategoryIndex] || filteredCategories[0];
-  const selectedSubCategory = selectedCategory?.subCategories[selectedSubCategoryIndex];
+  const filteredApiCategories = categoriesApi.filter(cat =>
+    cat.categoryName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleToggleLike = (productId: number) => {
+  useEffect(() => {
+    // when selectedCategoryIndex changes, attempt to fetch its subcategories
+    const filtered = categoriesApi.filter(cat => cat.categoryName.toLowerCase().includes(searchQuery.toLowerCase()));
+    const apiCat = filtered[selectedCategoryIndex];
+    if (apiCat && apiCat._id) {
+      fetchSubCategories(apiCat._id);
+    }
+    // reset subcategory index
+    setSelectedSubCategoryIndex(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategoryIndex, categoriesApi, searchQuery]);
+
+  const selectedCategory = filteredCategories[selectedCategoryIndex] || filteredCategories[0];
+  // API-aware helpers
+  const filteredApi = filteredApiCategories;
+  const currentApiCategory = filteredApi[selectedCategoryIndex];
+  const currentSubcategoriesApi = currentApiCategory ? (subCategoriesMap[currentApiCategory._id] || []) : [];
+  const currentSelectedSubCategory = currentSubcategoriesApi[selectedSubCategoryIndex];
+  // keep a UI-compatible selectedSubCategory for legacy rendering
+  const selectedSubCategory = currentSelectedSubCategory ? { name: currentSelectedSubCategory.categoryName, products: [] } : selectedCategory?.subCategories[selectedSubCategoryIndex];
+
+  // When subcategory changes, fetch its products (if not cached)
+  useEffect(() => {
+    const raw = currentSelectedSubCategory?._id ?? currentSelectedSubCategory ?? currentSelectedSubCategory?.subCategoryId ?? currentSelectedSubCategory?.id;
+    const subId = getId(raw);
+    if (subId) fetchProductsBySubCategory(subId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSelectedSubCategory, selectedSubCategoryIndex]);
+
+  // Helper to retrieve products for a subcategory, trying multiple keys (_id, subCategoryId, or direct string)
+  const getProductsForSub = (sub: any): Product[] => {
+    if (sub == null) return [];
+
+    // Build candidate keys depending on structure (string or object)
+    const candidateKeys: Array<string | undefined> = [];
+    if (typeof sub === 'string') {
+      candidateKeys.push(sub);
+    } else if (typeof sub === 'object') {
+      candidateKeys.push(sub._id, sub.subCategoryId, sub.subCategory, sub.id);
+    }
+
+    // Normalize each candidate via getId and try to return the first matching cached products
+    for (const k of candidateKeys) {
+      if (!k) continue;
+      const normalized = getId(k) ?? k;
+      if (normalized && productsMap[normalized] && productsMap[normalized].length) return productsMap[normalized];
+    }
+
+    // Final fallbacks: return any cached entry even if empty (useful to indicate "no products")
+    for (const k of candidateKeys) {
+      if (!k) continue;
+      const normalized = getId(k) ?? k;
+      if (normalized && productsMap[normalized]) return productsMap[normalized];
+    }
+
+    return [];
+  }; 
+
+  const handleToggleLike = (productId: string) => {
     if (onToggleLike) {
       onToggleLike(productId);
     } else {
@@ -414,7 +460,7 @@ export default function CategoryBrowsePage({
         return newSet;
       });
     }
-  };
+  }; 
 
   const handleAddToCart = (productName: string) => {
     onCartCountChange(cartCount + 1);
@@ -465,16 +511,28 @@ export default function CategoryBrowsePage({
               <h2 className="font-bold text-gray-600 text-sm uppercase">Category</h2>
             </div>
             <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
+              {loadingCategories && (
+                <div className="px-4 py-3 text-sm text-gray-500">Loading categories...</div>
+              )}
+
+              {!loadingCategories && filteredCategories.length === 0 && (
+                <div className="px-4 py-3 text-sm text-gray-500">No categories found</div>
+              )}
+
               {filteredCategories.map((category, index) => (
                 <button
                   key={index}
                   onClick={() => {
+                    const apiCategory = filteredApiCategories[index];
                     // Check if Full Store Directory is clicked
-                    if (category.name === 'Full Store Directory' && onFullStoreDirectoryClick) {
+                    if (apiCategory?.categoryName === 'Full Store Directory' && onFullStoreDirectoryClick) {
                       onFullStoreDirectoryClick();
                     } else {
                       setSelectedCategoryIndex(index);
                       setSelectedSubCategoryIndex(0);
+                      if (apiCategory?._id) {
+                        fetchSubCategories(apiCategory._id);
+                      }
                     }
                   }}
                   className={`
@@ -497,10 +555,23 @@ export default function CategoryBrowsePage({
               <h2 className="font-bold text-gray-600 text-sm uppercase">Sub Category</h2>
             </div>
             <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
-              {selectedCategory?.subCategories.map((subCategory, index) => (
+              {loadingSubcategories && (
+                <div className="px-4 py-3 text-sm text-gray-500">Loading subcategories...</div>
+              )}
+
+              {!loadingSubcategories && currentSubcategoriesApi.length === 0 && (
+                <div className="px-4 py-3 text-sm text-gray-500">No subcategories</div>
+              )}
+
+              {currentSubcategoriesApi.map((subCategory, index) => (
                 <button
                   key={index}
-                  onClick={() => setSelectedSubCategoryIndex(index)}
+                  onClick={() => {
+                    setSelectedSubCategoryIndex(index);
+                    // normalize subcategory id (handles string or object)
+                    const sid = getId(subCategory?._id ?? subCategory ?? subCategory?.subCategoryId ?? subCategory?.id);
+                    if (sid) fetchProductsBySubCategory(sid);
+                  }}
                   className={`
                     w-full text-left px-4 py-3 flex items-center justify-between transition-all duration-200
                     ${selectedSubCategoryIndex === index
@@ -509,10 +580,10 @@ export default function CategoryBrowsePage({
                     }
                   `}
                 >
-                  <span>{subCategory.name}</span>
+                  <span>{subCategory.categoryName}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
-              ))}
+              ))} 
             </div>
           </div>
 
@@ -520,28 +591,52 @@ export default function CategoryBrowsePage({
           <div className="col-span-6 bg-white">
             <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
               <h2 className="font-bold text-gray-800 text-sm uppercase">
-                {selectedSubCategory?.name || 'Products'}
+                {currentSelectedSubCategory?.categoryName || selectedSubCategory?.name || 'Products'}
               </h2>
+              {/* DEBUG: show subcategory id and product count for troubleshooting */}
+              {(() => {
+                const subId = currentSelectedSubCategory?._id;
+                return subId ? (
+                  <div className="text-xs text-gray-500 mt-1">
+                    ID: <code className="text-xs">{subId}</code> — <span>{productsMap[subId]?.length ?? 0}</span> products
+                    {productsError && <div className="text-xs text-red-500">Error: {productsError}</div>}
+                  </div>
+                ) : null;
+              })()}
             </div>
             <div className="overflow-y-auto max-h-[600px] p-4 custom-scrollbar">
-              <div className="grid grid-cols-2 gap-4">
-                {selectedSubCategory?.products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    isLiked={localLikedProducts.has(product.id)}
-                    onToggleLike={() => handleToggleLike(product.id)}
-                    onAddToCart={() => handleAddToCart(product.name)}
-                  />
-                ))}
-              </div>
+              {/* products for the selected subcategory */}
+              {(() => {
+                const productsForCurrent = getProductsForSub(currentSelectedSubCategory);
 
-              {selectedSubCategory?.products.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No products available in this category
-                </div>
-              )}
-            </div>
+                const isLoadingView = loadingProducts && !productsForCurrent.length;
+                if (isLoadingView) {
+                  return <div className="text-sm text-gray-500 p-4">Loading products...</div>;
+                }
+
+                if (!loadingProducts && productsForCurrent.length === 0) {
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2 text-center py-12 text-gray-500">No products available in this category</div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                    {productsForCurrent.map((product) => (
+                      <ProductCard
+                        key={product._id}
+                        product={product}
+                        isLiked={localLikedProducts.has(product._id)}
+                        onToggleLike={() => handleToggleLike(product._id)}
+                        onAddToCart={() => handleAddToCart(product.name)}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
+            </div> 
           </div>
         </div>
 
@@ -554,6 +649,8 @@ export default function CategoryBrowsePage({
                 onClick={() => {
                   setSelectedCategoryIndex(catIndex);
                   setSelectedSubCategoryIndex(0);
+                  const apiCategory = filteredApiCategories[catIndex];
+                  if (apiCategory?._id) fetchSubCategories(apiCategory._id);
                 }}
                 className={`
                   w-full text-left px-4 py-4 font-semibold flex items-center justify-between
@@ -570,43 +667,74 @@ export default function CategoryBrowsePage({
               {/* Subcategories */}
               {selectedCategoryIndex === catIndex && (
                 <div className="border-t border-gray-200">
-                  {category.subCategories.map((subCategory, subIndex) => (
-                    <div key={subIndex}>
-                      <button
-                        onClick={() => setSelectedSubCategoryIndex(subIndex)}
-                        className={`
-                          w-full text-left px-6 py-3 text-sm flex items-center justify-between
-                          ${selectedSubCategoryIndex === subIndex
-                            ? 'bg-blue-100 text-blue-700 font-semibold'
-                            : 'text-gray-700 bg-gray-50'
-                          }
-                        `}
-                      >
-                        {subCategory.name}
-                        <ChevronRight
-                          className={`w-4 h-4 transition-transform ${selectedSubCategoryIndex === subIndex ? 'rotate-90' : ''
-                            }`}
-                        />
-                      </button>
+                  {(() => {
+                    const apiCat = filteredApiCategories[catIndex];
+                    const subApi = apiCat ? (subCategoriesMap[apiCat._id] || []) : [];
 
-                      {/* Products */}
-                      {selectedSubCategoryIndex === subIndex && (
-                        <div className="p-4 bg-white">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {subCategory.products.map((product) => (
-                              <ProductCard
-                                key={product.id}
-                                product={product}
-                                isLiked={localLikedProducts.has(product.id)}
-                                onToggleLike={() => handleToggleLike(product.id)}
-                                onAddToCart={() => handleAddToCart(product.name)}
-                              />
-                            ))}
+                    if (loadingSubcategories && apiCat && !subApi.length) {
+                      return <div className="px-6 py-3 text-sm text-gray-500">Loading subcategories...</div>;
+                    }
+
+                    if (!loadingSubcategories && subApi.length === 0) {
+                      return <div className="px-6 py-3 text-sm text-gray-500">No subcategories</div>;
+                    }
+
+                    return subApi.map((subCategory, subIndex) => (
+                      <div key={subIndex}>
+                        <button
+                          onClick={() => {
+                            setSelectedSubCategoryIndex(subIndex);
+                            const sid = getId(subCategory?._id ?? subCategory ?? subCategory?.subCategoryId ?? subCategory?.id);
+                            if (sid) fetchProductsBySubCategory(sid);
+                          }}
+                          className={`
+                            w-full text-left px-6 py-3 text-sm flex items-center justify-between
+                            ${selectedSubCategoryIndex === subIndex
+                              ? 'bg-blue-100 text-blue-700 font-semibold'
+                              : 'text-gray-700 bg-gray-50'
+                            }
+                          `}
+                        >
+                          {subCategory.categoryName}
+                          <ChevronRight
+                            className={`w-4 h-4 transition-transform ${selectedSubCategoryIndex === subIndex ? 'rotate-90' : ''
+                              }`}
+                          />
+                        </button>
+
+                        {/* Products */}
+                        {selectedSubCategoryIndex === subIndex && (
+                          <div className="p-4 bg-white">
+                            {(() => {
+                              const productsForSub = getProductsForSub(subCategory);
+
+                              if (loadingProducts && !productsForSub.length) {
+                                return <div className="text-sm text-gray-500 p-2">Loading products...</div>;
+                              }
+
+                              if (!loadingProducts && productsForSub.length === 0) {
+                                return <div className="text-center py-6 text-gray-500">No products available in this category</div>;
+                              }
+
+                              return (
+                                <div className="grid grid-cols-2 gap-3">
+                                  {productsForSub.map((product) => (
+                                    <ProductCard
+                                      key={product._id}
+                                      product={product}
+                                      isLiked={localLikedProducts.has(product._id)}
+                                      onToggleLike={() => handleToggleLike(product._id)}
+                                      onAddToCart={() => handleAddToCart(product.name)}
+                                    />
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
             </div>
