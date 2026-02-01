@@ -593,16 +593,6 @@ export default function CategoryBrowsePage({
               <h2 className="font-bold text-gray-800 text-sm uppercase">
                 {currentSelectedSubCategory?.categoryName || selectedSubCategory?.name || 'Products'}
               </h2>
-              {/* DEBUG: show subcategory id and product count for troubleshooting */}
-              {(() => {
-                const subId = currentSelectedSubCategory?._id;
-                return subId ? (
-                  <div className="text-xs text-gray-500 mt-1">
-                    ID: <code className="text-xs">{subId}</code> — <span>{productsMap[subId]?.length ?? 0}</span> products
-                    {productsError && <div className="text-xs text-red-500">Error: {productsError}</div>}
-                  </div>
-                ) : null;
-              })()}
             </div>
             <div className="overflow-y-auto max-h-[600px] p-4 custom-scrollbar">
               {/* products for the selected subcategory */}
