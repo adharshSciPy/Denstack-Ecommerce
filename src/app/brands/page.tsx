@@ -41,7 +41,7 @@ interface BrandsPageProps {
   onOrdersClick: () => void;
   onAccountClick: () => void;
   favoritesCount: number;
-  onBrandDetailClick: (brandId: number, brandName: string) => void;
+  onBrandDetailClick: (brandId: string, brandName: string) => void; 
 }
 
 export default function BrandsPage({
@@ -77,37 +77,55 @@ export default function BrandsPage({
 
   // Fetch brands from API
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchBrands = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch(
-          `${baseUrl.INVENTORY}/api/v1/landing/brands/getAll?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}`
+          `${baseUrl.INVENTORY}/api/v1/landing/brands/getAll?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}`,
+          { signal: controller.signal }
         );
-        
+
         if (!response.ok) {
           console.error('Failed to fetch brands, status:', response.status);
           throw new Error('Failed to fetch brands');
         }
-        
+
         const contentType = response.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
           console.error('Expected JSON but received:', contentType);
           throw new Error('Invalid brands response');
         }
-        
-        const result = await response.json();
-        console.log('brands brands:', result);
-        
-        setBrands(result.data);
-        setPagination({
-          currentPage: result.pagination.currentPage,
-          totalPages: result.pagination.totalPages,
-          totalItems: result.pagination.totalItems,
-          itemsPerPage: result.pagination.itemsPerPage,
-        });
+
+        const result: any = await response.json();
+        console.log('brands result:', result);
+
+        const data = Array.isArray(result?.data) ? result.data : [];
+        setBrands(data);
+
+        const respPagination = result?.pagination;
+        if (respPagination && typeof respPagination === 'object') {
+          setPagination(prev => ({
+            currentPage: typeof respPagination.currentPage === 'number' ? respPagination.currentPage : prev.currentPage,
+            totalPages: typeof respPagination.totalPages === 'number' ? respPagination.totalPages : prev.totalPages,
+            totalItems: typeof respPagination.totalItems === 'number' ? respPagination.totalItems : prev.totalItems,
+            itemsPerPage: typeof respPagination.itemsPerPage === 'number' ? respPagination.itemsPerPage : prev.itemsPerPage,
+          }));
+        } else {
+          // If pagination missing, keep existing pagination but update totalItems to reflect fetched data
+          setPagination(prev => ({
+            ...prev,
+            totalItems: data.length,
+          }));
+        }
       } catch (err) {
+        if ((err as any)?.name === 'AbortError') {
+          console.log('Fetch aborted');
+          return;
+        }
         setError(err instanceof Error ? err.message : 'An error occurred');
         console.error('Error fetching brands:', err);
       } finally {
@@ -116,11 +134,13 @@ export default function BrandsPage({
     };
 
     fetchBrands();
-  }, [pagination.currentPage]);
 
-  const handleBrandClick = (brandId: number, brandName: string) => {
+    return () => controller.abort();
+  }, [pagination.currentPage, pagination.itemsPerPage]);
+
+  const handleBrandClick = (brandId: string, brandName: string) => {
     router.push(`/allbrands?brandId=${brandId}&brandName=${encodeURIComponent(brandName)}`);
-  };
+  }; 
 
   // Filter brands based on selected letter
   const filteredBrands = selectedLetter

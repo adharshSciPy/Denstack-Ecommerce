@@ -9,8 +9,9 @@ interface FavoritesPageProps {
     onCartCountChange: (count: number) => void;
     onBackToHome: () => void;
     onCartClick?: () => void;
-    likedProducts: Set<number>;
-    onToggleLike: (productId: number) => void;
+    likedProducts: Set<string>;
+    // Accept string|number for flexibility with different product id types
+    onToggleLike: (productId: string | number) => void;
     onBrandClick?: () => void;
     onBuyingGuideClick?: () => void;
     onEventsClick?: () => void;
@@ -182,7 +183,7 @@ export default function FavoritesPage({
 
 
     const handleRemove = (productId: number) => {
-        onToggleLike(productId);
+        onToggleLike(String(productId));
         toast.success('Removed from favorites');
     };
 
@@ -213,7 +214,7 @@ export default function FavoritesPage({
 
     const handleClearAll = () => {
         if (window.confirm('Are you sure you want to remove all favorites?')) {
-            favoriteProducts.forEach(product => onToggleLike(product.id));
+            favoriteProducts.forEach(product => onToggleLike(String(product.id)));
             toast.success('All favorites cleared');
         }
     };

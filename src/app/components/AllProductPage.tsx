@@ -9,9 +9,10 @@ interface AllProductsPageProps {
   onCartCountChange: (count: number) => void;
   onBackToHome: () => void;
   onCartClick: () => void;
-  likedProducts: Set<number>;
-  onToggleLike: (id: number) => void;
-  onProductClick?: (productId: number) => void;
+  likedProducts: Set<string>;
+  // Accept string|number to remain compatible with ProductCard callbacks
+  onToggleLike: (id: string | number) => void;
+  onProductClick?: (productId: string | number) => void;
   onBrandClick: () => void;
   onBuyingGuideClick: () => void;
   onEventsClick: () => void;
@@ -140,7 +141,7 @@ export default function AllProductsPage({
             >
               <ProductCard
                 product={product}
-                isLiked={likedProducts.has(product.id)}
+                isLiked={likedProducts.has(String(product.id))}
                 onToggleLike={onToggleLike}
                 onAddToCart={addToCart}
                 onProductClick={onProductClick}

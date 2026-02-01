@@ -107,14 +107,50 @@ export default function BrandDetailPage({
         setLoading(true);
         console.log('Fetching brand data for ID:', brandId); // Debug log
 
-        const response = await fetch(
-          `${baseUrl.INVENTORY}/api/v1/landing/top-brands/${brandId}`,
+        // Try primary fetch by given id (expected to be a TopBrand _id)
+        let response = await fetch(
+          `${baseUrl.INVENTORY}/api/v1/landing/brands/getById/${brandId}`,
           { cache: 'no-store' }
         );
 
+        // If not found, the caller may have passed a Brand _id (not TopBrand). Attempt fallback.
         if (!response.ok) {
-          console.error('Failed to fetch brand data, status:', response.status);
-          throw new Error('Failed to fetch brand data');
+          console.warn('Primary fetch returned', response.status, '— attempting fallback lookup for Brand _id');
+
+          if (response.status === 404) {
+            try {
+              const listRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/getAll`, { cache: 'no-store' });
+
+              if (listRes.ok) {
+                const listJson = await listRes.json();
+                const list = Array.isArray(listJson?.data) ? listJson.data : [];
+
+                // Find a TopBrand entry whose populated brandId._id matches the provided brandId
+                const found = list.find((t: any) => {
+                  const b = t?.brandId;
+                  if (!b) return false;
+                  if (typeof b === 'string') return b === brandId;
+                  if (typeof b === 'object') {
+                    return b._id === brandId || b.brandId === brandId || b.id === brandId;
+                  }
+                  return false;
+                });
+
+                if (found && found._id) {
+                  console.log('Found matching TopBrand', found._id, 'for Brand', brandId, '— retrying fetch');
+                  response = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/${found._id}`, { cache: 'no-store' });
+                }
+              }
+            } catch (fallbackErr) {
+              console.warn('Fallback lookup failed:', fallbackErr);
+            }
+          }
+
+          // If after fallback the response is still not ok, throw
+          if (!response.ok) {
+            console.error('Failed to fetch brand data, status:', response.status);
+            throw new Error('Failed to fetch brand data');
+          }
         }
 
         const contentType = response.headers.get('content-type') || '';
@@ -126,12 +162,122 @@ export default function BrandDetailPage({
         const result = await response.json();
         console.log('Brand data response:', result); // Debug log
 
-        if (result.success) {
-          setBrandData(result.data);
+        // Normalize different possible response shapes:
+        // - { success: true, data: { topBrand: ..., products: [...] } }
+        // - { _id, name, brandLogo, products: [...] } (Brand object)
+        // - A TopBrand object directly
+        let payload = result?.data ?? result;
+
+        // If it's already the expected BrandData shape (has topBrand)
+        if (payload && payload.topBrand && payload.products) {
+          setBrandData(payload as BrandData);
           setError(null);
-        } else {
-          setError(result.message || 'Failed to load brand data');
+          return;
         }
+
+        // If API directly returned a Brand object, normalize and use it
+        if (payload && payload._id && (payload.name || payload.brandLogo)) {
+          const normalized: BrandData = {
+            topBrand: {
+              _id: payload._id,
+              order: 0,
+              brandId: {
+                _id: payload._id,
+                name: payload.name,
+                brandLogo: payload.brandLogo || '',
+                description: payload.description || '',
+              },
+            },
+            products: Array.isArray(payload.products) ? payload.products : [],
+            productCount: typeof payload.productCount === 'number' ? payload.productCount : (Array.isArray(payload.products) ? payload.products.length : 0),
+          };
+
+          setBrandData(normalized);
+          setError(null);
+          return;
+        }
+
+        // If payload looks like a TopBrand object (brandId populated directly), wrap it
+        if (payload && payload.brandId && payload.brandId._id) {
+          const normalized: BrandData = {
+            topBrand: payload,
+            products: Array.isArray(payload.products) ? payload.products : [],
+            productCount: typeof payload.productCount === 'number' ? payload.productCount : (Array.isArray(payload.products) ? payload.products.length : 0),
+          };
+          setBrandData(normalized);
+          setError(null);
+          return;
+        }
+
+        // If payload is empty or unexpected, try additional fallbacks:
+        // 1) Search top-brands list for an entry whose populated brandId._id matches brandId
+        // 2) Search brands/getAll for a Brand object matching brandId
+        try {
+          const listRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/getAll`, { cache: 'no-store' });
+          if (listRes.ok) {
+            const listJson = await listRes.json();
+            const list = Array.isArray(listJson?.data) ? listJson.data : [];
+
+            const found = list.find((t: any) => {
+              const b = t?.brandId;
+              if (!b) return false;
+              if (typeof b === 'string') return b === brandId;
+              if (typeof b === 'object') return b._id === brandId || b.brandId === brandId || b.id === brandId;
+              return false;
+            });
+
+            if (found && found._id) {
+              console.log('Fallback: Found TopBrand mapping', found._id, 'for Brand', brandId);
+              const tbRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/${found._id}`, { cache: 'no-store' });
+              if (tbRes.ok) {
+                const tbJson = await tbRes.json();
+                payload = tbJson?.data ?? tbJson;
+                if (payload && payload.topBrand && payload.products) {
+                  setBrandData(payload as BrandData);
+                  setError(null);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Top-brands fallback failed:', e);
+        }
+
+        try {
+          const brandsRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/brands/getAll?page=1&limit=1000`, { cache: 'no-store' });
+          if (brandsRes.ok) {
+            const brandsJson = await brandsRes.json();
+            const brandsList = Array.isArray(brandsJson?.data) ? brandsJson.data : [];
+            const foundBrand = brandsList.find((b: any) => b._id === brandId || String(b.brandId) === brandId || b.brandId === brandId);
+            if (foundBrand) {
+              const normalized: BrandData = {
+                topBrand: {
+                  _id: foundBrand._id,
+                  order: 0,
+                  brandId: {
+                    _id: foundBrand._id,
+                    name: foundBrand.name,
+                    brandLogo: foundBrand.image || foundBrand.brandLogo || '',
+                    description: foundBrand.description || '',
+                  },
+                },
+                products: Array.isArray(foundBrand.products) ? foundBrand.products : [],
+                productCount: typeof foundBrand.productCount === 'number' ? foundBrand.productCount : (Array.isArray(foundBrand.products) ? foundBrand.products.length : 0),
+              };
+
+              setBrandData(normalized);
+              setError(null);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Brands list fallback failed:', e);
+        }
+
+        // Nothing worked — show not found
+        console.error('Unexpected brand detail response shape (no usable data):', payload);
+        setError('Brand not found');
       } catch (err) {
         console.error('Error fetching brand data:', err);
         setError('Failed to load brand data. Please try again.');
