@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '../../components/Navigation';
 import {
     Heart, Calendar, MapPin, Users, Clock, ArrowLeft, Share2,
@@ -36,114 +36,71 @@ export default function EventDetailsPage({
 }: EventDetailsPageProps) {
     const router = useRouter();
     const params = useParams();
-    const eventId = Number(params.id);
+    const eventId = params.id as string;
     const [isLiked, setIsLiked] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'speakers'>('overview');
 
-    // Event data (in real app, this would come from API/props)
-    const eventData = {
-        0: {
-            title: "Advanced Dental Implant Techniques Workshop",
-            date: "Jan 15, 2026",
-            time: "9:00 AM - 5:00 PM",
-            location: "Grand Medical Center, New York",
-            fullAddress: "1234 Medical Plaza, Suite 500, New York, NY 10001",
-            attendees: 85,
-            maxAttendees: 100,
-            category: "Workshops",
-            imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=800",
-            isFeatured: true,
-            spotsLeft: 15,
-            description: "Join us for an intensive, hands-on workshop focusing on the latest advancements in dental implant techniques. This full-day event is designed for dental professionals seeking to enhance their skills in implantology with cutting-edge methods and technologies.",
-            highlights: [
-                "Hands-on practice with state-of-the-art equipment",
-                "Live surgical demonstrations by expert surgeons",
-                "Digital planning and guided surgery techniques",
-                "Case studies and interactive Q&A sessions",
-                "CE Credits: 8 hours continuing education",
-                "Comprehensive workshop materials and resources"
-            ],
-            speakers: [
-                {
-                    name: "Dr. Sarah Johnson",
-                    title: "Lead Implantologist",
-                    company: "NYU College of Dentistry",
-                    bio: "20+ years of experience in advanced implant procedures with over 500 published papers."
-                },
-                {
-                    name: "Dr. Michael Chen",
-                    title: "Oral Surgeon",
-                    company: "Advanced Dental Institute",
-                    bio: "Pioneering expert in digital implant planning and minimally invasive techniques."
-                },
-                {
-                    name: "Dr. Emily Rodriguez",
-                    title: "Prosthodontist",
-                    company: "Smile Restoration Center",
-                    bio: "Specialist in full-mouth rehabilitation and complex implant cases."
-                }
-            ],
-            schedule: [
-                {
-                    time: "8:30 AM - 9:00 AM",
-                    title: "Registration & Welcome Coffee",
-                    description: "Check-in, networking, and light refreshments"
-                },
-                {
-                    time: "9:00 AM - 10:30 AM",
-                    title: "Modern Implant Planning & Digital Workflow",
-                    description: "Introduction to advanced digital planning tools and 3D imaging",
-                    speaker: "Dr. Sarah Johnson"
-                },
-                {
-                    time: "10:30 AM - 10:45 AM",
-                    title: "Coffee Break",
-                    description: "Networking opportunity"
-                },
-                {
-                    time: "10:45 AM - 12:30 PM",
-                    title: "Guided Surgery Techniques - Live Demo",
-                    description: "Watch expert surgeons perform live procedures with guided technology",
-                    speaker: "Dr. Michael Chen"
-                },
-                {
-                    time: "12:30 PM - 1:30 PM",
-                    title: "Lunch Break",
-                    description: "Catered lunch provided"
-                },
-                {
-                    time: "1:30 PM - 3:00 PM",
-                    title: "Hands-On Practice Session",
-                    description: "Work with dental models and implant systems under expert guidance",
-                    speaker: "All Speakers"
-                },
-                {
-                    time: "3:00 PM - 3:15 PM",
-                    title: "Afternoon Break",
-                    description: "Refreshments"
-                },
-                {
-                    time: "3:15 PM - 4:30 PM",
-                    title: "Complex Case Studies & Problem Solving",
-                    description: "Interactive discussion of challenging cases and solutions",
-                    speaker: "Dr. Emily Rodriguez"
-                },
-                {
-                    time: "4:30 PM - 5:00 PM",
-                    title: "Q&A and Closing Remarks",
-                    description: "Open forum for questions and networking"
-                }
-            ],
-            organizer: {
-                name: "American Dental Association",
-                phone: "+1 (555) 123-4567",
-                email: "events@ada.org",
-                website: "www.ada.org/events"
-            }
-        }
-    };
+    // fetched event state
+    const [event, setEvent] = useState<any | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [imageSrc, setImageSrc] = useState<string>('/placeholder.png');
 
-    const event = eventData[eventId as keyof typeof eventData] || eventData[0];
+    // API base (use env when available)
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8004';
+
+    useEffect(() => {
+        if (!eventId) return;
+        let cancelled = false;
+        setLoading(true);
+        setError(null);
+
+        fetch(`${API_BASE}/api/v1/event/eventDetail/${eventId}`)
+            .then((res) => res.json())
+            .then((json) => {
+                if (cancelled) return;
+                if (!json?.success) {
+                    setError('Failed to load event');
+                    setLoading(false);
+                    return;
+                }
+
+                const d = json.data;
+                const mapped = {
+                    _id: d._id,
+                    title: d.title,
+                    date: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+                    time: d.startTime && d.endTime ? `${d.startTime} - ${d.endTime}` : `${d.startTime || ''}${d.endTime ? ' - ' + d.endTime : ''}`,
+                    location: d.venue || '',
+                    fullAddress: [d.address, d.city, d.state, d.country].filter(Boolean).join(', ') + (d.pincode ? ` - ${d.pincode}` : ''),
+                    attendees: d.registeredCount ?? 0,
+                    maxAttendees: d.totalSeats ?? 0,
+                    category: d.category ?? '',
+                    imageUrl: d.bannerImage ? (d.bannerImage.startsWith('http') ? d.bannerImage : `${API_BASE}${d.bannerImage}`) : '/placeholder.png',
+                    isFeatured: d.isFeatured ?? false,
+                    spotsLeft: Math.max((d.totalSeats ?? 0) - (d.registeredCount ?? 0), 0),
+                    description: d.description ?? '',
+                    highlights: d.highlights ?? [],
+                    speakers: (d.speakers ?? []).map((s: any) => ({ name: s.name, title: s.designation || '', company: s.organization || '', bio: s.bio || '' })),
+                    schedule: (d.schedule ?? []).map((s: any) => ({ time: s.startTime && s.endTime ? `${s.startTime} - ${s.endTime}` : (s.startTime || ''), title: s.title, description: s.description, speaker: s.speaker })),
+                    organizer: { name: d.organizer?.name || '', phone: d.organizer?.phone || '', email: d.organizer?.email || '', website: d.organizer?.website ? d.organizer.website.replace(/^https?:\/\//, '') : '' }
+                };
+
+                setEvent(mapped);
+                setImageSrc(mapped.imageUrl || '/placeholder.png');
+                setLoading(false);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setError('Network error while fetching event');
+                setLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [eventId]);
+
+    const isFull = event ? event.spotsLeft === 0 : false;
+    const isAlmostFull = event ? event.spotsLeft <= 10 : false;
 
     const toggleLike = () => {
         setIsLiked(!isLiked);
@@ -156,11 +113,31 @@ export default function EventDetailsPage({
     };
 
     const handleRegister = () => {
-        toast.success(`Registered for event #${eventId}`);
+        toast.success(`Registered for event #${event?._id || eventId}`);
+        router.push(`/eventRegisteration?eventId=${event?._id || eventId}`);
+        if (onRegisterClick) onRegisterClick(event?._id);
     };
 
-    const isFull = event.spotsLeft === 0;
-    const isAlmostFull = event.spotsLeft <= 10;
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Toaster position="top-right" richColors />
+                <div className="text-gray-600">Loading event...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Toaster position="top-right" richColors />
+                <div className="text-center">
+                    <p className="text-red-600 font-semibold mb-4">{error}</p>
+                    <button onClick={() => router.back()} className="text-blue-600 underline">Back</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -189,11 +166,13 @@ export default function EventDetailsPage({
                         {/* Image Section */}
                         <div className="relative aspect-[4/3] lg:aspect-auto">
                             <Image
-                                src={event.imageUrl}
-                                alt={event.title}
+                                src={imageSrc}
+                                alt={event?.title || 'Event image'}
                                 fill
                                 sizes="(max-width: 1024px) 100vw, 50vw"
                                 className="object-cover"
+                                onError={() => setImageSrc('/placeholder.png')}
+                                unoptimized
                             />
 
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -306,7 +285,7 @@ export default function EventDetailsPage({
 
                             {/* Register Button */}
                             <button
-                                onClick={()=> router.push('/eventRegisteration')}
+                                onClick={()=> router.push(`/eventRegisteration/${event._id}`)}
                                 className={`
                   w-full py-4 px-6 rounded-xl font-bold text-lg
                   transition-all duration-300 shadow-lg
@@ -384,7 +363,7 @@ export default function EventDetailsPage({
                                 <div>
                                     <h3 className="text-xl font-bold text-gray-900 mb-4">Event Highlights</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {event.highlights.map((highlight, index) => (
+                                        {event.highlights.map((highlight: string, index: number) => (
                                             <div key={index} className="flex items-start gap-3 bg-blue-50 p-4 rounded-xl">
                                                 <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                                                 <span className="text-gray-800">{highlight}</span>
@@ -435,7 +414,7 @@ export default function EventDetailsPage({
                                 </div>
 
                                 <div className="space-y-4">
-                                    {event.schedule.map((item, index) => (
+                                    {event.schedule.map((item: any, index: number) => (
                                         <div
                                             key={index}
                                             className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-lg transition-all"
@@ -469,13 +448,13 @@ export default function EventDetailsPage({
                                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Speakers</h2>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {event.speakers.map((speaker, index) => (
+                                    {event.speakers.map((speaker: any, index: number) => (
                                         <div
                                             key={index}
                                             className="bg-gradient-to-br from-blue-50 to-white border-2 border-blue-200 rounded-2xl p-6 hover:shadow-xl hover:scale-[1.02] transition-all"
                                         >
                                             <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
-                                                {speaker.name.split(' ').map(n => n[0]).join('')}
+                                                {speaker.name.split(' ').map((n: string) => n[0]).join('')}
                                             </div>
                                             <h3 className="font-bold text-gray-900 text-xl text-center mb-1">
                                                 {speaker.name}

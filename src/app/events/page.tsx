@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import baseUrl from '../baseUrl';
 import Navigation from '../components/Navigation';
 import { Calendar, MapPin, Heart, ChevronDown, Clock, Users, TrendingUp, Filter, Search, Star } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -44,7 +45,7 @@ export default function EventsPage({
   favoritesCount
 }: EventsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [likedEvents, setLikedEvents] = useState<Set<number>>(new Set([0, 2, 4]));
+  const [likedEvents, setLikedEvents] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState('All Events');
   const [showFilters, setShowFilters] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
@@ -59,113 +60,49 @@ export default function EventsPage({
     'Product Launch'
   ];
 
-  // Sample event data with realistic information
-  const events = [
-    {
-      id: 0,
-      title: "Advanced Dental Implant Techniques Workshop",
-      date: "Jan 15, 2026",
-      time: "9:00 AM - 5:00 PM",
-      location: "Grand Medical Center, New York",
-      attendees: 85,
-      maxAttendees: 100,
-      category: "Workshops",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: true,
-      spotsLeft: 15,
-    },
-    {
-      id: 1,
-      title: "Modern Orthodontics: Digital Solutions Summit",
-      date: "Jan 22, 2026",
-      time: "10:00 AM - 6:00 PM",
-      location: "Tech Hub Convention Center, SF",
-      attendees: 147,
-      maxAttendees: 150,
-      category: "Conferences",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: false,
-      spotsLeft: 3,
-    },
-    {
-      id: 2,
-      title: "Pediatric Dentistry Best Practices Training",
-      date: "Feb 5, 2026",
-      time: "8:30 AM - 4:30 PM",
-      location: "Children's Dental Institute, Chicago",
-      attendees: 60,
-      maxAttendees: 80,
-      category: "Training",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: true,
-      spotsLeft: 20,
-    },
-    {
-      id: 3,
-      title: "Dental Equipment Innovation Expo 2026",
-      date: "Feb 12, 2026",
-      time: "9:00 AM - 7:00 PM",
-      location: "International Expo Center, LA",
-      attendees: 200,
-      maxAttendees: 200,
-      category: "Product Launch",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: false,
-      spotsLeft: 0,
-    },
-    {
-      id: 4,
-      title: "Cosmetic Dentistry Masterclass Series",
-      date: "Feb 20, 2026",
-      time: "1:00 PM - 6:00 PM",
-      location: "Aesthetic Dental Academy, Miami",
-      attendees: 55,
-      maxAttendees: 60,
-      category: "Workshops",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: true,
-      spotsLeft: 5,
-    },
-    {
-      id: 5,
-      title: "Dental Practice Management Webinar",
-      date: "Feb 28, 2026",
-      time: "2:00 PM - 4:00 PM",
-      location: "Online Event (Zoom)",
-      attendees: 320,
-      maxAttendees: 500,
-      category: "Webinars",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: false,
-      spotsLeft: 180,
-    },
-    {
-      id: 6,
-      title: "Endodontics & Root Canal Therapy Update",
-      date: "Mar 8, 2026",
-      time: "9:00 AM - 3:00 PM",
-      location: "Dental Research Center, Boston",
-      attendees: 42,
-      maxAttendees: 50,
-      category: "Training",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: false,
-      spotsLeft: 8,
-    },
-    {
-      id: 7,
-      title: "Annual Dental Professionals Networking Night",
-      date: "Mar 15, 2026",
-      time: "6:00 PM - 10:00 PM",
-      location: "Skyline Rooftop, Seattle",
-      attendees: 118,
-      maxAttendees: 150,
-      category: "Networking",
-      imageUrl: "https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600",
-      isFeatured: false,
-      spotsLeft: 32,
-    },
-  ];
+  // Events loaded from API
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchEvents = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${baseUrl.INVENTORY}/api/v1/event/allEvents`);
+        if (!res.ok) throw new Error('Failed to fetch events');
+        const json = await res.json();
+        if (!json.success) throw new Error('API returned unsuccessful response');
+        const mapped = json.data.map((ev: any, idx: number) => {
+          const total = ev.totalSeats ?? 0;
+          const registered = ev.registeredCount ?? 0;
+          return {
+            id: ev._id ?? String(idx),
+            title: ev.title || 'Untitled Event',
+            date: ev.date ? new Date(ev.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+            time: `${ev.startTime || ''}${ev.endTime ? ' - ' + ev.endTime : ''}`,
+            location: [ev.venue, ev.city, ev.state, ev.country].filter(Boolean).join(', '),
+            attendees: registered,
+            maxAttendees: total,
+            eventType: ev.eventType || '',
+            category: ev.category || ev.eventType || 'Other',
+            imageUrl: ev.bannerImage ? (ev.bannerImage.startsWith('/') ? `${baseUrl.INVENTORY}${ev.bannerImage}` : ev.bannerImage) : 'https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600',
+            isFeatured: !!ev.isFeatured,
+            spotsLeft: Math.max(0, total - registered),
+          };
+        });
+        if (mounted) setEvents(mapped);
+      } catch (err: any) {
+        console.error(err);
+        if (mounted) setError(err.message || 'Error loading events');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetchEvents();
+    return () => { mounted = false; };
+  }, []);
 
   const filteredEvents = events.filter(event => {
     const matchesCategory = selectedCategory === 'All Events' || event.category === selectedCategory;
@@ -174,17 +111,19 @@ export default function EventsPage({
     return matchesCategory && matchesSearch;
   });
 
-  const toggleLike = (eventId: number) => {
+  const toggleLike = (eventId: string) => {
     setLikedEvents(prev => {
       const newSet = new Set(prev);
+      let message = 'Added to favorites!';
       if (newSet.has(eventId)) {
         newSet.delete(eventId);
+        message = 'Removed from favorites';
       } else {
         newSet.add(eventId);
       }
+      toast.success(message);
       return newSet;
     });
-    toast.success(likedEvents.has(eventId) ? 'Removed from favorites' : 'Added to favorites!');
   };
 
   const handleRegister = (eventTitle: string, isFull: boolean) => {
@@ -299,7 +238,11 @@ export default function EventsPage({
 
       {/* Events Grid */}
       <main className="container mx-auto px-4 md:px-6 lg:px-8 pb-12">
-        {filteredEvents.length > 0 ? (
+        {error ? (
+          <div className="text-center py-20 text-red-600">Failed to load events: {error}</div>
+        ) : loading ? (
+          <div className="text-center py-20">Loading events...</div>
+        ) : filteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
             {filteredEvents.map((event, index) => (
               <div
@@ -344,7 +287,7 @@ export default function EventsPage({
 }
 
 interface EventCardProps {
-  id: number;
+  id: string;
   title: string;
   date: string;
   time: string;
@@ -352,6 +295,7 @@ interface EventCardProps {
   attendees: number;
   maxAttendees: number;
   category: string;
+  eventType?: string;
   imageUrl: string;
   isLiked: boolean;
   isFeatured: boolean;
@@ -370,6 +314,7 @@ function EventCard({
   attendees,
   maxAttendees,
   category,
+  eventType,
   imageUrl,
   isLiked,
   isFeatured,
@@ -379,8 +324,26 @@ function EventCard({
   onCardClick
 }: EventCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [imgSrc, setImgSrc] = useState(imageUrl);
+  useEffect(() => { setImgSrc(imageUrl); }, [imageUrl]);
   const isAlmostFull = spotsLeft <= 10;
   const isFull = spotsLeft === 0;
+
+  const getCategoryBadge = (evtType?: string, cat?: string) => {
+    const key = ((evtType || '') + ' ' + (cat || '')).toLowerCase();
+    if ((evtType || '').toLowerCase().includes('workshop')) return { label: evtType || 'Workshop', className: 'bg-green-600 text-white' };
+    if ((evtType || '').toLowerCase().includes('conference')) return { label: evtType || 'Conference', className: 'bg-purple-600 text-white' };
+    if ((evtType || '').toLowerCase().includes('training')) return { label: evtType || 'Training', className: 'bg-indigo-600 text-white' };
+    if ((evtType || '').toLowerCase().includes('webinar')) return { label: evtType || 'Webinar', className: 'bg-teal-600 text-white' };
+    if ((evtType || '').toLowerCase().includes('network')) return { label: evtType || 'Networking', className: 'bg-amber-400 text-black' };
+    if ((evtType || '').toLowerCase().includes('product')) return { label: evtType || 'Product Launch', className: 'bg-pink-600 text-white' };
+    if ((cat || '').toLowerCase().includes('featured')) return { label: 'Featured', className: 'bg-yellow-500 text-black' };
+    return { label: evtType || cat || 'Other', className: 'bg-blue-600 text-white' };
+  }; 
+
+  const categoryBadge = getCategoryBadge(eventType, category);
+
+  const router = useRouter();
 
   return (
     <div
@@ -389,13 +352,17 @@ function EventCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Featured Badge */}
-      {isFeatured && (
-        <div className="absolute top-4 left-4 z-10 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
-          <Star className="w-3 h-3 fill-white" />
+      {/* Top Badge — show Featured (priority) else Workshop when eventType contains 'workshop' */}
+      {isFeatured ? (
+        <div className="absolute top-4 left-4 z-10 bg-yellow-500 text-black px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+          <Star className="w-3 h-3 fill-black" />
           Featured
         </div>
-      )}
+      ) : (eventType && (eventType || '').toLowerCase().includes('workshop')) ? (
+        <div className="absolute top-4 left-4 z-10 bg-green-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md">
+          Workshop
+        </div>
+      ) : null}
 
       {/* Status Badge - Only show spots left warning */}
       {isAlmostFull && !isFull && (
@@ -428,17 +395,18 @@ function EventCard({
       {/* Event Image */}
       <div className="relative bg-gray-100 aspect-[4/3] overflow-hidden">
         <Image
-          src={imageUrl}
+          src={imgSrc}
           alt={title}
           fill
-          className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
-            }`}
+          unoptimized
+          onError={() => setImgSrc('https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600')}
+          className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100' }`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
         {/* Category Tag */}
-        <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold">
-          {category}
+        <div className={`absolute bottom-3 left-3 px-3 py-1 rounded-lg text-xs font-semibold ${categoryBadge.className}`}>
+          {categoryBadge.label}
         </div>
       </div>
 
@@ -483,17 +451,14 @@ function EventCard({
                 isAlmostFull ? 'bg-orange-500' :
                   'bg-blue-600'
                 }`}
-              style={{ width: `${(attendees / maxAttendees) * 100}%` }}
+              style={{ width: `${maxAttendees ? Math.min(100, (attendees / maxAttendees) * 100) : 0}%` }}
             />
           </div>
         </div>
 
         {/* Register Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRegister();
-          }}
+          onClick={() => router.push(`/eventsdetail/${id}`)}
           disabled={isFull}
           className={`
             w-full py-3.5 px-4 rounded-xl font-bold text-base

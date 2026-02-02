@@ -1,12 +1,12 @@
 'use client';
-import { useState } from 'react';
-import Navigation from '../components/Navigation';
+import { useState, useEffect } from 'react';
+import Navigation from '../../components/Navigation';
 import { 
   ArrowLeft, User, Mail, Phone, Building, MapPin, 
   CreditCard, Calendar, CheckCircle, AlertCircle, Users, Clock
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 interface EventRegistrationPageProps {
   eventId: number;
@@ -44,14 +44,46 @@ export default function EventRegistrationPage({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Event data (in real app, this would come from API/props)
-  const eventData = {
-    title: "Advanced Dental Implant Techniques Workshop",
-    date: "Jan 15, 2026",
-    time: "9:00 AM - 5:00 PM",
-    location: "Grand Medical Center, New York",
-    spotsLeft: 15,
-  };
+  // Event data (loaded from API)
+  const params = useParams();
+  const routeId = params?.id as string | undefined;
+
+  const [eventData, setEventData] = useState({
+    title: 'Loading event...',
+    date: '',
+    time: '',
+    location: '',
+    spotsLeft: 0,
+  });
+  const [loadingEvent, setLoadingEvent] = useState(true);
+
+  useEffect(() => {
+    if (!routeId) {
+      setLoadingEvent(false);
+      return;
+    }
+
+    setLoadingEvent(true);
+    fetch(`http://localhost:8004/api/v1/event/eventDetail/${routeId}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json?.success && json?.data) {
+          const d = json.data;
+          const mapped = {
+            title: d.title ?? '',
+            date: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+            time: d.startTime && d.endTime ? `${d.startTime} - ${d.endTime}` : (d.startTime ?? ''),
+            location: [d.venue, d.city, d.state].filter(Boolean).join(', '),
+            spotsLeft: Math.max(0, (d.totalSeats ?? 0) - (d.registeredCount ?? 0)),
+          };
+          setEventData(mapped);
+        } else {
+          toast.error('Failed to load event details');
+        }
+      })
+      .catch(() => toast.error('Failed to load event details'))
+      .finally(() => setLoadingEvent(false));
+  }, [routeId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
