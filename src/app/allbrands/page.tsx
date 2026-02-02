@@ -9,14 +9,22 @@ import Image from 'next/image';
 import baseUrl from '../baseUrl';
 
 interface Product {
-  _id: string;
-  productName: string;
-  price: number;
-  images: string[];
-  stock: number;
+  _id?: string;
+  productName?: string;
+  name?: string;
+  price?: number;
+  images?: string[];
+  image?: string[] | string;
+  variants?: any[];
+  stock?: number;
+  isLowStock?: boolean;
+  productId?: string;
+  mainCategory?: string;
+  subCategory?: string;
   category?: string;
   discount?: number;
-}
+  [key: string]: any;
+} 
 
 interface Brand {
   _id: string;
@@ -326,21 +334,44 @@ export default function BrandDetailPage({
   const getSortedProducts = () => {
     if (!brandData?.products) return [];
 
-    const productsCopy = [...brandData.products];
+    // Normalize raw product objects into the shape expected by ProductCard
+    const normalized = brandData.products.map((p: any) => {
+      const id = p._id ?? p.productId ?? String(p.id ?? '');
+      const name = p.productName ?? p.name ?? 'Untitled Product';
+      const imgPath = Array.isArray(p.image) ? p.image[0] : Array.isArray(p.images) ? p.images[0] : (typeof p.image === 'string' ? p.image : '');
+      const image = getImageUrl(imgPath || '');
+      const variant = Array.isArray(p.variants) && p.variants.length ? p.variants[0] : null;
+      const price = typeof p.price === 'number' ? p.price
+        : variant && (variant.price ?? variant.sellingPrice ?? variant.mrp) ? Number(variant.price ?? variant.sellingPrice ?? variant.mrp)
+        : 0;
+      const stock = variant && typeof variant.stock === 'number' ? variant.stock
+        : typeof p.stock === 'number' ? p.stock
+        : (p.isLowStock ? 1 : undefined);
+      const category = p.category ?? p.mainCategory ?? p.subCategory ?? undefined;
+      const discount = p.discount ?? variant?.discount ?? undefined;
 
+      return { id, productId: p.productId ?? id, name, price, image, stock, category, discount, raw: p };
+    });
+
+    const sorted = [...normalized];
     switch (sortBy) {
       case 'price-low':
-        return productsCopy.sort((a, b) => a.price - b.price);
+        return sorted.sort((a, b) => a.price - b.price);
       case 'price-high':
-        return productsCopy.sort((a, b) => b.price - a.price);
+        return sorted.sort((a, b) => b.price - a.price);
       case 'name':
-        return productsCopy.sort((a, b) => a.productName.localeCompare(b.productName));
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
       case 'newest':
-        return productsCopy;
+        // Try to sort by createdAt if available on raw product
+        return sorted.sort((a, b) => {
+          const da = new Date(a.raw?.createdAt || '').getTime() || 0;
+          const db = new Date(b.raw?.createdAt || '').getTime() || 0;
+          return db - da;
+        });
       default:
-        return productsCopy;
+        return sorted;
     }
-  };
+  }; 
 
   if (loading) {
     return (
@@ -376,17 +407,7 @@ export default function BrandDetailPage({
   }
 
   const brand = brandData.topBrand.brandId;
-  const sortedProducts = getSortedProducts();
-
-  const convertedProducts = sortedProducts.map(product => ({
-    id: product._id,
-    name: product.productName,
-    price: product.price,
-    image: getImageUrl(product.images?.[0] || ''),
-    stock: product.stock,
-    category: product.category,
-    discount: product.discount
-  }));
+  const convertedProducts = getSortedProducts();
 
   return (
     <div className="min-h-screen bg-white">
@@ -457,11 +478,11 @@ export default function BrandDetailPage({
             </div>
 
             {/* Filter/Sort */}
-            {brandData.productCount > 0 && (
+            {/* {brandData.productCount > 0 && (
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"
+                className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"
               >
                 <option value="featured">Sort by: Featured</option>
                 <option value="price-low">Price: Low to High</option>
@@ -469,7 +490,7 @@ export default function BrandDetailPage({
                 <option value="newest">Newest</option>
                 <option value="name">Name: A-Z</option>
               </select>
-            )}
+            )} */}
           </div>
 
           {/* Products Grid */}

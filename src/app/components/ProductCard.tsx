@@ -10,6 +10,7 @@ interface Product {
   stock?: number;
   category?: string;
   discount?: number;
+  productId?: string;
 }
 
 interface ProductCardProps {
@@ -43,29 +44,29 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
 
   // Calculate final price with discount
   const price = product.price ?? 0;
-  const finalPrice = product.discount 
+  const finalPrice = product.discount
     ? price - (price * product.discount / 100)
     : price;
 
   const isOutOfStock = product.stock !== undefined && product.stock === 0;
 
   return (
-    <div 
+    <div
       onClick={handleCardClick}
       className="group border-2 border-transparent hover:border-blue-600 rounded-2xl p-3 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white cursor-pointer"
     >
       <div className="relative mb-3 overflow-hidden rounded-xl">
         <div className="aspect-square bg-gray-100 overflow-hidden">
-          <img 
-            src={product.image} 
+          <img
+            src={product.image}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
           />
         </div>
-        
+
         {/* Overlay gradient on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
+
         {/* Discount Badge */}
         {product.discount && (
           <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
@@ -79,19 +80,18 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
             Out of Stock
           </div>
         )}
-        
+
         {/* Like Button */}
         <button
           onClick={handleLike}
           className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200"
           aria-label={isLiked ? "Unlike product" : "Like product"}
         >
-          <Heart 
-            className={`w-5 h-5 transition-all duration-300 ${
-              isLiked 
-                ? 'fill-blue-600 stroke-blue-600 scale-110' 
+          <Heart
+            className={`w-5 h-5 transition-all duration-300 ${isLiked
+                ? 'fill-blue-600 stroke-blue-600 scale-110'
                 : 'stroke-gray-600 group-hover:stroke-blue-600'
-            }`}
+              }`}
           />
           {isLiked && (
             <span className="absolute inset-0 rounded-full bg-blue-600/20 animate-ping" />
@@ -113,8 +113,8 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
       </h3>
 
       {/* Category */}
-      {product.category && (
-        <p className="text-xs text-gray-500 mb-2">{product.category}</p>
+      {product.productId && (
+        <p className="text-xs text-gray-500 mb-2">{product.productId}</p>
       )}
 
       <div className="flex items-center justify-between gap-2">
@@ -131,13 +131,12 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
         <button
           onClick={handleAddToCart}
           disabled={isAdding || isOutOfStock}
-          className={`relative px-4 py-1.5 rounded-full font-medium text-sm transition-all duration-300 overflow-hidden ${
-            isOutOfStock
+          className={`relative px-4 py-1.5 rounded-full font-medium text-sm transition-all duration-300 overflow-hidden ${isOutOfStock
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : isAdding 
-              ? 'bg-green-600 text-white scale-95' 
-              : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:scale-105 active:scale-95'
-          }`}
+              : isAdding
+                ? 'bg-green-600 text-white scale-95'
+                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:scale-105 active:scale-95'
+            }`}
         >
           <span className={`inline-block transition-all duration-300 ${isAdding ? 'opacity-0 scale-0' : 'opacity-100 scale-100'}`}>
             {isOutOfStock ? 'Sold Out' : 'Add'}

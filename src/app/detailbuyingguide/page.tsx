@@ -1,10 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
-import imgFeatured from "../../assets/c775787539b7df72edc4d91a8047b6d271239a40.png";
-import img33211 from "../../assets/0815c4dbb681f7ea1c9955cfaec5ad8e6de976af.png";
+
 import { StaticImageData } from "next/image";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -16,12 +15,12 @@ interface StepCardProps {
   description: string;
   featuredImage: ImageSource;
   products: {
-    id: number;
+    id: string;
     name: string;
     imageUrl: ImageSource;
   }[];
-  selectedProducts: Set<number>;
-  onToggleProduct: (id: number) => void;
+  selectedProducts: Set<string>;
+  onToggleProduct: (id: string) => void;
   onSelectAll: () => void;
   onAddToCart: () => void;
   onExploreAll: () => void;
@@ -42,6 +41,10 @@ function StepCard({
   allSelected
 }: StepCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [featuredError, setFeaturedError] = useState(false);
+  const [failedThumbs, setFailedThumbs] = useState<Set<string>>(new Set());
+
+  const placeholderSvg = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='%239ca3af'>Image unavailable</text></svg>`;
 
   return (
     <div 
@@ -67,13 +70,19 @@ function StepCard({
 
           {/* Main Featured Image */}
           <div className="mt-10">
-            <Image 
-              src={featuredImage} 
-              alt={title}
-              width={800}
-              height={600}
-              className={`w-full h-auto rounded-lg shadow-md transition-transform duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`}
-            />
+            {featuredError ? (
+              <div className="w-full h-48 rounded-lg bg-gray-200 flex items-center justify-center text-sm text-gray-500">Image unavailable</div>
+            ) : (
+              <Image 
+                src={featuredImage} 
+                alt={title}
+                width={800}
+                height={600}
+                unoptimized
+                onError={() => setFeaturedError(true)}
+                className={`w-full h-auto rounded-lg shadow-md transition-transform duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`}
+              />
+            )}
           </div>
 
           {/* Caption */}
@@ -130,14 +139,24 @@ function StepCard({
                   </button>
 
                   {/* Product Thumbnail */}
-                  <div className="w-20 h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 overflow-hidden hover:border-cyan-400 transition-colors cursor-pointer">
-                    <Image 
-                      src={product.imageUrl} 
-                      alt={product.name}
-                      width={80}
-                      height={80}
-                      className="w-full h-full object-contain p-2"
-                    />
+                  <div className="w-20 h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 overflow-hidden hover:border-cyan-400 transition-colors cursor-pointer flex items-center justify-center">
+                    {failedThumbs.has(product.id) ? (
+                      <img src={placeholderSvg} alt="thumb" width={80} height={80} className="object-contain p-2" />
+                    ) : (
+                      <Image 
+                        src={product.imageUrl} 
+                        alt={product.name}
+                        width={80}
+                        height={80}
+                        unoptimized
+                        onError={() => setFailedThumbs(prev => {
+                          const n = new Set(prev);
+                          n.add(product.id);
+                          return n;
+                        })}
+                        className="w-full h-full object-contain p-2"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
@@ -207,7 +226,7 @@ interface BuyingGuideDetailPageProps {
   onBackToGuide: () => void;
   guideTitle?: string;
   onCartClick?: () => void;
-  onProductClick?: (productId: number) => void;
+  onProductClick?: (productId: string) => void;
   onBrandClick?: () => void;
   onEventsClick?: () => void;
   onMembershipClick?: () => void;
@@ -234,225 +253,74 @@ export default function BuyingGuideDetailPage({
 }: BuyingGuideDetailPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   
-  // State management for each step
-  const [selectedProductsStep1, setSelectedProductsStep1] = useState<Set<number>>(new Set());
-  const [selectedProductsStep2, setSelectedProductsStep2] = useState<Set<number>>(new Set());
-  const [selectedProductsStep3, setSelectedProductsStep3] = useState<Set<number>>(new Set());
-  const [selectedProductsStep4, setSelectedProductsStep4] = useState<Set<number>>(new Set());
-  const [selectedProductsStep5, setSelectedProductsStep5] = useState<Set<number>>(new Set());
-  const [selectedProductsStep6, setSelectedProductsStep6] = useState<Set<number>>(new Set());
-  const [selectedProductsStep7, setSelectedProductsStep7] = useState<Set<number>>(new Set());
-  const [selectedProductsStep8, setSelectedProductsStep8] = useState<Set<number>>(new Set());
+  // Manage selected products per step (product ids are strings from API)
+  const [selectedProductsByStep, setSelectedProductsByStep] = useState<Record<number, Set<string>>>({});
 
-  // Define steps with their products
-  const steps = [
-    {
-      stepNumber: 1,
-      title: "Diagnostic Evaluation and Treatment Planning",
-      description: "Use CBCT to assess sinus membrane thickness, residual alveolar bone height, septa, and any sinus pathology. Accurate diagnostics dictate approach and graft type.",
-      featuredImage: imgFeatured,
-      products: [
-        {
-          id: 0,
-          name: "Woodpecker RTA Smart Ray Portable DC Xray Machine",
-          imageUrl: "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=200"
-        },
-        {
-          id: 1,
-          name: "Digital CBCT Scanner System",
-          imageUrl: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=200"
-        }
-      ]
-    },
-    {
-      stepNumber: 2,
-      title: "Anesthesia and Patient Preparation",
-      description: "Administer local anesthesia (e.g., posterior superior alveolar nerve block). Ensure patient comfort and prepare the surgical field with proper sterilization.",
-      featuredImage: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=500",
-      products: [
-        {
-          id: 2,
-          name: "Anesthesia Syringe Set",
-          imageUrl: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200"
-        },
-        {
-          id: 3,
-          name: "Surgical Drape Kit",
-          imageUrl: img33211
-        },
-        {
-          id: 4,
-          name: "Sterilization Solution",
-          imageUrl: "https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200"
-        }
-      ]
-    },
-    {
-      stepNumber: 3,
-      title: "Crestal or Lateral Window Access",
-      description: "Choose between lateral window (classic) or crestal approach based on residual bone height. Create precise access to the sinus membrane using specialized instruments.",
-      featuredImage: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=500",
-      products: [
-        {
-          id: 5,
-          name: "Waldent PMT Set Instrument Kit",
-          imageUrl: img33211
-        },
-        {
-          id: 6,
-          name: "Piezoelectric Surgery Device",
-          imageUrl: "https://images.unsplash.com/photo-1581093588401-fbb62a02f120?w=200"
-        }
-      ]
-    },
-    {
-      stepNumber: 4,
-      title: "Membrane Elevation",
-      description: "Carefully elevate the Schneiderian membrane using curettes or balloon technique. Avoid perforations while creating adequate space for graft material.",
-      featuredImage: "https://images.unsplash.com/photo-1581594549595-35f6edc7b762?w=500",
-      products: [
-        {
-          id: 7,
-          name: "Sinus Membrane Elevator Set",
-          imageUrl: "https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?w=200"
-        },
-        {
-          id: 8,
-          name: "Balloon Sinus Lift Kit",
-          imageUrl: img33211
-        },
-        {
-          id: 9,
-          name: "Dental Curette Set",
-          imageUrl: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=200"
-        }
-      ]
-    },
-    {
-      stepNumber: 5,
-      title: "Graft Material Placement",
-      description: "Fill the elevated space with bone graft material (autogenous, xenograft, or synthetic). Ensure proper density and coverage for optimal bone regeneration.",
-      featuredImage: "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=500",
-      products: [
-        {
-          id: 10,
-          name: "Bone Graft Material - Xenograft",
-          imageUrl: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=200"
-        },
-        {
-          id: 11,
-          name: "Bone Graft Delivery System",
-          imageUrl: img33211
-        }
-      ]
-    },
-    {
-      stepNumber: 6,
-      title: "Membrane Placement (Optional)",
-      description: "Place a resorbable or non-resorbable membrane over the window to protect the graft and guide bone regeneration. Secure with tacks if needed.",
-      featuredImage: "https://images.unsplash.com/photo-1581093588401-fbb62a02f120?w=500",
-      products: [
-        {
-          id: 12,
-          name: "Collagen Membrane",
-          imageUrl: "https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?w=200"
-        },
-        {
-          id: 13,
-          name: "Membrane Fixation Tacks",
-          imageUrl: img33211
-        },
-        {
-          id: 14,
-          name: "Membrane Scissors",
-          imageUrl: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=200"
-        }
-      ]
-    },
-    {
-      stepNumber: 7,
-      title: "Wound Closure",
-      description: "Close the surgical site with tension-free primary closure using resorbable sutures. Ensure proper flap adaptation to prevent complications and promote healing.",
-      featuredImage: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=500",
-      products: [
-        {
-          id: 15,
-          name: "Resorbable Suture Kit",
-          imageUrl: "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=200"
-        },
-        {
-          id: 16,
-          name: "Surgical Needle Holder",
-          imageUrl: img33211
-        }
-      ]
-    },
-    {
-      stepNumber: 8,
-      title: "Post-Operative Care and Healing",
-      description: "Prescribe antibiotics and analgesics. Provide patient instructions for oral hygiene, diet restrictions, and follow-up appointments. Monitor healing for 6-9 months before implant placement.",
-      featuredImage: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500",
-      products: [
-        {
-          id: 17,
-          name: "Antibiotic Prescription Pack",
-          imageUrl: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200"
-        },
-        {
-          id: 18,
-          name: "Post-Op Care Kit",
-          imageUrl: img33211
-        },
-        {
-          id: 19,
-          name: "Healing Assessment Tools",
-          imageUrl: "https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200"
-        }
-      ]
-    }
-  ];
+  // Steps fetched from API (mapped to local shape)
+  type ApiProduct = { productId: string; name: string; image: string };
+  type ApiStep = { stepNumber: number; stepLabel?: string; title: string; description: string; image: string; products: ApiProduct[] };
 
-  // Handler functions for each step
+  const [steps, setSteps] = useState<Array<{
+    stepNumber: number;
+    title: string;
+    description: string;
+    featuredImage: ImageSource;
+    products: { id: string; name: string; imageUrl: ImageSource }[];
+  }>>([]);
+
+  const [loadingSteps, setLoadingSteps] = useState(false);
+  const [stepsError, setStepsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSteps = async () => {
+      setLoadingSteps(true);
+      setStepsError(null);
+      try {
+        const res = await fetch('http://localhost:8004/api/v1/buyingGuide/getBuyingGuideStepsById/6979a08bb5b4e7c01146ac0f');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (!json.success) throw new Error('API reported failure');
+        const mapped = (json.data as ApiStep[]).map(s => ({
+          stepNumber: s.stepNumber,
+          title: s.title,
+          description: s.description,
+          featuredImage: s.image,
+          products: s.products.map(p => ({ id: p.productId, name: p.name, imageUrl: p.image }))
+        }));
+        setSteps(mapped);
+      } catch (err:any) {
+        console.error('Failed to fetch buying guide steps:', err);
+        setStepsError(err?.message ?? 'Failed to load steps');
+      } finally {
+        setLoadingSteps(false);
+      }
+    };
+
+    fetchSteps();
+  }, []);
+
+  // Handler functions for each step (using string product IDs)
   const getSelectedProducts = (stepNum: number) => {
-    switch(stepNum) {
-      case 1: return selectedProductsStep1;
-      case 2: return selectedProductsStep2;
-      case 3: return selectedProductsStep3;
-      case 4: return selectedProductsStep4;
-      case 5: return selectedProductsStep5;
-      case 6: return selectedProductsStep6;
-      case 7: return selectedProductsStep7;
-      case 8: return selectedProductsStep8;
-      default: return new Set<number>();
-    }
+    return selectedProductsByStep[stepNum] ?? new Set<string>();
   };
 
-  const setSelectedProducts = (stepNum: number, products: Set<number>) => {
-    switch(stepNum) {
-      case 1: setSelectedProductsStep1(products); break;
-      case 2: setSelectedProductsStep2(products); break;
-      case 3: setSelectedProductsStep3(products); break;
-      case 4: setSelectedProductsStep4(products); break;
-      case 5: setSelectedProductsStep5(products); break;
-      case 6: setSelectedProductsStep6(products); break;
-      case 7: setSelectedProductsStep7(products); break;
-      case 8: setSelectedProductsStep8(products); break;
-    }
+  const setSelectedProducts = (stepNum: number, products: Set<string>) => {
+    setSelectedProductsByStep(prev => ({ ...prev, [stepNum]: products }));
   };
 
   const handleSelectAll = (stepNum: number) => {
     const step = steps.find(s => s.stepNumber === stepNum);
     if (!step) return;
-    
+
     const currentSelected = getSelectedProducts(stepNum);
     if (currentSelected.size === step.products.length) {
-      setSelectedProducts(stepNum, new Set());
+      setSelectedProducts(stepNum, new Set<string>());
     } else {
       setSelectedProducts(stepNum, new Set(step.products.map(p => p.id)));
     }
   };
 
-  const handleToggleProduct = (stepNum: number, productId: number) => {
+  const handleToggleProduct = (stepNum: number, productId: string) => {
     const currentSelected = getSelectedProducts(stepNum);
     const newSelected = new Set(currentSelected);
     if (newSelected.has(productId)) {
@@ -467,7 +335,7 @@ export default function BuyingGuideDetailPage({
     const selectedCount = getSelectedProducts(stepNum).size;
     if (selectedCount > 0) {
       onCartCountChange(cartCount + selectedCount);
-      setSelectedProducts(stepNum, new Set());
+      setSelectedProducts(stepNum, new Set<string>());
       toast.success(`🎉 Successfully added ${selectedCount} product${selectedCount > 1 ? 's' : ''} from Step ${stepNum}!`, {
         description: `Your cart now has ${cartCount + selectedCount} items`,
         duration: 3000,
@@ -480,16 +348,19 @@ export default function BuyingGuideDetailPage({
     }
   };
 
+  const router = useRouter();
+
   const handleExploreAll = () => {
     if (onProductClick) {
-      onProductClick(0);
+      onProductClick('');
+    } else {
+      router.push('/products');
     }
     toast.info('Exploring all products...', {
       duration: 2000,
     });
   };
 
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -555,6 +426,16 @@ export default function BuyingGuideDetailPage({
         </div>
 
         {/* Step Cards */}
+        {loadingSteps && (
+          <div className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200 animate-fade-in">Loading buying guide steps...</div>
+        )}
+        {stepsError && (
+          <div className="bg-red-50 rounded-xl p-6 mb-6 border border-red-200 text-red-700">{stepsError}</div>
+        )}
+        {!loadingSteps && steps.length === 0 && !stepsError && (
+          <div className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">No steps available.</div>
+        )}
+
         <div className="space-y-8">
           {steps.map((step) => (
             <StepCard
