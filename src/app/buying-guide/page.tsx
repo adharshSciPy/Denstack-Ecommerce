@@ -240,7 +240,7 @@ export default function BuyingGuidePage({
                                 imageSrc={guide.mainImage}
                                 onClick={() => {
                                     onCardClick?.();
-                                    router.push(`/detailbuyingguide?id=${guide._id}`);
+                                    router.push(`/detailbuyingguide/${guide._id}`);
                                 }}
                             />
                         ))

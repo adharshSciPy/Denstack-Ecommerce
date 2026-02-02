@@ -1,12 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Navigation from '../components/Navigation';
+import Navigation from '../../components/Navigation';
 import { ChevronRight, ShoppingCart } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import baseUrl from '../../baseUrl';
 
 import { StaticImageData } from "next/image";
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 type ImageSource = string | StaticImageData;
 
 interface StepCardProps {
@@ -47,7 +48,7 @@ function StepCard({
   const placeholderSvg = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='%239ca3af'>Image unavailable</text></svg>`;
 
   return (
-    <div 
+    <div
       className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden animate-fade-in-up transition-all duration-300 hover:shadow-2xl"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -73,8 +74,8 @@ function StepCard({
             {featuredError ? (
               <div className="w-full h-48 rounded-lg bg-gray-200 flex items-center justify-center text-sm text-gray-500">Image unavailable</div>
             ) : (
-              <Image 
-                src={featuredImage} 
+              <Image
+                src={featuredImage}
                 alt={title}
                 width={800}
                 height={600}
@@ -115,7 +116,7 @@ function StepCard({
             {/* Product Thumbnails */}
             <div className="flex flex-wrap gap-4">
               {products.map((product) => (
-                <div 
+                <div
                   key={product.id}
                   className="relative group"
                 >
@@ -143,8 +144,8 @@ function StepCard({
                     {failedThumbs.has(product.id) ? (
                       <img src={placeholderSvg} alt="thumb" width={80} height={80} className="object-contain p-2" />
                     ) : (
-                      <Image 
-                        src={product.imageUrl} 
+                      <Image
+                        src={product.imageUrl}
                         alt={product.name}
                         width={80}
                         height={80}
@@ -171,8 +172,8 @@ function StepCard({
                   className={`
                     px-4 py-3 border-2 rounded-lg font-semibold text-sm
                     transition-all hover:scale-105 flex items-center justify-center gap-2
-                    ${allSelected 
-                      ? 'bg-gradient-to-r from-cyan-50 to-teal-50 border-cyan-500 text-cyan-700' 
+                    ${allSelected
+                      ? 'bg-gradient-to-r from-cyan-50 to-teal-50 border-cyan-500 text-cyan-700'
                       : 'bg-white border-gray-300 text-gray-700 hover:border-cyan-400'
                     }
                   `}
@@ -236,9 +237,9 @@ interface BuyingGuideDetailPageProps {
   onCategoryBrowseClick?: () => void;
 }
 
-export default function BuyingGuideDetailPage({ 
-  cartCount, 
-  onCartCountChange, 
+export default function BuyingGuideDetailPage({
+  cartCount,
+  onCartCountChange,
   onBackToGuide,
   guideTitle = "Maxillary Sinus Augmentation",
   onCartClick,
@@ -252,7 +253,10 @@ export default function BuyingGuideDetailPage({
   onCategoryBrowseClick
 }: BuyingGuideDetailPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const params = useParams();
+  const guideId = params?.id as string | undefined;
+  const [currentGuideTitle, setCurrentGuideTitle] = useState(guideTitle);
+
   // Manage selected products per step (product ids are strings from API)
   const [selectedProductsByStep, setSelectedProductsByStep] = useState<Record<number, Set<string>>>({});
 
@@ -271,12 +275,22 @@ export default function BuyingGuideDetailPage({
   const [loadingSteps, setLoadingSteps] = useState(false);
   const [stepsError, setStepsError] = useState<string | null>(null);
 
+  // Derived counts from backend-loaded steps
+  const totalProducts = steps.reduce((acc, s) => acc + (s.products?.length ?? 0), 0);
+  const uniqueProductsCount = new Set(steps.flatMap(s => s.products.map(p => p.id))).size;
+
   useEffect(() => {
     const fetchSteps = async () => {
+      if (!guideId) {
+        setStepsError('Missing guide id');
+        setLoadingSteps(false);
+        return;
+      }
+
       setLoadingSteps(true);
       setStepsError(null);
       try {
-        const res = await fetch('http://localhost:8004/api/v1/buyingGuide/getBuyingGuideStepsById/6979a08bb5b4e7c01146ac0f');
+        const res = await fetch(`${baseUrl.INVENTORY}/api/v1/buyingGuide/getBuyingGuideStepsById/${guideId}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!json.success) throw new Error('API reported failure');
@@ -288,7 +302,7 @@ export default function BuyingGuideDetailPage({
           products: s.products.map(p => ({ id: p.productId, name: p.name, imageUrl: p.image }))
         }));
         setSteps(mapped);
-      } catch (err:any) {
+      } catch (err: any) {
         console.error('Failed to fetch buying guide steps:', err);
         setStepsError(err?.message ?? 'Failed to load steps');
       } finally {
@@ -297,7 +311,7 @@ export default function BuyingGuideDetailPage({
     };
 
     fetchSteps();
-  }, []);
+  }, [guideId]);
 
   // Handler functions for each step (using string product IDs)
   const getSelectedProducts = (stepNum: number) => {
@@ -350,6 +364,23 @@ export default function BuyingGuideDetailPage({
 
   const router = useRouter();
 
+  // Fetch guide metadata (title) from list endpoint if available
+  useEffect(() => {
+    if (!guideId) return;
+    const fetchGuideMeta = async () => {
+      try {
+        const res = await fetch(`${baseUrl.INVENTORY}/api/v1/buyingGuide/getBuyingGuide`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const found = (json.data ?? []).find((g: any) => g._id === guideId);
+        if (found && found.title) setCurrentGuideTitle(found.title);
+      } catch (err) {
+        console.warn('Failed to fetch guide meta', err);
+      }
+    };
+    fetchGuideMeta();
+  }, [guideId]);
+
   const handleExploreAll = () => {
     if (onProductClick) {
       onProductClick('');
@@ -361,22 +392,24 @@ export default function BuyingGuideDetailPage({
     });
   };
 
+  // Use guideId in steps fetch effect below by referencing guideId
+
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
       {/* Navigation */}
-      <Navigation 
+      <Navigation
         currentPage="detailbuyingguide"
-        // onBrandClick={onBrandClick}
-        // onBuyingGuideClick={onBackToGuide}
-        // onEventsClick={onEventsClick}
-        // onMembershipClick={onMembershipClick}
-        // onFreebiesClick={onFreebiesClick}
-        // onBestSellerClick={onBestSellerClick}
-        // onClinicSetupClick={onClinicSetupClick}
-        // onCategoryBrowseClick={onCategoryBrowseClick}
+      // onBrandClick={onBrandClick}
+      // onBuyingGuideClick={onBackToGuide}
+      // onEventsClick={onEventsClick}
+      // onMembershipClick={onMembershipClick}
+      // onFreebiesClick={onFreebiesClick}
+      // onBestSellerClick={onBestSellerClick}
+      // onClinicSetupClick={onClinicSetupClick}
+      // onCategoryBrowseClick={onCategoryBrowseClick}
       />
 
       {/* Breadcrumb & Title Bar */}
@@ -384,8 +417,8 @@ export default function BuyingGuideDetailPage({
         <div className="container mx-auto px-4">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm mb-2">
-            <button 
-              onClick={()=>router.push('/buying-guide')}
+            <button
+              onClick={() => router.push('/buying-guide')}
               className="hover:underline transition-all hover:text-cyan-100"
             >
               Buying Guide
@@ -393,10 +426,10 @@ export default function BuyingGuideDetailPage({
             <ChevronRight className="w-4 h-4" />
             <span className="font-semibold">Guide Details</span>
           </div>
-          
+
           {/* Title */}
           <h1 className="text-2xl md:text-3xl font-bold">
-            {guideTitle}
+            {currentGuideTitle}
           </h1>
         </div>
       </div>
@@ -407,20 +440,26 @@ export default function BuyingGuideDetailPage({
         <div className="bg-white rounded-xl p-6 mb-8 shadow-md border border-gray-200 animate-fade-in">
           <h2 className="text-2xl font-bold text-gray-900 mb-3">Complete Surgical Protocol</h2>
           <p className="text-gray-600 leading-relaxed">
-            This comprehensive 8-step guide covers the complete maxillary sinus augmentation procedure, from initial diagnosis to post-operative care. Each step includes essential products and detailed instructions for optimal surgical outcomes.
+            {loadingSteps ? (
+              'Loading guide overview...'
+            ) : stepsError ? (
+              'Overview unavailable.'
+            ) : (
+              `This comprehensive ${steps.length}-step guide covers the complete ${currentGuideTitle} procedure, from initial diagnosis to post-operative care. Each step includes essential products and detailed instructions for optimal surgical outcomes.`
+            )}
           </p>
           <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full"></div>
-              8 Procedural Steps
+              {stepsError ? 'N/A' : (loadingSteps ? 'Loading steps...' : `${steps.length} Procedural Steps`)}
             </span>
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full"></div>
-              20 Essential Products
+              {stepsError ? 'N/A' : (loadingSteps ? 'Loading products...' : `${totalProducts} Essential Products`)}
             </span>
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full"></div>
-              Complete Equipment List
+              {stepsError ? 'N/A' : (loadingSteps ? 'Loading list...' : `${uniqueProductsCount} Equipment Items`)}
             </span>
           </div>
         </div>

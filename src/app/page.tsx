@@ -10,7 +10,7 @@ import FeaturedProducts from './components/FeaturedProducts';
 import BrandsPage from './brands/page';
 import BrandDetailPage from './allbrands/page';
 import BuyingGuidePage from './buying-guide/page';
-import BuyingGuideDetailPage from './detailbuyingguide/page';
+import BuyingGuideDetailPage from './detailbuyingguide/[id]/page';
 import CartPage from './cart/page';
 import EventsPage from './events/page';
 import EventDetailsPage from './eventsdetail/[id]/page';

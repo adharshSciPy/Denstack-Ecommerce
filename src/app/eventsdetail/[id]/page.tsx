@@ -8,6 +8,7 @@ import {
 import { toast, Toaster } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import baseUrl from '../../baseUrl';
 
 interface EventDetailsPageProps {
     onCartCountChange: (count: number) => void;
@@ -46,8 +47,6 @@ export default function EventDetailsPage({
     const [error, setError] = useState<string | null>(null);
     const [imageSrc, setImageSrc] = useState<string>('/placeholder.png');
 
-    // API base (use env when available)
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8004';
 
     useEffect(() => {
         if (!eventId) return;
@@ -55,7 +54,7 @@ export default function EventDetailsPage({
         setLoading(true);
         setError(null);
 
-        fetch(`${API_BASE}/api/v1/event/eventDetail/${eventId}`)
+        fetch(`${baseUrl.INVENTORY}/api/v1/event/eventDetail/${eventId}`)
             .then((res) => res.json())
             .then((json) => {
                 if (cancelled) return;
@@ -76,7 +75,7 @@ export default function EventDetailsPage({
                     attendees: d.registeredCount ?? 0,
                     maxAttendees: d.totalSeats ?? 0,
                     category: d.category ?? '',
-                    imageUrl: d.bannerImage ? (d.bannerImage.startsWith('http') ? d.bannerImage : `${API_BASE}${d.bannerImage}`) : '/placeholder.png',
+                    imageUrl: d.bannerImage ? (d.bannerImage.startsWith('http') ? d.bannerImage : `${baseUrl.INVENTORY}${d.bannerImage}`) : '/placeholder.png',
                     isFeatured: d.isFeatured ?? false,
                     spotsLeft: Math.max((d.totalSeats ?? 0) - (d.registeredCount ?? 0), 0),
                     description: d.description ?? '',
