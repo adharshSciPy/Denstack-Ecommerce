@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import baseUrl from '../baseUrl';
 import Navigation from '../components/Navigation';
-import { Calendar, MapPin, Heart, ChevronDown, Clock, Users, TrendingUp, Filter, Search, Star } from 'lucide-react';
+import { Calendar, MapPin, Heart, ChevronDown, Clock, Users, TrendingUp, Filter, Search } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -77,6 +77,7 @@ export default function EventsPage({
         const mapped = json.data.map((ev: any, idx: number) => {
           const total = ev.totalSeats ?? 0;
           const registered = ev.registeredCount ?? 0;
+          const normalizedType = (ev.eventType || '').toLowerCase();
           return {
             id: ev._id ?? String(idx),
             title: ev.title || 'Untitled Event',
@@ -85,8 +86,8 @@ export default function EventsPage({
             location: [ev.venue, ev.city, ev.state, ev.country].filter(Boolean).join(', '),
             attendees: registered,
             maxAttendees: total,
-            eventType: ev.eventType || '',
-            category: ev.category || ev.eventType || 'Other',
+            eventType: normalizedType,
+            category: normalizedType || 'Other',
             imageUrl: ev.bannerImage ? (ev.bannerImage.startsWith('/') ? `${baseUrl.INVENTORY}${ev.bannerImage}` : ev.bannerImage) : 'https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600',
             isFeatured: !!ev.isFeatured,
             spotsLeft: Math.max(0, total - registered),
@@ -105,11 +106,20 @@ export default function EventsPage({
   }, []);
 
   const filteredEvents = events.filter(event => {
-    const matchesCategory = selectedCategory === 'All Events' || event.category === selectedCategory;
-    const matchesSearch = event.title.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
+    const selected = selectedCategory.toLowerCase();
+
+    const matchesCategory =
+      selected === 'all events' ||
+      event.eventType?.includes(selected.slice(0, -1));
+    // removes last 's' → workshops → workshop
+
+    const matchesSearch =
+      event.title.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
       event.location.toLowerCase().includes(localSearchQuery.toLowerCase());
+
     return matchesCategory && matchesSearch;
   });
+
 
   const toggleLike = (eventId: string) => {
     setLikedEvents(prev => {
@@ -339,7 +349,7 @@ function EventCard({
     if ((evtType || '').toLowerCase().includes('product')) return { label: evtType || 'Product Launch', className: 'bg-pink-600 text-white' };
     if ((cat || '').toLowerCase().includes('featured')) return { label: 'Featured', className: 'bg-yellow-500 text-black' };
     return { label: evtType || cat || 'Other', className: 'bg-blue-600 text-white' };
-  }; 
+  };
 
   const categoryBadge = getCategoryBadge(eventType, category);
 
@@ -352,24 +362,14 @@ function EventCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Top Badge — show Featured (priority) else Workshop when eventType contains 'workshop' */}
-      {isFeatured ? (
-        <div className="absolute top-4 left-4 z-10 bg-yellow-500 text-black px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
-          <Star className="w-3 h-3 fill-black" />
-          Featured
-        </div>
-      ) : (eventType && (eventType || '').toLowerCase().includes('workshop')) ? (
-        <div className="absolute top-4 left-4 z-10 bg-green-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md">
-          Workshop
-        </div>
-      ) : null}
-
-      {/* Status Badge - Only show spots left warning */}
-      {isAlmostFull && !isFull && (
-        <div className="absolute top-4 right-14 z-10 bg-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg animate-pulse">
-          {spotsLeft} Spots Left!
+      {/* Event Type Badge */}
+      {eventType && (
+        <div className={`absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${categoryBadge.className}`}>
+          {categoryBadge.label}
         </div>
       )}
+
+
 
       {/* Heart Button */}
       <button
@@ -400,14 +400,11 @@ function EventCard({
           fill
           unoptimized
           onError={() => setImgSrc('https://images.unsplash.com/photo-1473232117216-c950d4ef2e14?w=600')}
-          className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100' }`}
+          className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'}`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-        {/* Category Tag */}
-        <div className={`absolute bottom-3 left-3 px-3 py-1 rounded-lg text-xs font-semibold ${categoryBadge.className}`}>
-          {categoryBadge.label}
-        </div>
+
       </div>
 
       {/* Event Info */}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Navigation from '../../components/Navigation';
 import {
     Heart, Calendar, MapPin, Users, Clock, ArrowLeft, Share2,
-    CheckCircle, Star, User, Mail, Phone, Building, Globe, Download
+    CheckCircle, User, Mail, Phone, Building, Globe, Download
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
@@ -75,8 +75,8 @@ export default function EventDetailsPage({
                     attendees: d.registeredCount ?? 0,
                     maxAttendees: d.totalSeats ?? 0,
                     category: d.category ?? '',
+                    eventType: d.eventType ?? d.type ?? '',
                     imageUrl: d.bannerImage ? (d.bannerImage.startsWith('http') ? d.bannerImage : `${baseUrl.INVENTORY}${d.bannerImage}`) : '/placeholder.png',
-                    isFeatured: d.isFeatured ?? false,
                     spotsLeft: Math.max((d.totalSeats ?? 0) - (d.registeredCount ?? 0), 0),
                     description: d.description ?? '',
                     highlights: d.highlights ?? [],
@@ -100,6 +100,19 @@ export default function EventDetailsPage({
 
     const isFull = event ? event.spotsLeft === 0 : false;
     const isAlmostFull = event ? event.spotsLeft <= 10 : false;
+
+    const getBadgeClass = (type?: string) => {
+        const t = (type || '').toLowerCase();
+        const base = 'text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1';
+        switch (t) {
+            case 'workshop': return `${base} bg-green-500`;
+            case 'webinar': return `${base} bg-purple-600`;
+            case 'conference': return `${base} bg-indigo-600`;
+            case 'meetup': return `${base} bg-teal-500`;
+            case 'training': return `${base} bg-yellow-400 text-black`;
+            default: return `${base} bg-gray-600`;
+        }
+    };
 
     const toggleLike = () => {
         setIsLiked(!isLiked);
@@ -176,15 +189,11 @@ export default function EventDetailsPage({
 
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                            {/* Category & Featured Badges */}
+                            {/* Category & Type Badges */}
                             <div className="absolute top-4 left-4 flex gap-2">
-                                <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
-                                    {event.category}
-                                </div>
-                                {event.isFeatured && (
-                                    <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1">
-                                        <Star className="w-4 h-4 fill-white" />
-                                        Featured
+                                {event.eventType && (
+                                    <div className={getBadgeClass(event.eventType)}>
+                                        {event.eventType}
                                     </div>
                                 )}
                             </div>
