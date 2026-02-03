@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Navigation from '../components/Navigation';
 import { Play, CheckCircle, Phone, Mail, MapPin, User, Building, ChevronDown } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import baseUrl from '../baseUrl';
 
 interface ClinicSetupPageProps {
   cartCount: number;
@@ -45,9 +46,9 @@ function BenefitCard({ title, description, icon }: BenefitCardProps) {
   );
 }
 
-export default function ClinicSetupPage({ 
-  cartCount, 
-  onCartCountChange, 
+export default function ClinicSetupPage({
+  cartCount,
+  onCartCountChange,
   onBackToHome,
   onCartClick,
   onBrandClick,
@@ -70,6 +71,7 @@ export default function ClinicSetupPage({
     specialization: ''
   });
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const benefits = [
     {
@@ -134,32 +136,56 @@ export default function ClinicSetupPage({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.contact || !formData.email) {
       toast.error('Please fill in all required fields');
       return;
     }
-    toast.success('🎉 Call scheduled successfully!', {
-      description: 'Our team will contact you shortly.',
-      duration: 3000,
-    });
-    setFormData({
-      name: '',
-      contact: '',
-      email: '',
-      city: '',
-      address: '',
-      specialization: ''
-    });
-  };
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/clinic-setup/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMsg = data?.message || 'Failed to schedule the call';
+        toast.error(errorMsg);
+        console.error('Create Clinic Setup Error:', data);
+        return;
+      }
+
+      toast.success(data?.message || '🎉 Call scheduled successfully!', {
+        description: 'Our team will contact you shortly.',
+        duration: 3000,
+      });
+
+      setFormData({
+        name: '',
+        contact: '',
+        email: '',
+        city: '',
+        address: '',
+        specialization: ''
+      });
+    } catch (error) {
+      console.error('Create Clinic Setup Error:', error);
+      toast.error('An unexpected error occurred. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }; 
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
       {/* Navigation */}
-      <Navigation 
+      <Navigation
         currentPage="clinic-setup"
       />
 
@@ -176,7 +202,7 @@ export default function ClinicSetupPage({
               <p className="text-gray-700 text-lg mb-6">
                 Step-by-step guidance to launch your dream dental clinic
               </p>
-              <button 
+              <button
                 onClick={() => document.getElementById('schedule-form')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-8 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all hover:shadow-xl hover:scale-105 active:scale-95"
               >
@@ -184,7 +210,7 @@ export default function ClinicSetupPage({
               </button>
             </div>
             <div className="relative">
-              <img 
+              <img
                 src="https://images.unsplash.com/photo-1764004450351-37fb72cb8e8c?w=1200"
                 alt="Dental Clinic Setup"
                 className="w-full h-auto rounded-2xl shadow-2xl"
@@ -198,15 +224,15 @@ export default function ClinicSetupPage({
       <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
         <div className="bg-blue-50 rounded-3xl p-8 md:p-12 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            What Added Benefits Do You Get <span className="text-blue-600">With DentalKart's New Clinic Setup?</span>
+            What Added Benefits Do You Get <span className="text-blue-600">With DenStack New Clinic Setup?</span>
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {benefits.map((benefit, index) => (
-              <div 
+              <div
                 key={index}
                 className="animate-fade-in-up"
-                style={{ 
+                style={{
                   animationDelay: `${index * 100}ms`,
                   animationFillMode: 'both'
                 }}
@@ -225,19 +251,19 @@ export default function ClinicSetupPage({
       </div>
 
       {/* Setup Description */}
-      <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
+      {/* <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-6">
             Setting Up A Dental Clinic? <span className="text-blue-600">We've Got You Covered!</span>
           </h2>
           <p className="text-gray-600 text-center max-w-4xl mx-auto leading-relaxed">
-            Starting a New Dental Clinic Can Be Stressful! Setting Up Soundly Won't Typical Of Guesswork, Making, Hunt, Where 
-            Electrical Compute, Space Use? It Includes – Creating Time And A Lot Of Money! – Putting You To Choose The Right Suggestion 
-            Arrangement/Layout Execution, Budgeting And Implementing. That's Why We Introduced Clinic Setup Service Which Help To Go 
+            Starting a New Dental Clinic Can Be Stressful! Setting Up Soundly Won't Typical Of Guesswork, Making, Hunt, Where
+            Electrical Compute, Space Use? It Includes – Creating Time And A Lot Of Money! – Putting You To Choose The Right Suggestion
+            Arrangement/Layout Execution, Budgeting And Implementing. That's Why We Introduced Clinic Setup Service Which Help To Go
             Smoothly.
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* Schedule Form */}
       <div id="schedule-form" className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
@@ -261,7 +287,7 @@ export default function ClinicSetupPage({
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="Enter your name"
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
+                    className="w-full pl-10 pr-4 py-3 border-2 text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
                     required
                   />
                 </div>
@@ -280,7 +306,7 @@ export default function ClinicSetupPage({
                     value={formData.contact}
                     onChange={handleInputChange}
                     placeholder="Enter contact number"
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
+                    className="w-full pl-10 pr-4 py-3 border-2 text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
                     required
                   />
                 </div>
@@ -299,7 +325,7 @@ export default function ClinicSetupPage({
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="Enter your email"
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
+                    className="w-full pl-10 pr-4 py-3 border-2 text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
                     required
                   />
                 </div>
@@ -318,7 +344,7 @@ export default function ClinicSetupPage({
                     value={formData.city}
                     onChange={handleInputChange}
                     placeholder="Enter your city"
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
+                    className="w-full pl-10 pr-4 py-3 border-2 text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
                   />
                 </div>
               </div>
@@ -337,7 +363,7 @@ export default function ClinicSetupPage({
                   onChange={handleInputChange}
                   placeholder="Enter clinic address"
                   rows={3}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all resize-none"
+                  className="w-full pl-10 pr-4 py-3 border-2 text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all resize-none"
                 />
               </div>
             </div>
@@ -353,7 +379,7 @@ export default function ClinicSetupPage({
                 value={formData.specialization}
                 onChange={handleInputChange}
                 placeholder="e.g., General Dentistry, Orthodontics, etc."
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
+                className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all"
               />
             </div>
 
@@ -361,28 +387,26 @@ export default function ClinicSetupPage({
             <div className="text-center">
               <button
                 type="submit"
-                className="px-12 py-4 bg-orange-500 text-white rounded-lg font-bold text-lg hover:bg-orange-600 transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+                disabled={isSubmitting}
+                className={`px-12 py-4 rounded-lg font-bold text-lg transition-all ${isSubmitting ? 'bg-orange-300 text-white cursor-not-allowed opacity-70' : 'bg-orange-500 text-white hover:bg-orange-600 hover:shadow-xl hover:scale-105 active:scale-95'}`}
               >
-                Schedule Call
+                {isSubmitting ? 'Scheduling...' : 'Schedule Call'}
               </button>
-              <p className="text-sm text-gray-500 mt-4">
-                Our team will contact you within 24 hours
-              </p>
             </div>
           </form>
         </div>
       </div>
 
       {/* Video Section */}
-      <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
+      {/* <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
             See how we set up your <span className="text-blue-600">perfect dental clinic</span>
           </h2>
-          
+
           <div className="max-w-4xl mx-auto">
             <div className="relative aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-2xl group cursor-pointer">
-              <img 
+              <img
                 src="https://images.unsplash.com/photo-1764004450351-37fb72cb8e8c?w=1200"
                 alt="Video thumbnail"
                 className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition-opacity"
@@ -400,11 +424,11 @@ export default function ClinicSetupPage({
           </div>
 
           <p className="text-center text-gray-600 text-sm mt-6 max-w-2xl mx-auto">
-            Watch our comprehensive guide on setting up a modern dental clinic. Learn about equipment selection, 
+            Watch our comprehensive guide on setting up a modern dental clinic. Learn about equipment selection,
             layout optimization, and best practices from industry experts.
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* FAQ Section */}
       <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-12">
@@ -415,7 +439,7 @@ export default function ClinicSetupPage({
 
           <div className="max-w-3xl mx-auto space-y-4">
             {faqs.map((faq, index) => (
-              <div 
+              <div
                 key={index}
                 className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl"
               >
@@ -424,10 +448,9 @@ export default function ClinicSetupPage({
                   className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
                 >
                   <span className="font-semibold text-gray-900 pr-4">{faq.question}</span>
-                  <ChevronDown 
-                    className={`w-5 h-5 text-blue-600 flex-shrink-0 transition-transform ${
-                      expandedFaq === index ? 'rotate-180' : ''
-                    }`}
+                  <ChevronDown
+                    className={`w-5 h-5 text-blue-600 flex-shrink-0 transition-transform ${expandedFaq === index ? 'rotate-180' : ''
+                      }`}
                   />
                 </button>
                 {expandedFaq === index && (
