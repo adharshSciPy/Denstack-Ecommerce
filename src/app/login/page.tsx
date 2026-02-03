@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 // import Navigation from '../components/Navigation';
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
 import baseUrl from "../baseUrl";
@@ -15,6 +15,7 @@ export default function UserLoginPage() {
     email: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -115,7 +116,7 @@ export default function UserLoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
@@ -123,6 +124,13 @@ export default function UserLoginPage() {
                   className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
@@ -131,11 +139,10 @@ export default function UserLoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-10 py-4 rounded-lg font-bold text-lg transition-all ${
-                  isSubmitting
-                    ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
-                } text-white`}
+                className={`px-10 py-4 rounded-lg font-bold text-lg transition-all ${isSubmitting
+                  ? "bg-blue-300 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
+                  } text-white`}
               >
                 {isSubmitting ? "Logging in..." : "Login"}
               </button>
