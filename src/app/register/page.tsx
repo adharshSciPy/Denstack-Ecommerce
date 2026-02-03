@@ -6,6 +6,7 @@ import { User, Mail, Phone, Lock } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
 import baseUrl from "../baseUrl";
+import axios from "axios";
 
 export default function RegisterUserPage() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function RegisterUserPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
     password: "",
   });
 
@@ -37,21 +38,15 @@ export default function RegisterUserPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${baseUrl.INVENTORY}/api/v1/auth/register`,
+      const response = await axios.post(
+        `${baseUrl.AUTH}/api/v1/ecommerceuser/register`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          name: formData.name,
+          email: formData.email,
+          phoneNumber: Number(formData.phoneNumber), // ✅ number
+          password: formData.password,
         },
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data?.message || "Registration failed");
-        return;
-      }
 
       toast.success("🎉 Registration successful!", {
         description: "You can now log in to your account.",
@@ -60,12 +55,16 @@ export default function RegisterUserPage() {
       setFormData({
         name: "",
         email: "",
-        phone: "",
+        phoneNumber: "",
         password: "",
       });
-    } catch (error) {
+
+      // Optional redirect
+      setTimeout(() => router.push("/login"), 1500);
+    } catch (error: any) {
       console.error(error);
-      toast.error("Something went wrong. Please try again.");
+
+      toast.error(error?.response?.data?.message || "Registration failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -144,8 +143,8 @@ export default function RegisterUserPage() {
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
                   onChange={handleInputChange}
                   placeholder="Enter phone number"
                   className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"

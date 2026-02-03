@@ -6,6 +6,7 @@ import { Mail, Lock } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
 import baseUrl from "../baseUrl";
+import axios from "axios";
 
 export default function UserLoginPage() {
   const router = useRouter();
@@ -28,40 +29,34 @@ export default function UserLoginPage() {
     e.preventDefault();
 
     if (!formData.email || !formData.password) {
-      toast.error("Please enter email and password");
+      toast.error("Please fill all required fields");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${baseUrl.INVENTORY}/api/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await axios.post(
+        `${baseUrl.AUTH}/api/v1/ecommerceuser/login`,
+        {
+          email: formData.email,
+          password: formData.password,
+        },
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data?.message || "Login failed");
-        return;
-      }
-
-      toast.success("✅ Login successful!", {
-        description: "Welcome back!",
-      });
-
-      // Example: store token if needed
-      // localStorage.setItem('token', data.token);
+      toast.success("🎉 Login successful!");
 
       setFormData({
         email: "",
         password: "",
       });
-    } catch (error) {
+
+      // Optional redirect
+      setTimeout(() => router.push("/"), 1500);
+    } catch (error: any) {
       console.error(error);
-      toast.error("Something went wrong. Please try again.");
+
+      toast.error(error?.response?.data?.message || "Registration failed");
     } finally {
       setIsSubmitting(false);
     }
