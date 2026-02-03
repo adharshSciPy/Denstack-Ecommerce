@@ -108,9 +108,20 @@ export default function BrandDetailPage({
         console.log('Fetching brand data for ID:', brandId); // Debug log
 
         const response = await fetch(
-          `${baseUrl}/api/v1/landing/top-brands/${brandId}`,
+          `${baseUrl.INVENTORY}/api/v1/landing/top-brands/${brandId}`,
           { cache: 'no-store' }
         );
+
+        if (!response.ok) {
+          console.error('Failed to fetch brand data, status:', response.status);
+          throw new Error('Failed to fetch brand data');
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.error('Expected JSON but received:', contentType);
+          throw new Error('Invalid response from brand detail endpoint');
+        }
 
         const result = await response.json();
         console.log('Brand data response:', result); // Debug log
@@ -136,7 +147,7 @@ export default function BrandDetailPage({
     if (!imagePath) return 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
     // ✅ Clean up the path properly
     const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    return `${baseUrl}${cleanPath}`;
+    return `${baseUrl.INVENTORY}${cleanPath}`;
   };
 
   const addToCart = () => {

@@ -83,15 +83,21 @@ export default function BrandsPage({
         setError(null);
         
         const response = await fetch(
-          `${baseUrl}/api/v1/landing/brands/getAll?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}`
+          `${baseUrl.INVENTORY}/api/v1/landing/brands/getAll?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}`
         );
         
         if (!response.ok) {
+          console.error('Failed to fetch brands, status:', response.status);
           throw new Error('Failed to fetch brands');
         }
         
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.error('Expected JSON but received:', contentType);
+          throw new Error('Invalid brands response');
+        }
+        
         const result = await response.json();
-
         console.log('brands brands:', result);
         
         setBrands(result.data);

@@ -1,20 +1,22 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navigation from '../../components/Navigation';
 import { Heart, ShoppingCart, Star, Truck, Shield, RotateCcw, Award, Plus, Minus, Check, ChevronRight, Home, ChevronDown, Package, CreditCard, Headphones, Gift, Tag } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
+import baseUrl from "../../baseUrl"
 
 interface ProductDetailPageProps {
-    productId: number;
+    // optional prop when rendering the component directly
+    productId?: number | string;
     cartCount: number;
     onCartCountChange: (count: number) => void;
     onBackToHome: () => void;
     onCartClick: () => void;
     isLiked?: boolean;
-    onToggleLike?: (productId: number) => void;
+    onToggleLike?: (productId: number | string) => void;
     onBrandClick?: () => void;
     onBuyingGuideClick?: () => void;
     onEventsClick?: () => void;
@@ -25,119 +27,7 @@ interface ProductDetailPageProps {
     onCheckoutClick?: () => void;
 }
 
-const productDatabase = {
-    1: {
-        id: 1,
-        name: "Dental Impression Tray Kit",
-        brand: "Premium Dental",
-        price: 1299,
-        originalPrice: 1599,
-        rating: 4.8,
-        reviews: 234,
-        inStock: true,
-        stockCount: 45,
-        sku: "DIT-2024-001",
-        materialType: "Medical-grade Stainless Steel",
-        category: "General Dentistry",
-        images: [
-            "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=800",
-            "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800",
-            "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800",
-        ],
-        description: "Professional-grade dental impression tray kit designed for accurate and comfortable dental impressions. Includes multiple sizes and shapes to accommodate various patient needs.",
-        features: [
-            "Autoclavable stainless steel construction",
-            "Ergonomic design for patient comfort",
-            "Available in 12 different sizes",
-            "Compatible with all impression materials",
-            "Perforated design for better material retention",
-            "Chemical resistant coating"
-        ],
-        specifications: {
-            "Material": "Medical-grade stainless steel",
-            "Sterilization": "Autoclavable up to 134°C",
-            "Set Size": "12 pieces",
-            "Weight": "850g",
-            "Warranty": "2 years manufacturer warranty",
-            "Certification": "FDA Approved, ISO 13485"
-        }
-    },
-    2: {
-        id: 2,
-        name: "LED Dental Curing Light",
-        brand: "BrightSmile Pro",
-        price: 4599,
-        originalPrice: 5999,
-        rating: 4.9,
-        reviews: 456,
-        inStock: true,
-        stockCount: 23,
-        sku: "DCL-2024-002",
-        materialType: "Aluminum Alloy & Polymer",
-        category: "Equipments",
-        images: [
-            "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800",
-            "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=800",
-            "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800",
-        ],
-        description: "High-intensity LED curing light with multiple power modes for efficient and reliable polymerization of light-cured dental materials.",
-        features: [
-            "High-intensity LED technology (2000mW/cm²)",
-            "Multiple curing modes: Standard, High Power, Ramp",
-            "360° rotating head for easy access",
-            "Built-in light meter for intensity monitoring",
-            "Cordless operation with long battery life",
-            "Automatic shutoff for safety"
-        ],
-        specifications: {
-            "Light Intensity": "2000mW/cm² (High Power mode)",
-            "Wavelength": "420-480nm",
-            "Battery Life": "Up to 400 cycles per charge",
-            "Charging Time": "2.5 hours",
-            "Weight": "165g",
-            "Warranty": "3 years"
-        }
-    },
-    3: {
-        id: 3,
-        name: "Ultrasonic Scaler",
-        brand: "SonicCare",
-        price: 8999,
-        originalPrice: 11999,
-        rating: 4.7,
-        reviews: 189,
-        inStock: true,
-        stockCount: 12,
-        sku: "USC-2024-003",
-        materialType: "Titanium & Ceramic",
-        category: "Equipments",
-        images: [
-            "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800",
-            "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=800",
-            "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800",
-        ],
-        description: "Professional ultrasonic scaler with piezoelectric technology for effective and gentle scaling procedures.",
-        features: [
-            "Piezoelectric ultrasonic technology",
-            "Adjustable power settings (1-10)",
-            "Auto-tuning frequency optimization",
-            "Compatible with multiple tip types",
-            "Detachable handpiece for easy sterilization",
-            "Built-in water irrigation system"
-        ],
-        specifications: {
-            "Technology": "Piezoelectric",
-            "Frequency": "28-32kHz auto-tuning",
-            "Power Levels": "10 adjustable settings",
-            "Water Flow": "0-150ml/min",
-            "Handpiece": "Detachable, autoclavable",
-            "Warranty": "2 years + 1 year extended"
-        }
-    }
-};
-
 export default function ProductDetailPage({
-    productId,
     cartCount,
     onCartCountChange,
     onBackToHome,
@@ -151,15 +41,52 @@ export default function ProductDetailPage({
     onFreebiesClick,
     onBestSellerClick,
     onClinicSetupClick,
-    onCheckoutClick
+    onCheckoutClick,
+    productId
 }: ProductDetailPageProps) {
-    const product = productDatabase[productId as keyof typeof productDatabase] || productDatabase[1];
+    // prefer explicit prop `productId` when used as a child component, otherwise use route param
+    const { id: routeParamId } = useParams<{ id: string }>();
+    const routeId = productId != null ? String(productId) : routeParamId;
 
+    // product: null = loading, undefined = not found/error, object = product data
+    const [product, setProduct] = useState<any | null>(null);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
     const [liked, setLiked] = useState(isLiked);
     const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'reviews'>('description');
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+    // Ensure hooks run in the same order every render
+    const router = useRouter();
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const res = await axios.get(`${baseUrl.INVENTORY}/api/v1/product/getProduct/${routeId}`);
+                const contentType = res.headers?.['content-type'] || '';
+
+                // If server returned HTML (e.g., an error page) instead of JSON, bail out with helpful log
+                if (!contentType.includes('application/json')) {
+                    console.error(`Expected JSON from product API but received Content-Type: ${contentType}`, res.status, res.data);
+                    toast.error('Unable to fetch product (invalid response). Please check the API server.');
+                    setProduct(undefined);
+                    return;
+                }
+
+                // Some APIs return the object directly, some wrap it in `data` — handle both
+                const payload = res.data && res.data.data ? res.data.data : res.data;
+                setProduct(payload);
+                console.log("product res", payload);
+            } catch (error: any) {
+                console.error("Error fetching product data:", error);
+                // mark not found / error so UI can show a friendly message
+                toast.error('Error fetching product. See console for details.');
+                setProduct(undefined);
+            }
+        }
+        if (routeId) fetchProduct();
+    }, [routeId])
 
     const handleAddToCart = () => {
         onCartCountChange(cartCount + quantity);
@@ -178,21 +105,58 @@ export default function ProductDetailPage({
 
     const handleToggleLike = () => {
         setLiked(!liked);
-        if (onToggleLike) {
-            onToggleLike(product.id);
+        if (onToggleLike && product) {
+            onToggleLike(product.id || product._id);
         }
         toast.success(liked ? 'Removed from favorites' : 'Added to favorites');
     };
 
-    const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+    // Derived / normalized values (work with both old and new API shapes)
+    // Normalize image URLs: absolute URLs left as-is; 
+    // prefix '/uploads' paths with the Inventory server (where backend stores uploads), otherwise use IMAGE base.
+    const rawImages = (product?.image || product?.images || []) as string[];
+    const getImageUrl = (path?: string) => {
+        if (!path) return '';
+        if (/^https?:\/\//i.test(path)) return path;
+        const cleaned = path.startsWith('/') ? path : `/${path}`;
+        // If backend serves uploads from INVENTORY, keep those on INVENTORY host
+        if (cleaned.startsWith('/uploads')) return `${baseUrl.INVENTORY}${cleaned}`;
+        // Otherwise use IMAGE base
+        return `${baseUrl.IMAGE}${cleaned}`;
+    };
+    const images = rawImages.map((p) => getImageUrl(p)).filter(Boolean) as string[];
 
-    // Add early return with error message if product is undefined
-    if (!product) {
+    const variants = (product?.variants || []) as any[];
+    const selectedVariant: any = variants[selectedVariantIndex] || {};
+    const price = selectedVariant?.discountPrice1 ?? selectedVariant?.discountPrice2 ?? selectedVariant?.originalPrice ?? product?.price ?? 0;
+    const originalPrice = selectedVariant?.originalPrice ?? product?.originalPrice ?? 0;
+    const discount = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+    const specifications = product?.specifications ?? {
+        "Material": selectedVariant?.material,
+        "Size": selectedVariant?.size,
+        "Color": selectedVariant?.color,
+    } as Record<string, any>;
+    const displayBrand = typeof product?.brand === 'string' ? product.brand : product?.brand?.name ?? product?.brand ?? '';
+    const inStock = (selectedVariant?.stock ?? product?.stockCount ?? 0) > 0;
+
+    // Loading
+    if (product === null) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-700">Loading...</h1>
+                </div>
+            </div>
+        );
+    }
+
+    // Not found / error
+    if (product === undefined) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-red-600">Product not found</h1>
-                    <p className="text-gray-600 mt-2">Product ID: {productId}</p>
+                    <p className="text-gray-600 mt-2">Product ID: {routeId}</p>
                     <button
                         onClick={onBackToHome}
                         className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg"
@@ -203,8 +167,6 @@ export default function ProductDetailPage({
             </div>
         );
     }
-
-    const router = useRouter();
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -254,11 +216,11 @@ export default function ProductDetailPage({
                         {/* Main Image */}
                         <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden aspect-square">
                             <ImageWithFallback
-                                src={product.images[selectedImage]}
+                                src={images[selectedImage] ?? images[0] ?? ''}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
                             />
-                            {product.originalPrice > product.price && (
+                            {originalPrice > price && (
                                 <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
                                     {discount}% OFF
                                 </div>
@@ -267,7 +229,7 @@ export default function ProductDetailPage({
 
                         {/* Thumbnails */}
                         <div className="grid grid-cols-4 gap-2">
-                            {product.images.map((image, index) => (
+                            {images.map((image: string, index: number) => (
                                 <button
                                     key={index}
                                     onClick={() => setSelectedImage(index)}
@@ -310,7 +272,7 @@ export default function ProductDetailPage({
                     <div className="space-y-6">
                         <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
                             {/* Brand */}
-                            <p className="text-sm text-blue-600 font-semibold uppercase">{product.brand}</p>
+                            <p className="text-sm text-blue-600 font-semibold uppercase">{displayBrand}</p>
 
                             {/* Title */}
                             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
@@ -331,18 +293,18 @@ export default function ProductDetailPage({
 
                             {/* Price */}
                             <div className="flex items-baseline gap-3">
-                                <span className="text-4xl font-bold text-blue-600">₹{product.price}</span>
-                                {product.originalPrice > product.price && (
-                                    <span className="text-xl text-gray-400 line-through">₹{product.originalPrice}</span>
+                                <span className="text-4xl font-bold text-blue-600">₹{price}</span>
+                                {originalPrice > price && (
+                                    <span className="text-xl text-gray-400 line-through">₹{originalPrice}</span>
                                 )}
                             </div>
 
                             {/* Stock Status */}
                             <div className="flex items-center gap-2">
-                                {product.inStock ? (
+                                {inStock ? (
                                     <>
                                         <Check className="w-5 h-5 text-green-600" />
-                                        <span className="text-green-600 font-semibold">In Stock ({product.stockCount} available)</span>
+                                        <span className="text-green-600 font-semibold">In Stock ({selectedVariant.stock ?? product.stockCount ?? 0} available)</span>
                                     </>
                                 ) : (
                                     <span className="text-red-600 font-semibold">Out of Stock</span>
@@ -350,8 +312,7 @@ export default function ProductDetailPage({
                             </div>
 
                             {/* SKU */}
-                            <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-
+                            <p className="text-sm text-gray-600">SKU: {product.productId ?? product.sku}</p>
                             {/* Material Type */}
                             <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
                                 <Package className="w-5 h-5 text-purple-600" />
@@ -374,13 +335,13 @@ export default function ProductDetailPage({
                                         </button>
                                         <span className="px-6 py-2 text-black font-bold">{quantity}</span>
                                         <button
-                                            onClick={() => setQuantity(Math.min(product.stockCount, quantity + 1))}
+                                            onClick={() => setQuantity(Math.min(selectedVariant.stock ?? product.stockCount ?? 1, quantity + 1))}
                                             className="px-4 py-2 text-black bg-gray-100 hover:bg-gray-200 transition-colors"
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <span className="text-sm text-gray-600">Max: {product.stockCount}</span>
+                                    <span className="text-sm text-gray-600">Max: {selectedVariant.stock ?? product.stockCount ?? 0}</span>
                                 </div>
                             </div>
 
@@ -422,200 +383,88 @@ export default function ProductDetailPage({
                             <h2 className="font-bold text-gray-900 text-lg">Available Variants</h2>
 
                             <div className="space-y-3">
-                                {/* Variant Card 1 - Silver */}
-                                <div className="border-2 border-gray-200 rounded-lg p-3 hover:border-blue-400 hover:shadow-md transition-all">
-                                    <div className="flex gap-3">
-                                        {/* Small Product Image */}
-                                        <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                            <ImageWithFallback
-                                                src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=200"
-                                                alt="Silver variant"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute top-0 right-0 bg-red-500 text-white px-1 text-xs rounded-bl">57%</div>
-                                        </div>
-
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-sm font-bold text-gray-900 mb-2">
-                                                Waldent External Water Spray Straight Handpiece - Silver (W-124 EI)
-                                            </h3>
-
-                                            {/* Specifications Grid */}
-                                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2 text-xs">
-                                                <div className="flex items-center gap-1">
-                                                    <Package className="w-3 h-3 text-gray-500" />
-                                                    <span className="text-gray-600">Material:</span>
-                                                    <span className="font-semibold text-gray-900">Stainless Steel</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Size:</span>
-                                                    <span className="font-semibold text-gray-900">Standard</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Weight:</span>
-                                                    <span className="font-semibold text-gray-900">165g</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Shade:</span>
-                                                    <span className="font-semibold text-gray-900">Silver</span>
-                                                </div>
+                                {variants.length ? variants.map((v: any, idx: number) => (
+                                    <div key={idx} className={`border-2 border-gray-200 rounded-lg p-3 hover:border-blue-400 hover:shadow-md transition-all ${selectedVariantIndex === idx ? 'ring-2 ring-blue-100' : ''}`}>
+                                        <div className="flex gap-3">
+                                            <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                                                <ImageWithFallback
+                                                    src={images[idx] ?? images[0] ?? ''}
+                                                    alt={`${product.name} variant ${idx + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                {(v.originalPrice && (v.discountPrice1 ?? v.discountPrice2) && (v.originalPrice > (v.discountPrice1 ?? v.discountPrice2))) && (
+                                                    <div className="absolute top-0 right-0 bg-red-500 text-white px-1 text-xs rounded-bl">
+                                                        {Math.round(((v.originalPrice - (v.discountPrice1 ?? v.discountPrice2)) / v.originalPrice) * 100)}%
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            <div className="flex items-baseline gap-2 mb-2">
-                                                <span className="text-lg font-bold text-blue-600">₹ 2,100</span>
-                                                <span className="text-xs text-gray-400 line-through">₹ 4,900</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-yellow-600 mb-1">
-                                                <Tag className="w-3 h-3" />
-                                                <span className="font-semibold">105 points</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-green-600 mb-2">
-                                                <RotateCcw className="w-3 h-3" />
-                                                <span>10-Days Returnable</span>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    onCartCountChange(cartCount + 1);
-                                                    toast.success('Added Silver variant to cart!');
-                                                }}
-                                                className="w-full py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 transition-all"
-                                            >
-                                                Add
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-sm font-bold text-gray-900 mb-2">
+                                                    {product.name} - {v.size} / {v.color}
+                                                </h3>
 
-                                {/* Variant Card 2 - Blue */}
-                                <div className="border-2 border-gray-200 rounded-lg p-3 hover:border-blue-400 hover:shadow-md transition-all">
-                                    <div className="flex gap-3">
-                                        {/* Small Product Image */}
-                                        <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                            <ImageWithFallback
-                                                src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=200"
-                                                alt="Blue variant"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute top-0 right-0 bg-red-500 text-white px-1 text-xs rounded-bl">57%</div>
-                                        </div>
+                                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2 text-xs">
+                                                    <div className="flex items-center gap-1">
+                                                        <Package className="w-3 h-3 text-gray-500" />
+                                                        <span className="text-gray-600">Material:</span>
+                                                        <span className="font-semibold text-gray-900">{v.material}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-gray-600">Size:</span>
+                                                        <span className="font-semibold text-gray-900">{v.size}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-gray-600">Stock:</span>
+                                                        <span className="font-semibold text-gray-900">{v.stock}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-gray-600">Color:</span>
+                                                        <span className="font-semibold text-gray-900">{v.color}</span>
+                                                    </div>
+                                                </div>
 
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-sm font-bold text-gray-900 mb-2">
-                                                Waldent External Water Spray Straight Handpiece - Blue (W-135 EI)
-                                            </h3>
+                                                <div className="flex items-baseline gap-2 mb-2">
+                                                    <span className="text-lg font-bold text-blue-600">₹ {v.discountPrice1 ?? v.discountPrice2 ?? v.originalPrice}</span>
+                                                    {(v.originalPrice > (v.discountPrice1 ?? v.discountPrice2 ?? 0)) && (
+                                                        <span className="text-xs text-gray-400 line-through">₹ {v.originalPrice}</span>
+                                                    )}
+                                                </div>
 
-                                            {/* Specifications Grid */}
-                                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2 text-xs">
-                                                <div className="flex items-center gap-1">
-                                                    <Package className="w-3 h-3 text-gray-500" />
-                                                    <span className="text-gray-600">Material:</span>
-                                                    <span className="font-semibold text-gray-900">Stainless Steel</span>
+                                                <div className="flex items-center gap-1 text-xs text-yellow-600 mb-1">
+                                                    <Tag className="w-3 h-3" />
+                                                    <span className="font-semibold">Points</span>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Size:</span>
-                                                    <span className="font-semibold text-gray-900">Standard</span>
+                                                <div className="flex items-center gap-1 text-xs text-green-600 mb-2">
+                                                    <RotateCcw className="w-3 h-3" />
+                                                    <span>10-Days Returnable</span>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Weight:</span>
-                                                    <span className="font-semibold text-gray-900">162g</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Shade:</span>
-                                                    <span className="font-semibold text-gray-900">Blue</span>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedVariantIndex(idx);
+                                                            toast.success('Selected variant');
+                                                        }}
+                                                        className="py-1 px-2 bg-white border rounded text-xs"
+                                                    >
+                                                        Select
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            onCartCountChange(cartCount + 1);
+                                                            toast.success(`Added ${product.name} (${v.size}/${v.color}) to cart!`);
+                                                        }}
+                                                        className="ml-auto w-full py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 transition-all"
+                                                    >
+                                                        Add
+                                                    </button>
                                                 </div>
                                             </div>
-
-                                            <div className="flex items-baseline gap-2 mb-2">
-                                                <span className="text-lg font-bold text-blue-600">₹ 2,100</span>
-                                                <span className="text-xs text-gray-400 line-through">₹ 4,900</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-yellow-600 mb-1">
-                                                <Tag className="w-3 h-3" />
-                                                <span className="font-semibold">105 points</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-green-600 mb-2">
-                                                <RotateCcw className="w-3 h-3" />
-                                                <span>10-Days Returnable</span>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    onCartCountChange(cartCount + 1);
-                                                    toast.success('Added Blue variant to cart!');
-                                                }}
-                                                className="w-full py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 transition-all"
-                                            >
-                                                Add
-                                            </button>
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Variant Card 3 - Red */}
-                                <div className="border-2 border-gray-200 rounded-lg p-3 hover:border-blue-400 hover:shadow-md transition-all">
-                                    <div className="flex gap-3">
-                                        {/* Small Product Image */}
-                                        <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                            <ImageWithFallback
-                                                src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=200"
-                                                alt="Red variant"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute top-0 right-0 bg-red-500 text-white px-1 text-xs rounded-bl">57%</div>
-                                        </div>
-
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-sm font-bold text-gray-900 mb-2">
-                                                Waldent External Water Spray Straight Handpiece - Red (W-146 EI)
-                                            </h3>
-
-                                            {/* Specifications Grid */}
-                                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2 text-xs">
-                                                <div className="flex items-center gap-1">
-                                                    <Package className="w-3 h-3 text-gray-500" />
-                                                    <span className="text-gray-600">Material:</span>
-                                                    <span className="font-semibold text-gray-900">Stainless Steel</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Size:</span>
-                                                    <span className="font-semibold text-gray-900">Standard</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Weight:</span>
-                                                    <span className="font-semibold text-gray-900">168g</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-600">Shade:</span>
-                                                    <span className="font-semibold text-gray-900">Red</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-baseline gap-2 mb-2">
-                                                <span className="text-lg font-bold text-blue-600">₹ 2,100</span>
-                                                <span className="text-xs text-gray-400 line-through">₹ 4,900</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-yellow-600 mb-1">
-                                                <Tag className="w-3 h-3" />
-                                                <span className="font-semibold">105 points</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-green-600 mb-2">
-                                                <RotateCcw className="w-3 h-3" />
-                                                <span>10-Days Returnable</span>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    onCartCountChange(cartCount + 1);
-                                                    toast.success('Added Red variant to cart!');
-                                                }}
-                                                className="w-full py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 transition-all"
-                                            >
-                                                Add
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                )) : (
+                                    <p className="text-sm text-gray-600">No variants available for this product.</p>
+                                )}
                             </div>
                         </div>
 
@@ -899,7 +748,7 @@ export default function ProductDetailPage({
                                 <p className="text-gray-700 leading-relaxed">{product.description}</p>
                                 <h3 className="text-xl font-bold text-gray-900 mt-6">Key Features:</h3>
                                 <ul className="space-y-2">
-                                    {product.features.map((feature, index) => (
+                                    {(product.features || []).map((feature: string, index: number) => (
                                         <li key={index} className="flex items-start gap-2">
                                             <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                                             <span className="text-gray-700">{feature}</span>
@@ -911,10 +760,10 @@ export default function ProductDetailPage({
 
                         {activeTab === 'specifications' && (
                             <div className="space-y-3">
-                                {Object.entries(product.specifications).map(([key, value]) => (
+                                {Object.entries(specifications as Record<string, any>).map(([key, value]: [string, any]) => (
                                     <div key={key} className="flex border-b border-gray-200 py-3">
                                         <span className="w-1/3 font-semibold text-gray-900">{key}:</span>
-                                        <span className="w-2/3 text-gray-700">{value}</span>
+                                        <span className="w-2/3 text-gray-700">{String(value)}</span>
                                     </div>
                                 ))}
                             </div>

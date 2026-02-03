@@ -25,12 +25,22 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const response = await fetch(`${baseUrl}/api/v1/landing/main/getAll?limit=5`);
-        const data = await response.json();
-        
-        if (data.data) {
-          setCategories(data.data);
+        const response = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getAll?limit=5`);
+
+        if (!response.ok) {
+          console.error('Failed to fetch categories, status:', response.status);
+          throw new Error('Failed to fetch categories');
         }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.error('Expected JSON but received:', contentType);
+          throw new Error('Invalid response from categories endpoint');
+        }
+
+        const data = await response.json();
+        // API might return { data: [...] } or directly an array
+        setCategories(data?.data || data || []);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       } finally {
@@ -114,7 +124,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
             <div className="group h-full rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative">
               <div className="h-full overflow-hidden">
                 <Image 
-                  src={cat1.image ? `${baseUrl}${cat1.image}` : '/placeholder-category.jpg'}
+                  src={cat1.image ? `${baseUrl.INVENTORY}${cat1.image}` : '/placeholder-category.jpg'}
                   alt={cat1.categoryName}
                   width={500}
                   height={500}
@@ -148,7 +158,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
             <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 h-full relative hover:-translate-y-1">
               <div className="h-full overflow-hidden">
                 <Image 
-                  src={cat2.image ? `${baseUrl}${cat2.image}` : '/placeholder-category.jpg'}
+                  src={cat2.image ? `${baseUrl.INVENTORY}${cat2.image}` : '/placeholder-category.jpg'}
                   alt={cat2.categoryName}
                   width={700}
                   height={250}
@@ -178,7 +188,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
               <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
                 <div className="overflow-hidden">
                   <Image 
-                    src={cat3.image ? `${baseUrl}${cat3.image}` : '/placeholder-category.jpg'}
+                    src={cat3.image ? `${baseUrl.INVENTORY}${cat3.image}` : '/placeholder-category.jpg'}
                     alt={cat3.categoryName}
                     width={350}
                     height={250}
@@ -206,7 +216,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
               <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
                 <div className="overflow-hidden">
                   <Image 
-                    src={cat4.image ? `${baseUrl}${cat4.image}` : '/placeholder-category.jpg'}
+                    src={cat4.image ? `${baseUrl.INVENTORY}${cat4.image}` : '/placeholder-category.jpg'}
                     alt={cat4.categoryName}
                     width={350}
                     height={250}
@@ -236,7 +246,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
             <div className="group rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 relative hover:-translate-y-1">
               <div className="overflow-hidden">
                 <Image 
-                  src={cat5.image ? `${baseUrl}${cat5.image}` : '/placeholder-category.jpg'}
+                  src={cat5.image ? `${baseUrl.INVENTORY}${cat5.image}` : '/placeholder-category.jpg'}
                   alt={cat5.categoryName}
                   width={1200}
                   height={280}

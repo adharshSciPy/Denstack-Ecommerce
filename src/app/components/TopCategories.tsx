@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import baseUrl from "../baseUrl";
 
 interface Category {
   _id: string;
@@ -29,8 +30,20 @@ export default function TopCategories({
     async function fetchCategories() {
       try {
         const response = await fetch(
-          "http://localhost:8004/api/v1/landing/-/getAll",
+          `${baseUrl.INVENTORY}/api/v1/landing/-/getAll`,
         );
+
+        if (!response.ok) {
+          console.error('Failed to fetch categories, status:', response.status);
+          throw new Error('Failed to fetch categories');
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.error('Expected JSON but received:', contentType);
+          throw new Error('Invalid response from categories endpoint');
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -73,7 +86,7 @@ export default function TopCategories({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6">
         {categories.map((category, index) => {
           // Construct the image URL
-          const imageUrl = `http://localhost:8004${category.imageUrl}`;
+          const imageUrl = `${baseUrl.INVENTORY}${category.imageUrl}`;
 
           return (
             <div
