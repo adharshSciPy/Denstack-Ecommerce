@@ -103,11 +103,9 @@ export default function BrandDetailPage({
       return;
     }
 
-    // ✅ Add validation for ObjectId format
-    if (brandId.length !== 24) {
-      setError('Invalid Brand ID format');
-      setLoading(false);
-      return;
+    // If the passed id isn't a 24-length ObjectId, do NOT bail — try alternative lookups.
+    if (!/^[a-fA-F0-9]{24}$/.test(brandId)) {
+      console.warn('brandId does not look like a MongoDB ObjectId; continuing with alternative lookups:', brandId);
     }
 
     const fetchBrandData = async () => {
@@ -115,59 +113,121 @@ export default function BrandDetailPage({
         setLoading(true);
         console.log('Fetching brand data for ID:', brandId); // Debug log
 
-        // Try primary fetch by given id (expected to be a TopBrand _id)
-        let response = await fetch(
+        // Try several direct endpoints in order (some ids might be TopBrand _id, others a Brand _id)
+        const tried: string[] = [];
+        let response: Response | null = null;
+
+        const directUrls = [
+          `${baseUrl.INVENTORY}/api/v1/landing/top-brands/${brandId}`,
           `${baseUrl.INVENTORY}/api/v1/landing/brands/getById/${brandId}`,
-          { cache: 'no-store' }
-        );
+          `${baseUrl.INVENTORY}/api/v1/landing/brands/${brandId}`,
+        ];
 
-        // If not found, the caller may have passed a Brand _id (not TopBrand). Attempt fallback.
-        if (!response.ok) {
-          console.warn('Primary fetch returned', response.status, '— attempting fallback lookup for Brand _id');
+        for (const url of directUrls) {
+          try {
+            const res = await fetch(url, { cache: 'no-store' });
+            tried.push(`${url} (${res.status})`);
+            if (res.ok) {
+              response = res;
+              break;
+            }
+            // continue to next endpoint
+          } catch (err) {
+            tried.push(`${url} (network error)`);
+            console.warn('Network error while fetching', url, err);
+          }
+        }
 
-          if (response.status === 404) {
-            try {
-              const listRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/getAll`, { cache: 'no-store' });
+        // If direct attempts didn't succeed, attempt list-based fallbacks to find a mapping
+        if (!response || !response.ok) {
+          console.warn('Direct endpoints did not return a valid response. Tried:', tried.join(', '));
 
-              if (listRes.ok) {
-                const listJson = await listRes.json();
-                const list = Array.isArray(listJson?.data) ? listJson.data : [];
+          try {
+            const listRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/getAll`, { cache: 'no-store' });
+            if (listRes.ok) {
+              const listJson = await listRes.json();
+              const list = Array.isArray(listJson?.data) ? listJson.data : [];
 
-                // Find a TopBrand entry whose populated brandId._id matches the provided brandId
-                const found = list.find((t: any) => {
-                  const b = t?.brandId;
-                  if (!b) return false;
-                  if (typeof b === 'string') return b === brandId;
-                  if (typeof b === 'object') {
-                    return b._id === brandId || b.brandId === brandId || b.id === brandId;
-                  }
-                  return false;
-                });
+              const found = list.find((t: any) => {
+                const b = t?.brandId;
+                if (!b) return false;
+                if (typeof b === 'string') return b === brandId;
+                if (typeof b === 'object') return b._id === brandId || b.brandId === brandId || b.id === brandId;
+                return false;
+              });
 
-                if (found && found._id) {
-                  console.log('Found matching TopBrand', found._id, 'for Brand', brandId, '— retrying fetch');
-                  response = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/${found._id}`, { cache: 'no-store' });
+              if (found && found._id) {
+                console.log('Found matching TopBrand', found._id, 'for Brand', brandId, '— fetching TopBrand by _id');
+                const tbRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/top-brands/${found._id}`, { cache: 'no-store' });
+                if (tbRes.ok) {
+                  response = tbRes;
                 }
               }
-            } catch (fallbackErr) {
-              console.warn('Fallback lookup failed:', fallbackErr);
             }
+          } catch (e) {
+            console.warn('Top-brands fallback failed:', e);
           }
 
-          // If after fallback the response is still not ok, throw
-          if (!response.ok) {
-            console.error('Failed to fetch brand data, status:', response.status);
-            throw new Error('Failed to fetch brand data');
+          if (!response || !response.ok) {
+            try {
+              const brandsRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/brands/getAll?page=1&limit=1000`, { cache: 'no-store' });
+              if (brandsRes.ok) {
+                const brandsJson = await brandsRes.json();
+                const brandsList = Array.isArray(brandsJson?.data) ? brandsJson.data : [];
+                const foundBrand = brandsList.find((b: any) => b._id === brandId || String(b.brandId) === brandId || b.brandId === brandId);
+                if (foundBrand) {
+                  // Normalize and set immediately
+                  const normalized: BrandData = {
+                    topBrand: {
+                      _id: foundBrand._id,
+                      order: 0,
+                      brandId: {
+                        _id: foundBrand._id,
+                        name: foundBrand.name,
+                        brandLogo: foundBrand.image || foundBrand.brandLogo || '',
+                        description: foundBrand.description || '',
+                      },
+                    },
+                    products: Array.isArray(foundBrand.products) ? foundBrand.products : [],
+                    productCount: typeof foundBrand.productCount === 'number' ? foundBrand.productCount : (Array.isArray(foundBrand.products) ? foundBrand.products.length : 0),
+                  };
+
+                  setBrandData(normalized);
+                  setError(null);
+                  setLoading(false);
+                  return;
+                }
+              }
+            } catch (e) {
+              console.warn('Brands list fallback failed:', e);
+            }
           }
+        }
+
+        if (!response || !response.ok) {
+          console.warn('All lookup attempts failed for brandId:', brandId);
+          setError('Brand not found');
+          setLoading(false);
+          return;
         }
 
         const contentType = response.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
-          console.error('Expected JSON but received:', contentType);
-          throw new Error('Invalid response from brand detail endpoint');
+          console.warn('Expected JSON but received:', contentType, '— aborting brand detail parsing');
+          setError('Invalid response from brand detail endpoint');
+          setLoading(false);
+          return;
         }
 
-        const result = await response.json();
+        let result: any;
+        try {
+          result = await response.json();
+        } catch (e) {
+          console.warn('Failed to parse JSON from brand detail response:', e);
+          setError('Failed to parse brand data');
+          setLoading(false);
+          return;
+        }
         console.log('Brand data response:', result); // Debug log
 
         // Normalize different possible response shapes:

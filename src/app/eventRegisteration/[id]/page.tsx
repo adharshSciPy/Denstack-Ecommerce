@@ -14,13 +14,16 @@ interface EventRegistrationPageProps {
   onCartCountChange: (count: number) => void;
   onBackToDetails: () => void;
   onCartClick?: () => void;
+  // Optional: allow caller to provide eventId (useful when navigating from SPA state)
+  eventId?: string | number;
 }
 
 export default function EventRegistrationPage({
   cartCount,
   onCartCountChange,
   onBackToDetails,
-  onCartClick
+  onCartClick,
+  eventId: propEventId
 }: EventRegistrationPageProps) {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -46,7 +49,9 @@ export default function EventRegistrationPage({
   // Event data (loaded from API)
   const params = useParams();
   const routeId = params?.id as string | undefined;
-  const eventId = routeId ?? undefined; // keep event ID as string from params
+  const eventIdFromParams = routeId ?? undefined; // keep event ID from params when present
+  // Prefer caller-provided eventId when available (useful for SPA navigation)
+  const eventId = propEventId !== undefined ? String(propEventId) : eventIdFromParams;
 
   const [eventData, setEventData] = useState({
     title: 'Loading event...',
@@ -58,13 +63,13 @@ export default function EventRegistrationPage({
   const [loadingEvent, setLoadingEvent] = useState(true);
 
   useEffect(() => {
-    if (!routeId) {
+    if (!eventId) {
       setLoadingEvent(false);
       return;
     }
 
     setLoadingEvent(true);
-    fetch(`${baseUrl.INVENTORY}/api/v1/event/eventDetail/${routeId}`)
+    fetch(`${baseUrl.INVENTORY}/api/v1/event/eventDetail/${eventId}`)
       .then(res => res.json())
       .then(json => {
         if (json?.success && json?.data) {
@@ -83,7 +88,7 @@ export default function EventRegistrationPage({
       })
       .catch(() => toast.error('Failed to load event details'))
       .finally(() => setLoadingEvent(false));
-  }, [routeId]);
+  }, [eventId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -202,8 +207,8 @@ export default function EventRegistrationPage({
       setTimeout(() => {
         if (typeof onBackToDetails === 'function') {
           onBackToDetails();
-        } else if (routeId) {
-          router.push(`/eventsdetail/${routeId}`);
+        } else if (eventId) {
+          router.push(`/eventsdetail/${eventId}`);
         } else {
           router.push('/events');
         }
