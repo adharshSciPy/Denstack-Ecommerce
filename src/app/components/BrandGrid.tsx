@@ -23,8 +23,8 @@ type Brand = {
 interface BrandGridProps {
   brands: Brand[];
   selectedLetter: string;
-  onBrandClick?: (brandId: number, brandName: string) => void;
-}
+  onBrandClick?: (brandId: string, brandName: string) => void;
+} 
 
 export default function BrandGrid({ brands, selectedLetter, onBrandClick }: BrandGridProps) {
   // Debug: Log the brands data
@@ -82,16 +82,16 @@ export default function BrandGrid({ brands, selectedLetter, onBrandClick }: Bran
             {letterBrands.map((brand, index) => {
               // Debug: Log each brand being passed to BrandCard
               console.log("Passing to BrandCard:", {
-                id: parseInt(brand.brandId.replace('BRAND_', '')) || 0,
+                id: brand._id,
                 name: brand.name,
                 image: brand.image,
               });
-              
+
               return (
                 <BrandCard
                   key={brand._id}
                   brand={{
-                    id: parseInt(brand.brandId.replace('BRAND_', '')) || 0,
+                    id: brand._id, // pass the MongoDB _id string so detail page can fetch by ObjectId
                     name: brand.name,
                     image: brand.image || undefined,
                   }}

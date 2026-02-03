@@ -10,11 +10,11 @@ import FeaturedProducts from './components/FeaturedProducts';
 import BrandsPage from './brands/page';
 import BrandDetailPage from './allbrands/page';
 import BuyingGuidePage from './buying-guide/page';
-import BuyingGuideDetailPage from './detailbuyingguide/page';
+import BuyingGuideDetailPage from './detailbuyingguide/[id]/page';
 import CartPage from './cart/page';
 import EventsPage from './events/page';
 import EventDetailsPage from './eventsdetail/[id]/page';
-import EventRegistrationPage from './eventRegisteration/page';
+import EventRegistrationPage from './eventRegisteration/[id]/page';
 import MembershipPage from './membership/page';
 import FreebiesPage from './freebies/page';
 import BestSellerPage from './bestseller/page';
@@ -38,11 +38,12 @@ import { useRouter } from 'next/navigation';
 export default function App() {
   const router = useRouter();
   const [cartCount, setCartCount] = useState(16);
-  const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set([2, 3]));
+  // Store liked product IDs as strings (MongoDB _id or numeric ids coerced to string)
+  const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set(['2', '3']));
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState<'home' | 'brands' | 'brand-detail' | 'buying-guide' | 'buying-guide-detail' | 'cart' | 'events' | 'event-details' | 'event-registration' | 'membership' | 'freebies' | 'bestseller' | 'favorites' | 'clinic-setup' | 'category-browse' | 'full-store-directory' | 'productdetailpage/[id]' | 'checkout' | 'payment-gateway' | 'order-confirmation' | 'order-tracking' | 'order-history' | 'account' | 'privacy-policy' | 'terms-and-conditions' | 'all-products'>('home');
   const [selectedEventId, setSelectedEventId] = useState(0);
-  const [selectedProductId, setSelectedProductId] = useState(1);
+  const [selectedProductId, setSelectedProductId] = useState<string | number>(1);
   const [currentOrderId, setCurrentOrderId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [selectedBrandId, setSelectedBrandId] = useState('1');
@@ -50,18 +51,17 @@ export default function App() {
   const [selectedGuideId, setSelectedGuideId] = useState(1);
 
   const toggleLike = (productId: number | string) => {
+    const idStr = String(productId);
     setLikedProducts(prev => {
       const newSet = new Set(prev);
-      // Convert string to number if needed for comparison
-      const id = typeof productId === 'string' ? parseInt(productId) : productId;
-      if (newSet.has(id)) {
-        newSet.delete(id);
+      if (newSet.has(idStr)) {
+        newSet.delete(idStr);
       } else {
-        newSet.add(id);
+        newSet.add(idStr);
       }
       return newSet;
     });
-  };
+  }; 
 
   const addToCart = () => {
     setCartCount(prev => prev + 1);
@@ -86,7 +86,7 @@ export default function App() {
           onOrdersClick={() => setCurrentPage('order-history')}
           onAccountClick={() => setCurrentPage('account')}
           favoritesCount={likedProducts.size}
-          onBrandDetailClick={(brandId: number, name: string) => {
+          onBrandDetailClick={(brandId: string, name: string) => {
             router.push(`/allbrands?brandId=${brandId}&brandName=${encodeURIComponent(name)}`);
           }}
         />
@@ -154,7 +154,7 @@ export default function App() {
           onCartCountChange={setCartCount}
           onBackToGuide={() => setCurrentPage('buying-guide')}
           onCartClick={() => setCurrentPage('cart')}
-          onProductClick={(productId: number) => {
+          onProductClick={(productId: string | number) => {
             setSelectedProductId(productId);
             setCurrentPage('product-detail');
           }}
@@ -324,7 +324,7 @@ export default function App() {
           onMembershipClick={() => setCurrentPage('membership')}
           onFreebiesClick={() => setCurrentPage('freebies')}
           onClinicSetupClick={() => setCurrentPage('clinic-setup')}
-          onProductClick={(productId: number) => {
+          onProductClick={(productId: string | number) => {
             setSelectedProductId(productId);
             setCurrentPage('productdetailpage/[id]');
           }}
@@ -440,7 +440,7 @@ export default function App() {
           onCartCountChange={setCartCount}
           onBackToHome={() => setCurrentPage('home')}
           onCartClick={() => setCurrentPage('cart')}
-          isLiked={likedProducts.has(selectedProductId)}
+          isLiked={likedProducts.has(String(selectedProductId))}
           onToggleLike={toggleLike}
           onBrandClick={() => setCurrentPage('brands')}
           onBuyingGuideClick={() => setCurrentPage('buying-guide')}
@@ -653,7 +653,7 @@ export default function App() {
           onAccountClick={() => setCurrentPage('account')}
           likedProducts={likedProducts}
           onToggleLike={toggleLike}
-          onProductClick={(productId: number) => {
+          onProductClick={(productId: string | number) => {
             setSelectedProductId(productId);
             setCurrentPage('productdetailpage/[id]');
           }}

@@ -1,27 +1,29 @@
 'use client';
-import { useState } from 'react';
-import Navigation from '../components/Navigation';
+import { useState, useEffect } from 'react';
+import Navigation from '../../components/Navigation';
 import { 
   ArrowLeft, User, Mail, Phone, Building, MapPin, 
   CreditCard, Calendar, CheckCircle, AlertCircle, Users, Clock
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import baseUrl from '../../baseUrl';
 
 interface EventRegistrationPageProps {
-  eventId: number;
   cartCount: number;
   onCartCountChange: (count: number) => void;
   onBackToDetails: () => void;
   onCartClick?: () => void;
+  // Optional: allow caller to provide eventId (useful when navigating from SPA state)
+  eventId?: string | number;
 }
 
 export default function EventRegistrationPage({
-  eventId,
   cartCount,
   onCartCountChange,
   onBackToDetails,
-  onCartClick
+  onCartClick,
+  eventId: propEventId
 }: EventRegistrationPageProps) {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -44,14 +46,49 @@ export default function EventRegistrationPage({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Event data (in real app, this would come from API/props)
-  const eventData = {
-    title: "Advanced Dental Implant Techniques Workshop",
-    date: "Jan 15, 2026",
-    time: "9:00 AM - 5:00 PM",
-    location: "Grand Medical Center, New York",
-    spotsLeft: 15,
-  };
+  // Event data (loaded from API)
+  const params = useParams();
+  const routeId = params?.id as string | undefined;
+  const eventIdFromParams = routeId ?? undefined; // keep event ID from params when present
+  // Prefer caller-provided eventId when available (useful for SPA navigation)
+  const eventId = propEventId !== undefined ? String(propEventId) : eventIdFromParams;
+
+  const [eventData, setEventData] = useState({
+    title: 'Loading event...',
+    date: '',
+    time: '',
+    location: '',
+    spotsLeft: 0,
+  });
+  const [loadingEvent, setLoadingEvent] = useState(true);
+
+  useEffect(() => {
+    if (!eventId) {
+      setLoadingEvent(false);
+      return;
+    }
+
+    setLoadingEvent(true);
+    fetch(`${baseUrl.INVENTORY}/api/v1/event/eventDetail/${eventId}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json?.success && json?.data) {
+          const d = json.data;
+          const mapped = {
+            title: d.title ?? '',
+            date: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+            time: d.startTime && d.endTime ? `${d.startTime} - ${d.endTime}` : (d.startTime ?? ''),
+            location: [d.venue, d.city, d.state].filter(Boolean).join(', '),
+            spotsLeft: Math.max(0, (d.totalSeats ?? 0) - (d.registeredCount ?? 0)),
+          };
+          setEventData(mapped);
+        } else {
+          toast.error('Failed to load event details');
+        }
+      })
+      .catch(() => toast.error('Failed to load event details'))
+      .finally(() => setLoadingEvent(false));
+  }, [eventId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -108,19 +145,79 @@ export default function EventRegistrationPage({
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    // Call registration API
+    try {
+      const attendees = parseInt(formData.attendeeCount, 10) || 1;
+
+      // Client-side seat check
+      if (typeof eventData.spotsLeft === 'number' && eventData.spotsLeft < attendees) {
+        setIsSubmitting(false);
+        toast.error('Not enough spots available for selected number of attendees');
+        return;
+      }
+
+      if (!eventId) {
+        setIsSubmitting(false);
+        toast.error('Invalid event ID');
+        return;
+      }
+      const idToUse = eventId;
+
+      const payload = {
+        eventId: idToUse,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phone.trim(),
+        organization: formData.organization.trim(),
+        jobTitle: formData.jobTitle.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        zipCode: formData.zipCode.trim(),
+        attendees,
+        dietaryRestrictions: formData.dietaryRestrictions.trim(),
+        specialQuestions: formData.specialRequests.trim(),
+      };
+
+      const res = await fetch('http://localhost:8004/api/v1/event/eventRegistration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json?.success) {
+        setIsSubmitting(false);
+        toast.error(json?.message || 'Registration failed. Please try again.');
+        return;
+      }
+
+      // Success
       setIsSubmitting(false);
       toast.success('🎉 Registration successful!', {
         description: 'Check your email for confirmation details',
         duration: 4000,
       });
-      
-      // Redirect after short delay
+
+      // Optimistically update spots remaining
+      setEventData(prev => ({ ...prev, spotsLeft: Math.max(0, prev.spotsLeft - attendees) }));
+
       setTimeout(() => {
-        onBackToDetails();
-      }, 2000);
-    }, 2000);
+        if (typeof onBackToDetails === 'function') {
+          onBackToDetails();
+        } else if (eventId) {
+          router.push(`/eventsdetail/${eventId}`);
+        } else {
+          router.push('/events');
+        }
+      }, 1500);
+    } catch (error) {
+      setIsSubmitting(false);
+      toast.error('Failed to register. Please try again later.');
+      console.error(error);
+    }
   };
 
   const router = useRouter();
@@ -438,7 +535,7 @@ export default function EventRegistrationPage({
                       <option value="2">2 People</option>
                       <option value="3">3 People</option>
                       <option value="4">4 People</option>
-                      <option value="5">5+ People</option>
+                      <option value="5">5 People</option>
                     </select>
                   </div>
 

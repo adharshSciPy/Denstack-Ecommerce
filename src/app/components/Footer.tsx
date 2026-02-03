@@ -106,7 +106,7 @@ export default function Footer({ onPrivacyPolicyClick, onTermsClick }: FooterPro
             <div>
               <p className="text-sm text-gray-400 mb-3 text-center sm:text-right">We accept</p>
               <div className="flex gap-3">
-                <Image src={imgVisa} alt="Visa" className="h-8" />
+                <Image src={imgVisa} alt="Visa" className="h-8 w-10" />
                 <div className="h-8 px-4 bg-white rounded flex items-center">
                   <span className="text-blue-600 font-semibold text-sm">Mastercard</span>
                 </div>

@@ -1,23 +1,27 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
-import { Package, ShoppingBag } from 'lucide-react';
+import { Package } from 'lucide-react';
 import imgWomanDoctor from "../../assets/4090c47841ffbcbb1eeab65e6cfd315c5ad57280.png";
-import Image from 'next/image';
+import Image, { StaticImageData } from 'next/image';
 import { useRouter } from 'next/navigation';
+import baseUrl from '../baseUrl';
 
 interface BuyingGuideCardProps {
     title: string;
     subtitle: string;
     description: string;
-    buttonText: string;
+    buttonText?: string;
     productCount: number;
     index: number;
+    imageSrc?: string | StaticImageData;
     onClick: () => void;
 }
 
-function BuyingGuideCard({ title, subtitle, description, buttonText, productCount, index, onClick }: BuyingGuideCardProps) {
+function BuyingGuideCard({ title, subtitle, description, buttonText, productCount, index, imageSrc, onClick }: BuyingGuideCardProps) {
     const [isHovered, setIsHovered] = useState(false);
+    const [hasImageError, setHasImageError] = useState(false);
+    const isRemote = typeof imageSrc === 'string' && imageSrc?.startsWith('http');
 
     return (
         <div
@@ -33,7 +37,7 @@ function BuyingGuideCard({ title, subtitle, description, buttonText, productCoun
             {/* Card Container */}
             <div
                 className={`
-          relative bg-gradient-to-br from-blue-50 via-cyan-50 to-purple-50 
+          relative bg-linear-to-br from-blue-50 via-cyan-50 to-purple-50 
           rounded-2xl overflow-hidden shadow-lg 
           transition-all duration-500 ease-out
           ${isHovered ? 'shadow-2xl scale-[1.02]' : 'shadow-lg'}
@@ -89,19 +93,26 @@ function BuyingGuideCard({ title, subtitle, description, buttonText, productCoun
                         {/* Image container */}
                         <div
                             className={`
-                relative rounded-2xl overflow-hidden shadow-xl
+                relative w-full h-64 lg:h-80 rounded-2xl overflow-hidden shadow-xl
                 transition-transform duration-500
                 ${isHovered ? 'scale-105 rotate-1' : 'scale-100 rotate-0'}
               `}
                         >
                             <Image
-                                src={imgWomanDoctor}
-                                alt="Medical Professional"
-                                className="w-full h-64 lg:h-80 object-cover"
+                                src={hasImageError ? imgWomanDoctor : (imageSrc ?? imgWomanDoctor)}
+                                alt={`${title} ${subtitle}`}
+                                fill
+                                sizes="100vw"
+                                className="object-contain"
+                                onError={() => {
+                                    console.warn('Guide image failed to load, falling back to local asset:', imageSrc);
+                                    setHasImageError(true);
+                                }}
+                                unoptimized={isRemote}
                             />
 
                             {/* Gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/20 to-transparent" />
+                            <div className="absolute inset-0 bg-linear-to-t from-blue-900/20 to-transparent" />
                         </div>
                     </div>
                 </div>
@@ -112,7 +123,7 @@ function BuyingGuideCard({ title, subtitle, description, buttonText, productCoun
                 className={`
           mt-4 bg-blue-700 rounded-2xl px-6 lg:px-8 py-4 lg:py-5
           shadow-lg transition-all duration-500
-          ${isHovered ? 'shadow-2xl translate-y-[-4px]' : 'shadow-lg'}
+          ${isHovered ? 'shadow-2xl -translate-y-1' : 'shadow-lg'}
         `}
             >
                 <button className="w-full text-white text-sm lg:text-base font-semibold hover:text-blue-100 transition-colors duration-300 text-left">
@@ -127,7 +138,7 @@ interface BuyingGuidePageProps {
     cartCount: number;
     onCartCountChange: (count: number) => void;
     onBackToHome: () => void;
-    onCardClick: () => void;
+    onCardClick?: () => void;
     onCartClick?: () => void;
     onFavoritesClick?: () => void;
     onOrdersClick?: () => void;
@@ -148,31 +159,44 @@ export default function BuyingGuidePage({
 }: BuyingGuidePageProps) {
     const [searchQuery, setSearchQuery] = useState('');
 
-    const guides = [
-        {
-            title: "Maxillary Sinus",
-            subtitle: "Augmentation",
-            description: "Complete guide for maxillary sinus augmentation procedures. Learn about advanced techniques, instruments, and best practices for successful outcomes.",
-            buttonText: "Learn More About Sinus Augmentation Procedures",
-            productCount: 5
-        },
-        {
-            title: "Dental Implant",
-            subtitle: "Placement",
-            description: "Comprehensive guide covering dental implant placement techniques, tools selection, and post-operative care for optimal patient outcomes.",
-            buttonText: "Explore Implant Placement Best Practices",
-            productCount: 3
-        },
-        {
-            title: "Periodontal",
-            subtitle: "Surgery",
-            description: "Expert guidance on periodontal surgery procedures, including tissue grafting, pocket reduction, and regenerative techniques.",
-            buttonText: "Discover Periodontal Surgery Techniques",
-            productCount: 4
-        }
-    ];
+    const [guides, setGuides] = useState<{
+        _id: string;
+        title: string;
+        subtitle: string;
+        description: string;
+        mainImage?: string;
+        productCount: number;
+    }[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
+
+    useEffect(() => {
+        let mounted = true;
+
+        const fetchGuides = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const res = await fetch(`${baseUrl.INVENTORY}/api/v1/buyingGuide/getBuyingGuide`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                if (mounted) {
+                    setGuides(json.data ?? []);
+                }
+            } catch (err: any) {
+                console.error('Failed to fetch buying guides', err);
+                if (mounted) setError(err.message ?? 'Failed to load guides');
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        fetchGuides();
+
+        return () => { mounted = false; };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -193,19 +217,34 @@ export default function BuyingGuidePage({
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8 lg:py-12">
-                <div className="space-y-8 lg:space-y-12" onClick={() => router.push('/detailbuyingguide')}>
-                    {guides.map((guide, index) => (
-                        <BuyingGuideCard
-                            key={index}
-                            title={guide.title}
-                            subtitle={guide.subtitle}
-                            description={guide.description}
-                            buttonText={guide.buttonText}
-                            productCount={guide.productCount}
-                            index={index}
-                            onClick={onCardClick}
-                        />
-                    ))}
+                <div className="space-y-8 lg:space-y-12">
+                    {loading ? (
+                        <div className="text-center py-12">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent" />
+                            <p className="mt-4 text-gray-600">Loading buying guides...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center text-red-600 py-12">{error}</div>
+                    ) : guides.length === 0 ? (
+                        <div className="text-center text-gray-600 py-12">No buying guides found.</div>
+                    ) : (
+                        guides.map((guide, index) => (
+                            <BuyingGuideCard
+                                key={guide._id}
+                                title={guide.title}
+                                subtitle={guide.subtitle}
+                                description={guide.description}
+                                buttonText={'View Guide'}
+                                productCount={guide.productCount}
+                                index={index}
+                                imageSrc={guide.mainImage}
+                                onClick={() => {
+                                    onCardClick?.();
+                                    router.push(`/detailbuyingguide/${guide._id}`);
+                                }}
+                            />
+                        ))
+                    )}
                 </div>
             </main>
 
