@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import baseUrl from "../baseUrl";
+import { useRouter } from "next/navigation";
 
 interface Category {
   _id: string;
@@ -26,22 +27,24 @@ export default function TopCategories({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const router = useRouter();
+
   useEffect(() => {
     async function fetchCategories() {
       try {
         const response = await fetch(
-          `${baseUrl.INVENTORY}/api/v1/landing/-/getAll`,
+          `${baseUrl.INVENTORY}/api/v1/landing/topCategories/getAll`,
         );
 
         if (!response.ok) {
-          console.error('Failed to fetch categories, status:', response.status);
-          throw new Error('Failed to fetch categories');
+          console.error("Failed to fetch categories, status:", response.status);
+          throw new Error("Failed to fetch categories");
         }
 
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-          console.error('Expected JSON but received:', contentType);
-          throw new Error('Invalid response from categories endpoint');
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          console.error("Expected JSON but received:", contentType);
+          throw new Error("Invalid response from categories endpoint");
         }
 
         const data = await response.json();
@@ -92,7 +95,7 @@ export default function TopCategories({
             <div
               key={category._id}
               className="group cursor-pointer animate-fade-in-up"
-              onClick={() => onCategoryClick?.(category.categoryId._id)}
+              onClick={() => router.push("/category")}
               style={{
                 animationDelay: `${index * 75}ms`,
                 animationFillMode: "both",
