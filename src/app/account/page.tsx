@@ -73,8 +73,18 @@ export default function AccountPage({
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const [userData, setUserData] = useState<any>(null);
-  const [tempUserData, setTempUserData] = useState<any>(null);
+  const emptyProfile = {
+    name: "",
+    email: "",
+    phoneNumber: "",
+    DOB: "",
+    specialization: "",
+    clinicName: "",
+    licenseNumber: "",
+  };
+
+  const [userData, setUserData] = useState<any>(emptyProfile);
+  const [tempUserData, setTempUserData] = useState<any>(emptyProfile);
 
   // Sample Orders Data
   const orders = [
@@ -179,12 +189,6 @@ export default function AccountPage({
     },
   ];
 
-  const handleSaveProfile = () => {
-    setUserData(tempUserData);
-    setIsEditing(false);
-    toast.success("Profile updated successfully!");
-  };
-
   const handleCancelEdit = () => {
     setTempUserData(userData);
     setIsEditing(false);
@@ -262,6 +266,34 @@ export default function AccountPage({
       router.push("/login");
     } catch (error) {
       toast.error("Logout failed. Please try again.");
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const payload = {
+        name: tempUserData.name,
+        phoneNumber: tempUserData.phoneNumber,
+        DOB: tempUserData.DOB,
+        specialization: tempUserData.specialization,
+        clinicName: tempUserData.clinicName,
+        licenseNumber: tempUserData.licenseNumber,
+      };
+
+      const res = await axios.put(
+        `${baseUrl.AUTH}/api/v1/ecommerceuser/edit-profile`,
+        payload,
+        { withCredentials: true }, // 🔐 cookie auth
+      );
+
+      setUserData({ ...emptyProfile, ...res.data.data });
+      setTempUserData({ ...emptyProfile, ...res.data.data });
+
+      setIsEditing(false);
+
+      toast.success("Profile updated successfully 🎉");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to update profile");
     }
   };
 
@@ -385,9 +417,7 @@ export default function AccountPage({
                     </label>
                     <input
                       type="text"
-                      value={
-                        isEditing ? tempUserData?.firstName : userData?.name
-                      }
+                      value={isEditing ? tempUserData?.name : userData?.name}
                       onChange={(e) =>
                         setTempUserData({
                           ...tempUserData,
@@ -407,7 +437,9 @@ export default function AccountPage({
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
                         type="email"
-                        value={isEditing ? tempUserData?.email : userData?.email}
+                        value={
+                          isEditing ? tempUserData?.email : userData?.email
+                        }
                         onChange={(e) =>
                           setTempUserData({
                             ...tempUserData,
@@ -428,7 +460,11 @@ export default function AccountPage({
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
                         type="tel"
-                        value={isEditing ? tempUserData?.phone : userData?.phoneNumber}
+                        value={
+                          isEditing
+                            ? tempUserData?.phoneNumber
+                            : userData?.phoneNumber
+                        }
                         onChange={(e) =>
                           setTempUserData({
                             ...tempUserData,
@@ -451,13 +487,13 @@ export default function AccountPage({
                         type="date"
                         value={
                           isEditing
-                            ? tempUserData.dateOfBirth
-                            : userData.dateOfBirth
+                            ? tempUserData.DOB || ""
+                            : userData.DOB || ""
                         }
                         onChange={(e) =>
                           setTempUserData({
                             ...tempUserData,
-                            dateOfBirth: e.target.value,
+                            DOB: e.target.value,
                           })
                         }
                         disabled={!isEditing}
