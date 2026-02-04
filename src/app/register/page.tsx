@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-// import Navigation from '../components/Navigation';
+import Navigation from '../components/Navigation';
 import { User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
@@ -76,7 +76,7 @@ export default function RegisterUserPage() {
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
-      {/* <Navigation currentPage="register" /> */}
+      <Navigation currentPage="register" />
 
       {/* Hero */}
       <div className="bg-gradient-to-r from-blue-50 to-white py-12 mt-6">

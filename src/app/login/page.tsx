@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-// import Navigation from '../components/Navigation';
+import Navigation from '../components/Navigation';
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
@@ -43,6 +43,9 @@ export default function UserLoginPage() {
           email: formData.email,
           password: formData.password,
         },
+        {
+          withCredentials: true, // 🔥 REQUIRED FOR COOKIES
+        }
       );
 
       toast.success("🎉 Login successful!");
@@ -67,7 +70,7 @@ export default function UserLoginPage() {
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
-      {/* <Navigation currentPage="login" /> */}
+      <Navigation currentPage="login" />
 
       {/* Hero */}
       <div className="bg-gradient-to-r from-blue-50 to-white py-12 mt-6">
@@ -139,10 +142,11 @@ export default function UserLoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-10 py-4 rounded-lg font-bold text-lg transition-all ${isSubmitting
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
-                  } text-white`}
+                className={`px-10 py-4 rounded-lg font-bold text-lg transition-all ${
+                  isSubmitting
+                    ? "bg-blue-300 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
+                } text-white`}
               >
                 {isSubmitting ? "Logging in..." : "Login"}
               </button>
