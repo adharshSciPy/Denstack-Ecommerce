@@ -239,8 +239,9 @@ export default function AccountPage({
           { withCredentials: true }, // 🔥 REQUIRED
         );
 
-        setUserData(res.data.data);
-        setTempUserData(res.data.data);
+        const mergedData = { ...emptyProfile, ...res.data.data };
+        setUserData(mergedData);
+        setTempUserData(mergedData);
       } catch (error: any) {
         toast.error("Session expired. Please login again.");
         router.push("/login");
@@ -425,7 +426,7 @@ export default function AccountPage({
                         })
                       }
                       disabled={!isEditing}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -447,7 +448,7 @@ export default function AccountPage({
                           })
                         }
                         disabled={!isEditing}
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full pl-12 pr-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -472,7 +473,7 @@ export default function AccountPage({
                           })
                         }
                         disabled={!isEditing}
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full pl-12 pr-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -497,7 +498,7 @@ export default function AccountPage({
                           })
                         }
                         disabled={!isEditing}
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full pl-12 pr-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -520,7 +521,7 @@ export default function AccountPage({
                         })
                       }
                       disabled={!isEditing}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -542,7 +543,7 @@ export default function AccountPage({
                         })
                       }
                       disabled={!isEditing}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -566,7 +567,7 @@ export default function AccountPage({
                           })
                         }
                         disabled={!isEditing}
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full pl-12 pr-4 py-3 border-2 text-black border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>

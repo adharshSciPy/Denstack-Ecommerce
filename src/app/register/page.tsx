@@ -93,14 +93,14 @@ export default function RegisterUserPage() {
       {/* Registration Form */}
       <div className="max-w-3xl mx-auto px-6 py-12">
         <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12">
-          <h2 className="text-2xl font-bold text-center mb-8">
+          <h2 className="text-2xl font-bold text-black text-center mb-8">
             User <span className="text-blue-600">Registration</span>
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
             <div>
-              <label className="block text-sm font-semibold mb-2">
+              <label className="block text-black text-sm font-semibold mb-2">
                 Full Name *
               </label>
               <div className="relative">
@@ -111,7 +111,7 @@ export default function RegisterUserPage() {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Enter your name"
-                  className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 text-black pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                   required
                 />
               </div>
@@ -119,7 +119,7 @@ export default function RegisterUserPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold mb-2">
+              <label className="block text-black text-sm font-semibold mb-2">
                 Email Address *
               </label>
               <div className="relative">
@@ -130,7 +130,7 @@ export default function RegisterUserPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 text-black pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                   required
                 />
               </div>
@@ -138,7 +138,7 @@ export default function RegisterUserPage() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold mb-2">
+              <label className="block text-black text-sm font-semibold mb-2">
                 Phone Number
               </label>
               <div className="relative">
@@ -149,14 +149,14 @@ export default function RegisterUserPage() {
                   value={formData.phoneNumber}
                   onChange={handleInputChange}
                   placeholder="Enter phone number"
-                  className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 text-black pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                 />
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">
+              <label className="block text-black text-sm font-semibold mb-2">
                 Password *
               </label>
               <div className="relative">
@@ -167,7 +167,7 @@ export default function RegisterUserPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Create a password"
-                  className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 pr-4 text-black py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                   required
                 />
                 <button

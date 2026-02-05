@@ -87,14 +87,14 @@ export default function UserLoginPage() {
       {/* Login Form */}
       <div className="max-w-3xl mx-auto px-6 py-12">
         <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12">
-          <h2 className="text-2xl font-bold text-center mb-8">
+          <h2 className="text-2xl text-black font-bold text-center mb-8">
             User <span className="text-blue-600">Login</span>
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold mb-2">
+              <label className="block text-black text-sm font-semibold mb-2">
                 Email Address *
               </label>
               <div className="relative">
@@ -105,7 +105,7 @@ export default function UserLoginPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 pr-4 py-3 text-black border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                   required
                 />
               </div>
@@ -113,7 +113,7 @@ export default function UserLoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">
+              <label className="block text-black text-sm font-semibold mb-2">
                 Password *
               </label>
               <div className="relative">
@@ -124,7 +124,7 @@ export default function UserLoginPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Enter your password"
-                  className="w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 pr-4 py-3 text-black border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
                   required
                 />
                 <button
