@@ -1,8 +1,7 @@
+'use client';
 import { ChevronLeft } from 'lucide-react';
-import ProductCard from './ProductCard';
-import Header from './Header';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import ProductCard from '../components/ProductCard';
+import { useRouter } from 'next/navigation';
 
 interface AllProductsPageProps {
   cartCount: number;
@@ -31,7 +30,7 @@ export default function AllProductsPage({
   onCartCountChange,
   onBackToHome,
   onCartClick,
-  likedProducts,
+  likedProducts = new Set<string>(),
   onToggleLike,
   onProductClick,
   onBrandClick,
@@ -57,35 +56,15 @@ export default function AllProductsPage({
     onCartCountChange(cartCount + 1);
   };
 
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-white">
-      <Header 
-        cartCount={cartCount}
-        searchQuery=""
-        onSearchChange={() => {}}
-        onCartClick={onCartClick}
-        onFavoritesClick={onFavoritesClick}
-        onOrdersClick={onOrdersClick}
-        onLogoClick={onBackToHome}
-        onAccountClick={onAccountClick}
-        favoritesCount={favoritesCount}
-      />
-      {/* <Navigation 
-        onBrandClick={onBrandClick}
-        onBuyingGuideClick={onBuyingGuideClick}
-        onEventsClick={onEventsClick}
-        onMembershipClick={onMembershipClick}
-        onFreebiesClick={onFreebiesClick}
-        onBestSellerClick={onBestSellerClick}
-        onClinicSetupClick={onClinicSetupClick}
-        onCategoryBrowseClick={() => {}}
-        onFullStoreDirectoryClick={() => {}}
-      /> */}
 
       <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button
-          onClick={onBackToHome}
+          onClick={() => router.push('/')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 group transition-all duration-300"
         >
           <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
@@ -104,15 +83,15 @@ export default function AllProductsPage({
 
         {/* Filters */}
         <div className="mb-8 flex flex-wrap gap-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors">
+          <select className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors">
             <option>Sort by: Featured</option>
             <option>Price: Low to High</option>
             <option>Price: High to Low</option>
             <option>Newest</option>
             <option>Best Selling</option>
           </select>
-          
-          <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors">
+
+          <select className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors">
             <option>All Categories</option>
             <option>Dental Equipment</option>
             <option>Surgical Instruments</option>
@@ -120,7 +99,7 @@ export default function AllProductsPage({
             <option>Laboratory Equipment</option>
           </select>
 
-          <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors">
+          <select className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors">
             <option>All Brands</option>
             <option>Brand A</option>
             <option>Brand B</option>
@@ -158,10 +137,6 @@ export default function AllProductsPage({
         </div>
       </main>
 
-      <Footer 
-        onPrivacyPolicyClick={() => {}}
-        onTermsClick={() => {}}
-      />
     </div>
   );
 }

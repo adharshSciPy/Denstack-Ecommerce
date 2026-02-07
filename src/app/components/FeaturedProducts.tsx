@@ -98,7 +98,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl lg:text-2xl text-gray-900 font-semibold">Shop by Collection</h2>
         <button 
-          onClick={() => router.push('/categories')}
+          onClick={() => router.push('/allproducts')}
           className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3"
         >
           <span className="text-sm font-medium">View all</span>

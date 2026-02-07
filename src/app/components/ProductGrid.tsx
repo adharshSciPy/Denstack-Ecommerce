@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import axios from "axios";
 import baseUrl from "../baseUrl";
+import {useRouter} from "next/navigation"
 
 interface ProductGridProps {
   likedProducts: Set<string | number>;
@@ -64,6 +65,8 @@ export default function ProductGrid({
   const [products, setProducts] = useState<TransformedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter()
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -187,7 +190,7 @@ export default function ProductGrid({
         <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">
           Featured Products
         </h2>
-        <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3">
+        <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3" onClick={()=>router.push("/allproducts")}>
           <span className="text-lg font-medium">View all</span>
           <svg
             className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1"

@@ -32,7 +32,7 @@ import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsAndConditionsPage from './components/TermsAndConditionsPage';
 import AccountPage from './account/page';
 import WhatsAppButton from './components/WhatsAppButton';
-import AllProductsPage from './components/AllProductPage';
+import AllProductsPage from './allproducts/page';
 import { useRouter } from 'next/navigation';
 
 export default function App() {
