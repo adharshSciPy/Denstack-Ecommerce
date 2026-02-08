@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, TrendingUp, Award, Zap } from 'lucide-react';
@@ -23,10 +23,84 @@ interface BestSellerPageProps {
   favoritesCount?: number;
 }
 
+interface ProductVariant {
+  _id: string;
+  size: string;
+  color: string;
+  material: string;
+  originalPrice: number;
+  clinicDiscountPrice: number;
+  clinicDiscountPercentage: number;
+  doctorDiscountPrice: number;
+  doctorDiscountPercentage: number;
+  stock: number;
+}
+
+interface MainCategory {
+  _id: string;
+  categoryName: string;
+  description: string;
+  parentCategory: null;
+  level: number;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  mainCategoryId: string;
+  __v: number;
+}
+
+interface SubCategory {
+  _id: string;
+  categoryName: string;
+  description: string;
+  mainCategory: string;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  subCategoryId: string;
+  __v: number;
+}
+
+interface Brand {
+  _id: string;
+  name: string;
+  description: string;
+  mainCategory: string;
+  subCategory: string;
+  image: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  brandId: string;
+  __v: number;
+}
+
+interface ApiProduct {
+  _id: string;
+  totalQuantitySold: number;
+  totalRevenue: number;
+  totalOrders: number;
+  productId: string;
+  name: string;
+  description: string;
+  variants: ProductVariant[];
+  image: string[];
+  status: string;
+  mainCategory: MainCategory;
+  brand: Brand;
+  subCategory?: SubCategory;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface ProductCardProps {
-  id: number;
+  id: string;
   name: string;
   price: string;
+  originalPrice?: string;
+  discountPercentage?: number;
   image: string;
   isLiked: boolean;
   rating: number;
@@ -40,6 +114,8 @@ interface ProductCardProps {
 function ProductCard({ 
   name, 
   price, 
+  originalPrice,
+  discountPercentage,
   image, 
   isLiked, 
   rating,
@@ -96,6 +172,13 @@ function ProductCard({
         </div>
       )}
 
+      {/* Discount Badge */}
+      {discountPercentage && discountPercentage > 0 && (
+        <div className="absolute top-3 right-12 z-10 bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
+          {discountPercentage}% OFF
+        </div>
+      )}
+
       {/* Heart Button */}
       <button
         onClick={(e) => {
@@ -126,6 +209,10 @@ function ProductCard({
           className={`w-full h-full object-contain transition-transform duration-500 ${
             isHovered ? 'scale-110' : 'scale-100'
           }`}
+          onError={(e) => {
+            // Fallback image if the URL is invalid
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
+          }}
         />
       </div>
 
@@ -145,7 +232,7 @@ function ProductCard({
               />
             ))}
           </div>
-          <span className="text-xs text-gray-600 font-medium">{salesCount}+ sold</span>
+          <span className="text-xs text-gray-600 font-medium">{salesCount.toLocaleString()}+ sold</span>
         </div>
 
         {/* Product Name */}
@@ -154,11 +241,21 @@ function ProductCard({
         </h3>
 
         {/* Price */}
-        <p className="text-blue-600 font-bold text-lg mb-3">{price}</p>
+        <div className="mb-3">
+          {originalPrice && (
+            <p className="text-gray-400 line-through text-sm">
+              {originalPrice}
+            </p>
+          )}
+          <p className="text-blue-600 font-bold text-lg">{price}</p>
+        </div>
 
         {/* Add to Cart Button */}
         <button
-          onClick={onAddToCart}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToCart();
+          }}
           className={`
             w-full py-2.5 px-4 rounded-xl font-bold text-sm
             transition-all duration-300
@@ -194,7 +291,7 @@ export default function BestSellerPage({
   favoritesCount
 }: BestSellerPageProps) {
   const router = useRouter();
-  const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set([1, 3, 6, 9, 12, 15]));
+  const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set());
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [selectedPriceRange, setSelectedPriceRange] = useState('All Prices');
   const [selectedRating, setSelectedRating] = useState('All Ratings');
@@ -203,20 +300,12 @@ export default function BestSellerPage({
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [showRatingFilter, setShowRatingFilter] = useState(false);
   const [showSortFilter, setShowSortFilter] = useState(false);
+  const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ApiProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const brands = [
-    'All Brands', 
-    'Dentsply', 
-    'Waldent', 
-    'GDC', 
-    'IDENTical', 
-    'Zhermack', 
-    'Endoking', 
-    'Mani', 
-    '3M', 
-    'Ivoclar'
-  ];
-  const priceRanges = ['All Prices', 'Under $500', '$500 - $1000', '$1000 - $2000', 'Over $2000'];
+  const priceRanges = ['All Prices', 'Under ₹500', '₹500 - ₹1000', '₹1000 - ₹2000', 'Over ₹2000'];
   const ratings = ['All Ratings', '5 Stars', '4+ Stars', '3+ Stars'];
   const sortOptions = [
     'Recommended', 
@@ -227,44 +316,240 @@ export default function BestSellerPage({
     'Newest First'
   ];
 
-  // Sample products with bestseller badges
-  const getBadgeType = (index: number): 'trending' | 'top-rated' | 'best-value' | undefined => {
-    if (index % 3 === 0) return 'trending';
-    if (index % 3 === 1) return 'top-rated';
-    if (index % 3 === 2) return 'best-value';
-    return undefined;
+  // Fetch bestseller products from API
+  useEffect(() => {
+    fetchBestSellerProducts();
+  }, []);
+
+  // Extract unique brands from products
+  const allBrands = useMemo(() => {
+    const brands = new Set<string>();
+    allProducts.forEach(product => {
+      if (product.brand?.name) {
+        brands.add(product.brand.name);
+      }
+    });
+    return ['All Brands', ...Array.from(brands).sort()];
+  }, [allProducts]);
+
+  // Apply filters when filter criteria change
+  useEffect(() => {
+    if (allProducts.length === 0) return;
+
+    let filtered = [...allProducts];
+
+    // Apply brand filter
+    if (selectedBrand !== 'All Brands') {
+      filtered = filtered.filter(product => 
+        product.brand?.name === selectedBrand
+      );
+    }
+
+    // Apply price range filter
+    if (selectedPriceRange !== 'All Prices') {
+      filtered = filtered.filter(product => {
+        if (!product.variants || product.variants.length === 0) return false;
+        
+        const firstVariant = product.variants[0];
+        const bestPrice = firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
+        
+        switch (selectedPriceRange) {
+          case 'Under ₹500':
+            return bestPrice < 500;
+          case '₹500 - ₹1000':
+            return bestPrice >= 500 && bestPrice <= 1000;
+          case '₹1000 - ₹2000':
+            return bestPrice >= 1000 && bestPrice <= 2000;
+          case 'Over ₹2000':
+            return bestPrice > 2000;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply rating filter
+    if (selectedRating !== 'All Ratings') {
+      filtered = filtered.filter(product => {
+        // Since we don't have actual ratings in API, we'll use the random rating from convertToProductCardProps
+        // For now, we'll filter based on a simulated rating
+        const rating = 4 + Math.floor(Math.random() * 2); // Same as in convertToProductCardProps
+        
+        switch (selectedRating) {
+          case '5 Stars':
+            return rating === 5;
+          case '4+ Stars':
+            return rating >= 4;
+          case '3+ Stars':
+            return rating >= 3;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'Best Selling':
+          return b.totalQuantitySold - a.totalQuantitySold;
+        case 'Price: Low to High':
+          const priceA = a.variants[0]?.doctorDiscountPrice || a.variants[0]?.clinicDiscountPrice || a.variants[0]?.originalPrice || 0;
+          const priceB = b.variants[0]?.doctorDiscountPrice || b.variants[0]?.clinicDiscountPrice || b.variants[0]?.originalPrice || 0;
+          return priceA - priceB;
+        case 'Price: High to Low':
+          const priceA2 = a.variants[0]?.doctorDiscountPrice || a.variants[0]?.clinicDiscountPrice || a.variants[0]?.originalPrice || 0;
+          const priceB2 = b.variants[0]?.doctorDiscountPrice || b.variants[0]?.clinicDiscountPrice || b.variants[0]?.originalPrice || 0;
+          return priceB2 - priceA2;
+        case 'Top Rated':
+          // Since we don't have actual ratings, sort by sales count
+          return b.totalQuantitySold - a.totalQuantitySold;
+        case 'Newest First':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'Recommended':
+        default:
+          // Default: sort by sales count (best sellers first)
+          return b.totalQuantitySold - a.totalQuantitySold;
+      }
+    });
+
+    setFilteredProducts(filtered);
+  }, [allProducts, selectedBrand, selectedPriceRange, selectedRating, sortBy]);
+
+  const fetchBestSellerProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8004/api/v1/landing/topSelling/getAll');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Check if data exists and has the expected structure
+      if (data && data.data) {
+        setAllProducts(data.data);
+        setFilteredProducts(data.data);
+        toast.success(data.message || 'Products loaded successfully');
+      } else {
+        throw new Error('Invalid API response structure');
+      }
+    } catch (err) {
+      console.error('Error fetching bestseller products:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const bestsellerProducts = Array.from({ length: 24 }, (_, i) => ({
-    id: i + 1,
-    name: `Rovena Riva Series ${i + 1} Pcs. Wide Seating Claret Red Chair`,
-    price: `$${(789 + i * 50).toFixed(2)}`,
-    image: "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400",
-    rating: Math.floor(Math.random() * 2) + 4, // 4 or 5 stars
-    salesCount: Math.floor(Math.random() * 900) + 100, // 100-999 sales
-    badge: getBadgeType(i),
-  }));
+  const convertToProductCardProps = (apiProduct: ApiProduct, index: number): ProductCardProps => {
+    // Get the first variant for pricing
+    const firstVariant = apiProduct.variants[0];
+    
+    // Get the best price (doctor discount price if available, otherwise clinic discount price)
+    const bestPrice = firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
+    const originalPrice = firstVariant.originalPrice;
+    const discountPercentage = firstVariant.doctorDiscountPercentage || firstVariant.clinicDiscountPercentage || 0;
+    
+    // Get the first image or use a fallback
+    const imageUrl = apiProduct.image && apiProduct.image.length > 0 
+      ? `http://localhost:8004${apiProduct.image[0]}`
+      : 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
 
-  const toggleLike = (productId: number) => {
+    // Determine badge based on total quantity sold
+    const getBadgeType = (): 'trending' | 'top-rated' | 'best-value' | undefined => {
+      const totalSold = apiProduct.totalQuantitySold;
+      if (totalSold > 50) return 'trending';
+      if (totalSold > 30) return 'top-rated';
+      if (totalSold > 20) return 'best-value';
+      return undefined;
+    };
+
+    return {
+      id: apiProduct._id,
+      name: apiProduct.name,
+      price: `₹${bestPrice.toFixed(2)}`,
+      originalPrice: discountPercentage > 0 ? `₹${originalPrice.toFixed(2)}` : undefined,
+      discountPercentage,
+      image: imageUrl,
+      isLiked: likedProducts.has(apiProduct._id),
+      rating: 4 + Math.floor(Math.random() * 2), // Random 4-5 stars for bestsellers
+      salesCount: apiProduct.totalQuantitySold,
+      badge: getBadgeType(),
+      onToggleLike: () => toggleLike(apiProduct._id),
+      onAddToCart: () => handleAddToCart(apiProduct.name, bestPrice),
+      onProductClick: () => handleProductClick(apiProduct._id)
+    };
+  };
+
+  const toggleLike = (productId: string) => {
     setLikedProducts(prev => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
+        toast.success('Removed from favorites');
       } else {
         newSet.add(productId);
+        toast.success('Added to favorites!');
       }
       return newSet;
     });
-    toast.success(likedProducts.has(productId) ? 'Removed from favorites' : 'Added to favorites!');
   };
 
-  const handleAddToCart = (productName: string) => {
+  const handleAddToCart = (productName: string, price: number) => {
     onCartCountChange(cartCount + 1);
     toast.success('🎉 Added to cart!', {
-      description: `${productName.slice(0, 40)}...`,
+      description: `${productName.slice(0, 40)}... - ₹${price.toFixed(2)}`,
       duration: 2000,
     });
   };
+
+  const handleProductClick = (productId: string) => {
+    router.push(`/productdetailpage/${productId}`);
+  };
+
+  const handleLoadMore = () => {
+    // For now, just reload the data
+    // In a real app, you would implement pagination
+    fetchBestSellerProducts();
+    toast.info('Loading more products...');
+  };
+
+  const clearAllFilters = () => {
+    setSelectedBrand('All Brands');
+    setSelectedPriceRange('All Prices');
+    setSelectedRating('All Ratings');
+    setSortBy('Recommended');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Loading bestseller products...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-medium mb-4">Error: {error}</p>
+          <button 
+            onClick={fetchBestSellerProducts}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -376,8 +661,19 @@ export default function BestSellerPage({
       {/* Filters Section */}
       <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 mt-8 mb-6">
         <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-gray-700 font-semibold text-sm md:text-base">FILTERS BY</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-gray-700 font-semibold text-sm md:text-base">FILTERS BY</span>
+              <span className="text-gray-500 text-sm">{filteredProducts.length} products found</span>
+            </div>
+            {(selectedBrand !== 'All Brands' || selectedPriceRange !== 'All Prices' || selectedRating !== 'All Ratings') && (
+              <button
+                onClick={clearAllFilters}
+                className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors"
+              >
+                Clear all
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -387,12 +683,12 @@ export default function BestSellerPage({
                 onClick={() => setShowBrandFilter(!showBrandFilter)}
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
-                <span>Brands</span>
+                <span className="truncate">Brand: {selectedBrand}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showBrandFilter ? 'rotate-180' : ''}`} />
               </button>
               {showBrandFilter && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-blue-600 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
-                  {brands.map((brand) => (
+                  {allBrands.map((brand) => (
                     <button
                       key={brand}
                       onClick={() => {
@@ -416,7 +712,7 @@ export default function BestSellerPage({
                 onClick={() => setShowPriceFilter(!showPriceFilter)}
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
-                <span>Price Range</span>
+                <span className="truncate">Price: {selectedPriceRange}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showPriceFilter ? 'rotate-180' : ''}`} />
               </button>
               {showPriceFilter && (
@@ -445,7 +741,7 @@ export default function BestSellerPage({
                 onClick={() => setShowRatingFilter(!showRatingFilter)}
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
-                <span>Rating</span>
+                <span className="truncate">Rating: {selectedRating}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showRatingFilter ? 'rotate-180' : ''}`} />
               </button>
               {showRatingFilter && (
@@ -504,20 +800,35 @@ export default function BestSellerPage({
               <span className="text-sm text-gray-600">Active filters:</span>
               {selectedBrand !== 'All Brands' && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
-                  {selectedBrand}
-                  <button onClick={() => setSelectedBrand('All Brands')} className="hover:text-blue-900">×</button>
+                  Brand: {selectedBrand}
+                  <button 
+                    onClick={() => setSelectedBrand('All Brands')} 
+                    className="hover:text-blue-900 ml-1"
+                  >
+                    ×
+                  </button>
                 </span>
               )}
               {selectedPriceRange !== 'All Prices' && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
-                  {selectedPriceRange}
-                  <button onClick={() => setSelectedPriceRange('All Prices')} className="hover:text-blue-900">×</button>
+                  Price: {selectedPriceRange}
+                  <button 
+                    onClick={() => setSelectedPriceRange('All Prices')} 
+                    className="hover:text-blue-900 ml-1"
+                  >
+                    ×
+                  </button>
                 </span>
               )}
               {selectedRating !== 'All Ratings' && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
-                  {selectedRating}
-                  <button onClick={() => setSelectedRating('All Ratings')} className="hover:text-blue-900">×</button>
+                  Rating: {selectedRating}
+                  <button 
+                    onClick={() => setSelectedRating('All Ratings')} 
+                    className="hover:text-blue-900 ml-1"
+                  >
+                    ×
+                  </button>
                 </span>
               )}
             </div>
@@ -527,36 +838,47 @@ export default function BestSellerPage({
 
       {/* Products Grid */}
       <main className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 pb-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
-          {bestsellerProducts.map((product, index) => (
-            <div 
-              key={product.id}
-              className="animate-fade-in-up"
-              style={{ 
-                animationDelay: `${index * 50}ms`,
-                animationFillMode: 'both'
-              }}
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg mb-4">No products found with the selected filters</p>
+            <button 
+              onClick={clearAllFilters}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <ProductCard
-                {...product}
-                isLiked={likedProducts.has(product.id)}
-                onToggleLike={() => toggleLike(product.id)}
-                onAddToCart={() => handleAddToCart(product.name)}
-                onProductClick={() => router.push(`/productdetailpage/${product.id}`)}
-              />
+              Clear all filters
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
+              {filteredProducts.map((product, index) => (
+                <div 
+                  key={product._id}
+                  className="animate-fade-in-up"
+                  style={{ 
+                    animationDelay: `${index * 50}ms`,
+                    animationFillMode: 'both'
+                  }}
+                >
+                  <ProductCard
+                    {...convertToProductCardProps(product, index)}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Load More Button */}
-        <div className="mt-12 flex justify-center animate-fade-in" style={{ animationDelay: '1000ms' }}>
-          <button className="px-12 py-4 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-bold text-lg hover:bg-blue-600 hover:text-white transition-all hover:shadow-2xl hover:scale-105 active:scale-95">
-            Load More Products
-          </button>
-        </div>
+            {/* Load More Button - Only show if there are products */}
+            <div className="mt-12 flex justify-center animate-fade-in" style={{ animationDelay: '1000ms' }}>
+              <button 
+                onClick={handleLoadMore}
+                className="px-12 py-4 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-bold text-lg hover:bg-blue-600 hover:text-white transition-all hover:shadow-2xl hover:scale-105 active:scale-95"
+              >
+                Load More Products
+              </button>
+            </div>
+          </>
+        )}
       </main>
-
-      
     </div>
   );
 }
