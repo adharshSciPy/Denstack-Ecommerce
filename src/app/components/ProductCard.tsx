@@ -120,7 +120,7 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col">
           <p className="text-gray-900 font-semibold text-lg group-hover:text-blue-600 transition-colors">
-            ${finalPrice.toFixed(2)}
+            ₹{finalPrice.toFixed(2)}
           </p>
           {product.discount && (
             <p className="text-xs text-gray-500 line-through">
