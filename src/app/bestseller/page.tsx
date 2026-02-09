@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import Navigation from '../components/Navigation';
 import { Heart, ChevronDown, Star, TrendingUp, Award, Zap } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import Cookies from 'js-cookie';
+import baseUrl from '../baseUrl';
 
 interface BestSellerPageProps {
   cartCount: number;
@@ -106,24 +108,150 @@ interface ProductCardProps {
   rating: number;
   salesCount: number;
   badge?: 'trending' | 'top-rated' | 'best-value';
+  isLoadingLike?: boolean;
   onToggleLike: () => void;
   onAddToCart: () => void;
   onProductClick: () => void;
 }
 
-function ProductCard({ 
-  name, 
-  price, 
+
+// Check if accessToken exists in cookies
+const hasAccessToken = (): boolean => {
+  // Check js-cookie
+  const accessToken = Cookies.get('accessToken');
+  if (accessToken) {
+    return true;
+  }
+
+  // Check document.cookie as fallback
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.startsWith('accessToken=')) {
+      return true;
+    }
+  }
+
+  // Check for other possible cookie names
+  const possibleCookieNames = [
+    'access_token',
+    'token',
+    'auth_token',
+    'Authorization',
+    'authorization'
+  ];
+
+  for (const cookieName of possibleCookieNames) {
+    if (Cookies.get(cookieName)) {
+      return true;
+    }
+    // Check in document.cookie
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(`${cookieName}=`)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+// Get access token from cookies
+const getAccessTokenFromCookies = (): { token: string | null; tokenExists: boolean } => {
+  if (!hasAccessToken()) {
+    return { token: null, tokenExists: false };
+  }
+
+  // Try multiple possible cookie names
+  const possibleCookieNames = [
+    'accessToken',
+    'access_token',
+    'token',
+    'auth_token',
+    'Authorization',
+    'authorization'
+  ];
+
+  let token: string | null = null;
+
+  // Check js-cookie first
+  for (const cookieName of possibleCookieNames) {
+    const cookieValue = Cookies.get(cookieName);
+    if (cookieValue) {
+      token = cookieValue;
+      break;
+    }
+  }
+
+  // Check document.cookie directly as fallback
+  if (!token) {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      for (const cookieName of possibleCookieNames) {
+        if (cookie.startsWith(`${cookieName}=`)) {
+          token = cookie.substring(cookieName.length + 1);
+          break;
+        }
+      }
+      if (token) break;
+    }
+  }
+
+  // Remove 'Bearer ' prefix if present
+  if (token && token.startsWith('Bearer ')) {
+    token = token.replace('Bearer ', '');
+  }
+
+  const tokenExists = !!token;
+  return { token, tokenExists };
+};
+
+// Check if token is valid (simplified - just check if it exists)
+const isTokenValid = (): boolean => {
+  return hasAccessToken();
+};
+
+// Clear all authentication tokens
+const clearAuthTokens = () => {
+  const cookiesToRemove = [
+    'accessToken',
+    'access_token',
+    'token',
+    'auth_token',
+    'Authorization',
+    'authorization',
+    'auth-token',
+    'jwt',
+    'jwt_token',
+    'refreshToken'
+  ];
+
+  cookiesToRemove.forEach(cookie => {
+    Cookies.remove(cookie, { path: '/' });
+  });
+
+  cookiesToRemove.forEach(key => {
+    localStorage.removeItem(key);
+  });
+};
+
+function ProductCard({
+  name,
+  price,
   originalPrice,
   discountPercentage,
-  image, 
-  isLiked, 
+  image,
+  isLiked,
   rating,
   salesCount,
   badge,
-  onToggleLike, 
+  isLoadingLike = false,
+  onToggleLike,
   onAddToCart,
-  onProductClick
+  onProductClick,
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -158,7 +286,7 @@ function ProductCard({
   const badgeConfig = getBadgeConfig();
 
   return (
-    <div 
+    <div
       className="group relative bg-white rounded-2xl border-2 border-blue-600 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] animate-fade-in cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -183,34 +311,37 @@ function ProductCard({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onToggleLike();
+          if (!isLoadingLike) {
+            onToggleLike();
+          }
         }}
         className={`
           absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white
           flex items-center justify-center transition-all duration-300 shadow-lg
-          ${isLiked 
-            ? 'text-red-500 scale-110' 
+          ${isLiked
+            ? 'text-red-500 scale-110'
             : 'text-gray-400 hover:text-red-500 hover:scale-110'
           }
+          ${isLoadingLike ? 'opacity-50 cursor-not-allowed' : ''}
         `}
+        disabled={isLoadingLike}
       >
-        <Heart 
-          className={`w-5 h-5 transition-all ${
-            isLiked ? 'fill-red-500' : 'fill-none'
-          }`}
-        />
+        {isLoadingLike ? (
+          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          <Heart
+            className={`w-5 h-5 transition-all ${isLiked ? 'fill-red-500' : 'fill-none'}`}
+          />
+        )}
       </button>
 
       {/* Product Image */}
       <div className="relative bg-gray-100 aspect-square overflow-hidden p-4">
-        <img 
-          src={image} 
+        <img
+          src={image}
           alt={name}
-          className={`w-full h-full object-contain transition-transform duration-500 ${
-            isHovered ? 'scale-110' : 'scale-100'
-          }`}
+          className={`w-full h-full object-contain transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'}`}
           onError={(e) => {
-            // Fallback image if the URL is invalid
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
           }}
         />
@@ -222,13 +353,12 @@ function ProductCard({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1">
             {[...Array(5)].map((_, i) => (
-              <Star 
+              <Star
                 key={i}
-                className={`w-4 h-4 ${
-                  i < rating 
-                    ? 'fill-yellow-400 text-yellow-400' 
-                    : 'fill-gray-200 text-gray-200'
-                }`}
+                className={`w-4 h-4 ${i < rating
+                  ? 'fill-yellow-400 text-yellow-400'
+                  : 'fill-gray-200 text-gray-200'
+                  }`}
               />
             ))}
           </div>
@@ -259,8 +389,8 @@ function ProductCard({
           className={`
             w-full py-2.5 px-4 rounded-xl font-bold text-sm
             transition-all duration-300
-            ${isHovered 
-              ? 'bg-blue-700 text-white shadow-xl translate-y-[-2px]' 
+            ${isHovered
+              ? 'bg-blue-700 text-white shadow-xl translate-y-[-2px]'
               : 'bg-blue-600 text-white shadow-lg'
             }
             hover:shadow-2xl active:scale-95
@@ -273,9 +403,9 @@ function ProductCard({
   );
 }
 
-export default function BestSellerPage({ 
-  cartCount, 
-  onCartCountChange, 
+export default function BestSellerPage({
+  cartCount,
+  onCartCountChange,
   onBackToHome,
   onCartClick,
   onFavoritesClick,
@@ -304,14 +434,17 @@ export default function BestSellerPage({
   const [filteredProducts, setFilteredProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddingToFavorites, setIsAddingToFavorites] = useState<string | null>(null);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+  const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
 
   const priceRanges = ['All Prices', 'Under ₹500', '₹500 - ₹1000', '₹1000 - ₹2000', 'Over ₹2000'];
   const ratings = ['All Ratings', '5 Stars', '4+ Stars', '3+ Stars'];
   const sortOptions = [
-    'Recommended', 
-    'Best Selling', 
-    'Price: Low to High', 
-    'Price: High to Low', 
+    'Recommended',
+    'Best Selling',
+    'Price: Low to High',
+    'Price: High to Low',
     'Top Rated',
     'Newest First'
   ];
@@ -320,6 +453,13 @@ export default function BestSellerPage({
   useEffect(() => {
     fetchBestSellerProducts();
   }, []);
+
+  // Save liked products to localStorage when they change
+  useEffect(() => {
+    if (likedProducts.size > 0) {
+      localStorage.setItem('likedProducts', JSON.stringify(Array.from(likedProducts)));
+    }
+  }, [likedProducts]);
 
   // Extract unique brands from products
   const allBrands = useMemo(() => {
@@ -340,7 +480,7 @@ export default function BestSellerPage({
 
     // Apply brand filter
     if (selectedBrand !== 'All Brands') {
-      filtered = filtered.filter(product => 
+      filtered = filtered.filter(product =>
         product.brand?.name === selectedBrand
       );
     }
@@ -349,10 +489,10 @@ export default function BestSellerPage({
     if (selectedPriceRange !== 'All Prices') {
       filtered = filtered.filter(product => {
         if (!product.variants || product.variants.length === 0) return false;
-        
+
         const firstVariant = product.variants[0];
         const bestPrice = firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
-        
+
         switch (selectedPriceRange) {
           case 'Under ₹500':
             return bestPrice < 500;
@@ -371,10 +511,8 @@ export default function BestSellerPage({
     // Apply rating filter
     if (selectedRating !== 'All Ratings') {
       filtered = filtered.filter(product => {
-        // Since we don't have actual ratings in API, we'll use the random rating from convertToProductCardProps
-        // For now, we'll filter based on a simulated rating
-        const rating = 4 + Math.floor(Math.random() * 2); // Same as in convertToProductCardProps
-        
+        const rating = 4 + Math.floor(Math.random() * 2);
+
         switch (selectedRating) {
           case '5 Stars':
             return rating === 5;
@@ -402,13 +540,11 @@ export default function BestSellerPage({
           const priceB2 = b.variants[0]?.doctorDiscountPrice || b.variants[0]?.clinicDiscountPrice || b.variants[0]?.originalPrice || 0;
           return priceB2 - priceA2;
         case 'Top Rated':
-          // Since we don't have actual ratings, sort by sales count
           return b.totalQuantitySold - a.totalQuantitySold;
         case 'Newest First':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case 'Recommended':
         default:
-          // Default: sort by sales count (best sellers first)
           return b.totalQuantitySold - a.totalQuantitySold;
       }
     });
@@ -419,15 +555,14 @@ export default function BestSellerPage({
   const fetchBestSellerProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8004/api/v1/landing/topSelling/getAll');
-      
+      const response = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/topSelling/getAll`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
-      // Check if data exists and has the expected structure
+
       if (data && data.data) {
         setAllProducts(data.data);
         setFilteredProducts(data.data);
@@ -435,30 +570,53 @@ export default function BestSellerPage({
       } else {
         throw new Error('Invalid API response structure');
       }
-    } catch (err) {
-      console.error('Error fetching bestseller products:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load products');
+    } catch (fetchError) {
+      console.error('Error fetching bestseller products:', fetchError);
+      setError(fetchError instanceof Error ? fetchError.message : 'Failed to load products');
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
   };
 
+
+  const addToFavoritesAPI = async (productId: string) => {
+    try {
+      setIsProcessingLike(productId);
+
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      );
+
+      if (response.status === 401) {
+        return { success: false, requiresLogin: true };
+      }
+
+      const data = await response.json();
+      return { success: true, liked: data.liked, message: data.message };
+    } catch (err) {
+      return { success: false };
+    } finally {
+      setIsProcessingLike(null);
+    }
+  };
+
+
   const convertToProductCardProps = (apiProduct: ApiProduct, index: number): ProductCardProps => {
-    // Get the first variant for pricing
     const firstVariant = apiProduct.variants[0];
-    
-    // Get the best price (doctor discount price if available, otherwise clinic discount price)
+
     const bestPrice = firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
     const originalPrice = firstVariant.originalPrice;
     const discountPercentage = firstVariant.doctorDiscountPercentage || firstVariant.clinicDiscountPercentage || 0;
-    
-    // Get the first image or use a fallback
-    const imageUrl = apiProduct.image && apiProduct.image.length > 0 
-      ? `http://localhost:8004${apiProduct.image[0]}`
+
+    const imageUrl = apiProduct.image && apiProduct.image.length > 0
+      ? `${baseUrl.INVENTORY}${apiProduct.image[0]}`
       : 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
 
-    // Determine badge based on total quantity sold
     const getBadgeType = (): 'trending' | 'top-rated' | 'best-value' | undefined => {
       const totalSold = apiProduct.totalQuantitySold;
       if (totalSold > 50) return 'trending';
@@ -466,6 +624,8 @@ export default function BestSellerPage({
       if (totalSold > 20) return 'best-value';
       return undefined;
     };
+
+    const isCurrentlyProcessing = isAddingToFavorites === apiProduct._id;
 
     return {
       id: apiProduct._id,
@@ -475,7 +635,8 @@ export default function BestSellerPage({
       discountPercentage,
       image: imageUrl,
       isLiked: likedProducts.has(apiProduct._id),
-      rating: 4 + Math.floor(Math.random() * 2), // Random 4-5 stars for bestsellers
+      isLoadingLike: isCurrentlyProcessing,
+      rating: 4 + Math.floor(Math.random() * 2),
       salesCount: apiProduct.totalQuantitySold,
       badge: getBadgeType(),
       onToggleLike: () => toggleLike(apiProduct._id),
@@ -484,18 +645,36 @@ export default function BestSellerPage({
     };
   };
 
-  const toggleLike = (productId: string) => {
-    setLikedProducts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
-        toast.success('Removed from favorites');
-      } else {
-        newSet.add(productId);
-        toast.success('Added to favorites!');
+  const toggleLike = async (productId: string) => {
+    const isCurrentlyLiked = likedProducts.has(productId);
+
+    // optimistic UI
+    const tempSet = new Set(likedProducts);
+    isCurrentlyLiked ? tempSet.delete(productId) : tempSet.add(productId);
+    setLikedProducts(tempSet);
+
+    const result = await addToFavoritesAPI(productId);
+
+    if (!result.success) {
+      // revert
+      const revertSet = new Set(likedProducts);
+      setLikedProducts(revertSet);
+
+      if (result.requiresLogin) {
+        showLoginPrompt(productId);
       }
-      return newSet;
-    });
+    }
+  };
+
+
+  const showLoginPrompt = (productId: string) => {
+    // You can customize this to show a modal instead of alert
+    const shouldLogin = window.confirm('You need to login to add favorites. Would you like to login now?');
+    if (shouldLogin) {
+      sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+      sessionStorage.setItem('productToLikeAfterLogin', productId);
+      router.push('/login');
+    }
   };
 
   const handleAddToCart = (productName: string, price: number) => {
@@ -511,8 +690,6 @@ export default function BestSellerPage({
   };
 
   const handleLoadMore = () => {
-    // For now, just reload the data
-    // In a real app, you would implement pagination
     fetchBestSellerProducts();
     toast.info('Loading more products...');
   };
@@ -540,7 +717,7 @@ export default function BestSellerPage({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 font-medium mb-4">Error: {error}</p>
-          <button 
+          <button
             onClick={fetchBestSellerProducts}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -556,7 +733,7 @@ export default function BestSellerPage({
       <Toaster position="top-right" richColors />
 
       {/* Navigation */}
-      <Navigation 
+      <Navigation
         currentPage="bestseller"
       />
 
@@ -564,13 +741,13 @@ export default function BestSellerPage({
       <div className="w-full px-4 md:px-6 lg:px-8 mt-6 animate-fade-in">
         <div className="max-w-[1760px] mx-auto">
           <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[16/9] md:aspect-[3.5/1]">
-            <img 
-              src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200" 
+            <img
+              src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200"
               alt="Best Sellers & Hot Products"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-blue-900/70 to-transparent" />
-            
+
             {/* Hero Text */}
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16">
               <div className="flex items-center gap-3 mb-4">
@@ -601,56 +778,56 @@ export default function BestSellerPage({
               Welcome to Dentalkart's exclusive "Hot Selling" category, curated to meet the dynamic needs of dental professionals.
             </p>
             <p>
-              Our meticulously selected range includes products from renowned dental brands such as Dentsply, Waldent, GDC, IDENTical, 
-              Zhermack, Endoking, Mani, 3M, Ivoclar, and many more. Designed to cater to various fields of dentistry, this collection 
+              Our meticulously selected range includes products from renowned dental brands such as Dentsply, Waldent, GDC, IDENTical,
+              Zhermack, Endoking, Mani, 3M, Ivoclar, and many more. Designed to cater to various fields of dentistry, this collection
               embodies excellence, innovation, and reliability.
             </p>
-            
+
             <h3 className="text-white text-xl font-bold mt-6 mb-3">Why Choose Our Hot Selling Products?</h3>
-            
+
             <div className="space-y-3">
-              <p><strong className="text-white">Unmatched Quality:</strong> Our hot selling products boast uncompromised quality, 
-              ensuring that you receive instruments, materials, and equipment that meet the highest industry standards.</p>
-              
-              <p><strong className="text-white">Diverse Range:</strong> From diagnostics to treatment and beyond, our curated 
-              selection spans across diverse fields of dentistry, providing you with a comprehensive array of solutions for your practice.</p>
-              
-              <p><strong className="text-white">Top Dental Brands:</strong> Elevate your practice with products from top dental 
-              brands globally. Each item is handpicked to enhance your professional capabilities and contribute to the success of your 
-              dental procedures.</p>
-              
-              <p><strong className="text-white">Innovation at Its Core:</strong> Stay ahead in the ever-evolving field of dentistry. 
-              Our hot selling category features cutting-edge innovations, keeping you at the forefront of the latest advancements.</p>
+              <p><strong className="text-white">Unmatched Quality:</strong> Our hot selling products boast uncompromised quality,
+                ensuring that you receive instruments, materials, and equipment that meet the highest industry standards.</p>
+
+              <p><strong className="text-white">Diverse Range:</strong> From diagnostics to treatment and beyond, our curated
+                selection spans across diverse fields of dentistry, providing you with a comprehensive array of solutions for your practice.</p>
+
+              <p><strong className="text-white">Top Dental Brands:</strong> Elevate your practice with products from top dental
+                brands globally. Each item is handpicked to enhance your professional capabilities and contribute to the success of your
+                dental procedures.</p>
+
+              <p><strong className="text-white">Innovation at Its Core:</strong> Stay ahead in the ever-evolving field of dentistry.
+                Our hot selling category features cutting-edge innovations, keeping you at the forefront of the latest advancements.</p>
             </div>
 
             <h3 className="text-white text-xl font-bold mt-6 mb-3">Frequently Asked Questions (FAQs):</h3>
-            
+
             <div className="space-y-3">
               <div>
                 <p className="font-semibold text-white">Q1: Are these products suitable for all dental practices?</p>
-                <p>A1: Absolutely! Our hot selling category is curated to cater to the diverse needs of dental professionals across 
-                various practice sizes and specialties.</p>
+                <p>A1: Absolutely! Our hot selling category is curated to cater to the diverse needs of dental professionals across
+                  various practice sizes and specialties.</p>
               </div>
-              
+
               <div>
                 <p className="font-semibold text-white">Q2: How can I be assured of the quality of the products?</p>
-                <p>A2: Dentalkart is committed to excellence. We source our products from trusted dental brands, ensuring that each 
-                item meets stringent quality standards. Additionally, customer reviews and ratings offer insights into the experiences 
-                of your peers.</p>
+                <p>A2: Dentalkart is committed to excellence. We source our products from trusted dental brands, ensuring that each
+                  item meets stringent quality standards. Additionally, customer reviews and ratings offer insights into the experiences
+                  of your peers.</p>
               </div>
-              
+
               <div>
                 <p className="font-semibold text-white">Q3: Can I find exclusive deals or promotions in the hot selling category?</p>
-                <p>A3: Yes, indeed! Dentalkart frequently runs promotions and exclusive deals on products within the hot selling category. 
-                Keep an eye on our promotions section for limited-time offers and discounts.</p>
+                <p>A3: Yes, indeed! Dentalkart frequently runs promotions and exclusive deals on products within the hot selling category.
+                  Keep an eye on our promotions section for limited-time offers and discounts.</p>
               </div>
             </div>
 
             <p className="mt-6">
-              Explore Dentalkart's "Hot Selling" category today and revolutionize your dental practice with the best-in-class products. 
+              Explore Dentalkart's "Hot Selling" category today and revolutionize your dental practice with the best-in-class products.
               Elevate your patient care, streamline your procedures, and stay at the forefront of dental innovation.
             </p>
-            
+
             <button className="text-white underline font-semibold hover:text-blue-200 transition-colors mt-4">
               Read more
             </button>
@@ -695,9 +872,8 @@ export default function BestSellerPage({
                         setSelectedBrand(brand);
                         setShowBrandFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
-                        selectedBrand === brand ? 'bg-blue-100 font-semibold' : ''
-                      }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${selectedBrand === brand ? 'bg-blue-100 font-semibold' : ''
+                        }`}
                     >
                       {brand}
                     </button>
@@ -724,9 +900,8 @@ export default function BestSellerPage({
                         setSelectedPriceRange(range);
                         setShowPriceFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
-                        selectedPriceRange === range ? 'bg-blue-100 font-semibold' : ''
-                      }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${selectedPriceRange === range ? 'bg-blue-100 font-semibold' : ''
+                        }`}
                     >
                       {range}
                     </button>
@@ -753,9 +928,8 @@ export default function BestSellerPage({
                         setSelectedRating(rating);
                         setShowRatingFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
-                        selectedRating === rating ? 'bg-blue-100 font-semibold' : ''
-                      }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${selectedRating === rating ? 'bg-blue-100 font-semibold' : ''
+                        }`}
                     >
                       {rating}
                     </button>
@@ -782,9 +956,8 @@ export default function BestSellerPage({
                         setSortBy(option);
                         setShowSortFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
-                        sortBy === option ? 'bg-blue-100 font-semibold' : ''
-                      }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${sortBy === option ? 'bg-blue-100 font-semibold' : ''
+                        }`}
                     >
                       {option}
                     </button>
@@ -801,8 +974,8 @@ export default function BestSellerPage({
               {selectedBrand !== 'All Brands' && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
                   Brand: {selectedBrand}
-                  <button 
-                    onClick={() => setSelectedBrand('All Brands')} 
+                  <button
+                    onClick={() => setSelectedBrand('All Brands')}
                     className="hover:text-blue-900 ml-1"
                   >
                     ×
@@ -812,8 +985,8 @@ export default function BestSellerPage({
               {selectedPriceRange !== 'All Prices' && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
                   Price: {selectedPriceRange}
-                  <button 
-                    onClick={() => setSelectedPriceRange('All Prices')} 
+                  <button
+                    onClick={() => setSelectedPriceRange('All Prices')}
                     className="hover:text-blue-900 ml-1"
                   >
                     ×
@@ -823,8 +996,8 @@ export default function BestSellerPage({
               {selectedRating !== 'All Ratings' && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
                   Rating: {selectedRating}
-                  <button 
-                    onClick={() => setSelectedRating('All Ratings')} 
+                  <button
+                    onClick={() => setSelectedRating('All Ratings')}
                     className="hover:text-blue-900 ml-1"
                   >
                     ×
@@ -841,7 +1014,7 @@ export default function BestSellerPage({
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-4">No products found with the selected filters</p>
-            <button 
+            <button
               onClick={clearAllFilters}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -852,10 +1025,10 @@ export default function BestSellerPage({
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
               {filteredProducts.map((product, index) => (
-                <div 
+                <div
                   key={product._id}
                   className="animate-fade-in-up"
-                  style={{ 
+                  style={{
                     animationDelay: `${index * 50}ms`,
                     animationFillMode: 'both'
                   }}
@@ -867,9 +1040,9 @@ export default function BestSellerPage({
               ))}
             </div>
 
-            {/* Load More Button - Only show if there are products */}
+            {/* Load More Button */}
             <div className="mt-12 flex justify-center animate-fade-in" style={{ animationDelay: '1000ms' }}>
-              <button 
+              <button
                 onClick={handleLoadMore}
                 className="px-12 py-4 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-bold text-lg hover:bg-blue-600 hover:text-white transition-all hover:shadow-2xl hover:scale-105 active:scale-95"
               >

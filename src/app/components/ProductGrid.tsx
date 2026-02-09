@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import axios from "axios";
 import baseUrl from "../baseUrl";
-import {useRouter} from "next/navigation"
+import { useRouter } from "next/navigation"
 
 interface ProductGridProps {
   likedProducts: Set<string | number>;
@@ -18,6 +18,7 @@ interface FeaturedProduct {
     _id: string;
     name: string;
     description: string;
+    basePrice: number;
     image: string[];
     variants: any[];
     brand?: {
@@ -81,6 +82,8 @@ export default function ProductGrid({
         `${baseUrl.INVENTORY}/api/v1/landing/featured-products/getAll`,
       );
 
+      console.log("Featured products response:", response);
+
       // Defensive checks
       if (response.status !== 200) {
         throw new Error(`Unexpected status ${response.status} from featured-products endpoint`);
@@ -109,7 +112,7 @@ export default function ProductGrid({
             id: product._id, // Use MongoDB _id instead of index
             mongoId: product._id,
             name: item.title || product.name,
-            price: product.variants?.[0]?.price || 0,
+            price: product.basePrice || 0,
             image: imageUrl,
             badge: item.badge,
             description: item.description,
@@ -131,9 +134,9 @@ export default function ProductGrid({
 
   // Helper to check if product is liked (handles both string and number IDs)
   const isProductLiked = (productId: string | number) => {
-    return likedProducts.has(productId) || 
-           likedProducts.has(String(productId)) || 
-           likedProducts.has(Number(productId));
+    return likedProducts.has(productId) ||
+      likedProducts.has(String(productId)) ||
+      likedProducts.has(Number(productId));
   };
 
   if (loading) {
@@ -190,7 +193,7 @@ export default function ProductGrid({
         <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">
           Featured Products
         </h2>
-        <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3" onClick={()=>router.push("/allproducts")}>
+        <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3" onClick={() => router.push("/allproducts")}>
           <span className="text-lg font-medium">View all</span>
           <svg
             className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1"

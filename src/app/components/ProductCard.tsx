@@ -124,7 +124,7 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
           </p>
           {product.discount && (
             <p className="text-xs text-gray-500 line-through">
-              ${product.price.toFixed(2)}
+              ₹{product.price.toFixed(2)}
             </p>
           )}
         </div>
