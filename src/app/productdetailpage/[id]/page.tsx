@@ -16,6 +16,7 @@ interface ProductDetailPageProps {
     onBackToHome: () => void;
     onCartClick: () => void;
     isLiked?: boolean;
+    isLoadingLike?: boolean;
     onToggleLike?: (productId: number | string) => void;
     onBrandClick?: () => void;
     onBuyingGuideClick?: () => void;
@@ -33,6 +34,7 @@ export default function ProductDetailPage({
     onBackToHome,
     onCartClick,
     isLiked = false,
+    isLoadingLike = false,
     onToggleLike,
     onBrandClick,
     onBuyingGuideClick,
@@ -63,30 +65,19 @@ export default function ProductDetailPage({
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const res = await axios.get(`${baseUrl.INVENTORY}/api/v1/product/getProduct/${routeId}`);
-                const contentType = res.headers?.['content-type'] || '';
-
-                // If server returned HTML (e.g., an error page) instead of JSON, bail out with helpful log
-                if (!contentType.includes('application/json')) {
-                    console.error(`Expected JSON from product API but received Content-Type: ${contentType}`, res.status, res.data);
-                    toast.error('Unable to fetch product (invalid response). Please check the API server.');
-                    setProduct(undefined);
-                    return;
-                }
-
-                // Some APIs return the object directly, some wrap it in `data` — handle both
-                const payload = res.data && res.data.data ? res.data.data : res.data;
+                const res = await axios.get(
+                    `${baseUrl.INVENTORY}/api/v1/product/getProduct/${routeId}`
+                );
+                const payload = res.data?.data ?? res.data;
                 setProduct(payload);
-                console.log("product res", payload);
-            } catch (error: any) {
-                console.error("Error fetching product data:", error);
-                // mark not found / error so UI can show a friendly message
-                toast.error('Error fetching product. See console for details.');
+            } catch (err) {
+                console.error(err);
+                toast.error('Error fetching product');
                 setProduct(undefined);
             }
-        }
+        };
         if (routeId) fetchProduct();
-    }, [routeId])
+    }, [routeId]);
 
     const handleAddToCart = () => {
         onCartCountChange(cartCount + quantity);
@@ -108,7 +99,7 @@ export default function ProductDetailPage({
         if (onToggleLike && product) {
             onToggleLike(product.id || product._id);
         }
-        toast.success(liked ? 'Removed from favorites' : 'Added to favorites');
+        toast.success(!liked ? 'Added to wishlist' : 'Removed from wishlist');
     };
 
     // Derived / normalized values (work with both old and new API shapes)
@@ -122,7 +113,7 @@ export default function ProductDetailPage({
         // If backend serves uploads from INVENTORY, keep those on INVENTORY host
         if (cleaned.startsWith('/uploads')) return `${baseUrl.INVENTORY}${cleaned}`;
         // Otherwise use IMAGE base
-        return `${baseUrl.IMAGE}${cleaned}`;
+        return `${baseUrl.AUTH}${cleaned}`;
     };
     const images = rawImages.map((p) => getImageUrl(p)).filter(Boolean) as string[];
 
@@ -184,14 +175,18 @@ export default function ProductDetailPage({
 
             <Navigation
                 currentPage="productdetailpage/[id]"
-            // onBrandClick={onBrandClick}
-            // onBuyingGuideClick={onBuyingGuideClick}
-            // onEventsClick={onEventsClick}
-            // onMembershipClick={onMembershipClick}
-            // onFreebiesClick={onFreebiesClick}
-            // onBestSellerClick={onBestSellerClick}
-            // onClinicSetupClick={onClinicSetupClick}
+                cartCount={cartCount}
+                favoritesCount={liked ? 1 : 0}
+                onCartClick={onCartClick}
+                onBrandClick={onBrandClick}
+                onBuyingGuideClick={onBuyingGuideClick}
+                onEventsClick={onEventsClick}
+                onMembershipClick={onMembershipClick}
+                onFreebiesClick={onFreebiesClick}
+                onBestSellerClick={onBestSellerClick}
+                onClinicSetupClick={onClinicSetupClick}
             />
+
 
             {/* Breadcrumb */}
             <div className="bg-white border-b border-gray-200">

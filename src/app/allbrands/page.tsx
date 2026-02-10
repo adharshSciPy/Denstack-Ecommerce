@@ -4,8 +4,10 @@ import ProductCard from '../components/ProductCard';
 import Navigation from '../components/Navigation';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { toast, Toaster } from 'sonner'; // Added Toaster
+import { useAuth } from '../hooks/useAuth'; // Added useAuth hook
 import baseUrl from '../baseUrl';
 
 interface Product {
@@ -87,6 +89,7 @@ export default function BrandDetailPage({
 }: BrandDetailPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Added auth hook
 
   const brandId = searchParams.get('brandId');
 
@@ -94,7 +97,25 @@ export default function BrandDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState('featured');
-  const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(new Set());
+  const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(likedProducts);
+  const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null); // Added for loading state
+
+  // Load liked products from localStorage on component mount
+  useEffect(() => {
+    const savedLikedProducts = localStorage.getItem('likedProducts');
+    if (savedLikedProducts) {
+      try {
+        setLocalLikedProducts(new Set(JSON.parse(savedLikedProducts)));
+      } catch (error) {
+        console.error('Error parsing liked products:', error);
+      }
+    }
+  }, []);
+
+  // Save liked products to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
+  }, [localLikedProducts]);
 
   useEffect(() => {
     if (!brandId) {
@@ -357,6 +378,117 @@ export default function BrandDetailPage({
     fetchBrandData();
   }, [brandId]);
 
+  // API function for adding/removing favorites
+  const addToFavoritesAPI = useCallback(async (productId: string) => {
+    try {
+      setIsProcessingLike(productId);
+
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );  
+      
+      console.log(response);
+      
+      if (response.status === 401) {
+        return { success: false, requiresLogin: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        liked: data.liked,
+        message: data.message,
+        data: data.data,
+      };
+    } catch (err) {
+      console.error("Error adding to favorites:", err);
+      return { success: false, error: err };
+    } finally {
+      setIsProcessingLike(null);
+    }
+  }, []);
+
+  // Function to show login prompt
+  const showLoginPrompt = useCallback((productId: string) => {
+    // Store the product ID to like after login
+    sessionStorage.setItem('productToLikeAfterLogin', productId);
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+    
+    toast.error('Login Required', {
+      description: 'You need to login to add products to favorites',
+      action: {
+        label: 'Login',
+        onClick: () => {
+          router.push('/login');
+        },
+      },
+      duration: 5000,
+    });
+  }, [router]);
+
+  // Main like toggle handler
+  const handleToggleLike = async (productId: string) => {
+    // Check if user is logged in
+    // For now, let's check if we have a token in localStorage
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const isLoggedIn = !!token || userIsLoggedIn;
+
+    if (!isLoggedIn) {
+      showLoginPrompt(productId);
+      return;
+    }
+
+    const isCurrentlyLiked = localLikedProducts.has(productId);
+
+    // Optimistic UI update
+    setLocalLikedProducts(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyLiked) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+
+    // Make API call
+    const result = await addToFavoritesAPI(productId);
+
+    if (!result.success) {
+      // Revert optimistic update on failure
+      setLocalLikedProducts(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.add(productId);
+        } else {
+          newSet.delete(productId);
+        }
+        return newSet;
+      });
+
+      if (result.requiresLogin) {
+        showLoginPrompt(productId);
+      } else {
+        toast.error('Failed to update favorites. Please try again.');
+      }
+    } else {
+      // Success - show appropriate message
+      if (result.liked) {
+        toast.success('Added to favorites!');
+      } else {
+        toast.info('Removed from favorites');
+      }
+    }
+  };
+
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) return 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
     // ✅ Clean up the path properly
@@ -366,28 +498,13 @@ export default function BrandDetailPage({
 
   const addToCart = () => {
     onCartCountChange(cartCount + 1);
+    toast.success('Added to cart!');
   };
 
   const handleProductClick = (productId: string) => {
     router.push(`/productdetailpage/${productId}`);
     if (onProductClick) {
       onProductClick(productId);
-    }
-  };
-
-  const toggleLocalLike = (productId: string) => {
-    setLocalLikedProducts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
-      } else {
-        newSet.add(productId);
-      }
-      return newSet;
-    });
-
-    if (onToggleLike) {
-      onToggleLike(productId);
     }
   };
 
@@ -401,7 +518,7 @@ export default function BrandDetailPage({
       const imgPath = Array.isArray(p.image) ? p.image[0] : Array.isArray(p.images) ? p.images[0] : (typeof p.image === 'string' ? p.image : '');
       const image = getImageUrl(imgPath || '');
       const variant = Array.isArray(p.variants) && p.variants.length ? p.variants[0] : null;
-      const price = typeof p.price === 'number' ? p.price
+      const price = typeof p.originalPrice === 'number' ? p.originalPrice
         : variant && (variant.price ?? variant.sellingPrice ?? variant.mrp) ? Number(variant.price ?? variant.sellingPrice ?? variant.mrp)
         : 0;
       const stock = variant && typeof variant.stock === 'number' ? variant.stock
@@ -436,7 +553,12 @@ export default function BrandDetailPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation currentPage="allbrands" />
+        <Navigation 
+          currentPage="allbrands" 
+          cartCount={cartCount}
+          favoritesCount={localLikedProducts.size}
+          onCartCountChange={onCartCountChange}
+        />
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
@@ -450,7 +572,12 @@ export default function BrandDetailPage({
   if (error || !brandData) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation currentPage="allbrands" />
+        <Navigation 
+          currentPage="allbrands" 
+          cartCount={cartCount}
+          favoritesCount={localLikedProducts.size}
+          onCartCountChange={onCartCountChange}
+        />
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error || 'Brand not found'}</p>
@@ -471,7 +598,13 @@ export default function BrandDetailPage({
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation currentPage="allbrands" />
+      <Toaster position="top-right" richColors /> {/* Added Toaster */}
+      <Navigation 
+        currentPage="allbrands" 
+        cartCount={cartCount}
+        favoritesCount={localLikedProducts.size}
+        onCartCountChange={onCartCountChange}
+      />
 
       <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
@@ -572,7 +705,8 @@ export default function BrandDetailPage({
                   <ProductCard
                     product={product}
                     isLiked={localLikedProducts.has(product.id)}
-                    onToggleLike={() => toggleLocalLike(product.id)}
+                    isLoadingLike={isProcessingLike === product.id}
+                    onToggleLike={() => handleToggleLike(product.id)}
                     onAddToCart={addToCart}
                     onProductClick={() => handleProductClick(product.id)}
                   />

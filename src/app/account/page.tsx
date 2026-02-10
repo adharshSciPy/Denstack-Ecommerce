@@ -310,7 +310,10 @@ export default function AccountPage({
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
-      <Navigation currentPage="account" />
+      <Navigation currentPage="account"
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
+      />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white py-12">
@@ -344,10 +347,9 @@ export default function AccountPage({
                       onClick={() => setActiveTab(tab.id)}
                       className={`
                         flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all
-                        ${
-                          activeTab === tab.id
-                            ? "bg-gradient-to-r from-cyan-500 via-teal-500 to-green-500 text-white shadow-lg"
-                            : "text-gray-700 hover:bg-gray-100"
+                        ${activeTab === tab.id
+                          ? "bg-gradient-to-r from-cyan-500 via-teal-500 to-green-500 text-white shadow-lg"
+                          : "text-gray-700 hover:bg-gray-100"
                         }
                       `}
                     >

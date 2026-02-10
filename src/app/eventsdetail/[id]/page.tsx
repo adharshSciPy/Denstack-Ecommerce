@@ -11,6 +11,8 @@ import Image from 'next/image';
 import baseUrl from '../../baseUrl';
 
 interface EventDetailsPageProps {
+    cartCount: number;
+    favoritesCount: number; 
     onCartCountChange: (count: number) => void;
     onRegisterClick: (eventId: number) => void;
     onCartClick?: () => void;
@@ -31,6 +33,8 @@ interface ScheduleItem {
 }
 
 export default function EventDetailsPage({
+    cartCount,
+    favoritesCount,
     onCartCountChange,
     onRegisterClick,
     onCartClick
@@ -158,6 +162,9 @@ export default function EventDetailsPage({
             {/* Navigation */}
             <Navigation
                 currentPage="events-detailpage"
+                cartCount={cartCount}
+                favoritesCount={favoritesCount ?? 0}
+
             />
 
             {/* Back Button */}
@@ -293,7 +300,7 @@ export default function EventDetailsPage({
 
                             {/* Register Button */}
                             <button
-                                onClick={()=> router.push(`/eventRegisteration/${event._id}`)}
+                                onClick={() => router.push(`/eventRegisteration/${event._id}`)}
                                 className={`
                   w-full py-4 px-6 rounded-xl font-bold text-lg
                   transition-all duration-300 shadow-lg

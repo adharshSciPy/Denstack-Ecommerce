@@ -159,6 +159,9 @@ export default function EventsPage({
       {/* Navigation */}
       <Navigation
         currentPage="events"
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
+
       />
 
       {/* Hero Banner */}

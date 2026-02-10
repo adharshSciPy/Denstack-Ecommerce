@@ -1,11 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
-// import Header from './Header';
+import { useState, useEffect, useCallback } from 'react';
 import Navigation from '../components/Navigation';
-// import Footer from './Footer';
 import { Search, ChevronRight, Heart, ShoppingCart, Star, Filter } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../hooks/useAuth'; // Add this import
 import baseUrl from '../baseUrl';
 
 interface CategoryBrowsePageProps {
@@ -47,20 +46,18 @@ interface Category {
   subCategories: SubCategory[];
 }
 
-// Categories are now fetched from the API. Static sample data has been removed in favor of dynamic fetching.
-// See the fetching logic inside the CategoryBrowsePage component.
 const categoryData: Category[] = [];
 
 interface ProductCardProps {
   product: Product;
   isLiked: boolean;
+  isLoadingLike?: boolean;
   onToggleLike: () => void;
   onAddToCart: () => void;
 } 
 
-function ProductCard({ product, isLiked, onToggleLike, onAddToCart }: ProductCardProps) {
+function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, onAddToCart }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-
 
   return (
     <div
@@ -75,18 +72,25 @@ function ProductCard({ product, isLiked, onToggleLike, onAddToCart }: ProductCar
         </div>
       )}
 
-      {/* Like Button */}
+      {/* Like Button - Updated with loading state */}
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onToggleLike();
+          if (!isLoadingLike) {
+            onToggleLike();
+          }
         }}
         className={`absolute top-2 right-2 z-10 p-2 rounded-full transition-all duration-300 ${isLiked
           ? 'bg-red-500 text-white scale-110'
           : 'bg-white/80 text-gray-600 hover:bg-red-50 hover:text-red-500'
-          }`}
+          } ${isLoadingLike ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={isLoadingLike}
       >
-        <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+        {isLoadingLike ? (
+          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+        )}
       </button>
 
       {/* Product Image */}
@@ -159,8 +163,10 @@ export default function CategoryBrowsePage({
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [selectedSubCategoryIndex, setSelectedSubCategoryIndex] = useState(0);
   const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(likedProducts);
-
+  const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
+  
   const router = useRouter();
+  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Get auth status
 
   const handleNavigation = (path: string, callback?: () => void) => {
     router.push(path);
@@ -187,6 +193,23 @@ export default function CategoryBrowsePage({
     }
     return undefined;
   }; 
+
+  // Load liked products from localStorage on component mount
+  useEffect(() => {
+    const savedLikedProducts = localStorage.getItem('likedProducts');
+    if (savedLikedProducts) {
+      try {
+        setLocalLikedProducts(new Set(JSON.parse(savedLikedProducts)));
+      } catch (error) {
+        console.error('Error parsing liked products:', error);
+      }
+    }
+  }, []);
+
+  // Save liked products to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
+  }, [localLikedProducts]);
 
   useEffect(() => {
     const fetchMain = async () => {
@@ -372,6 +395,120 @@ export default function CategoryBrowsePage({
     }
   }; 
 
+  // API function for adding/removing favorites
+  const addToFavoritesAPI = useCallback(async (productId: string) => {
+    try {
+      setIsProcessingLike(productId);
+
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );  
+      
+      console.log(response);
+      
+      if (response.status === 401) {
+        return { success: false, requiresLogin: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        liked: data.liked,
+        message: data.message,
+        data: data.data,
+      };
+    } catch (err) {
+      console.error("Error adding to favorites:", err);
+      return { success: false, error: err };
+    } finally {
+      setIsProcessingLike(null);
+    }
+  }, []);
+
+  // Function to show login prompt
+  const showLoginPrompt = useCallback((productId: string) => {
+    // Store the product ID to like after login
+    sessionStorage.setItem('productToLikeAfterLogin', productId);
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+    
+    toast.error('Login Required', {
+      description: 'You need to login to add products to favorites',
+      action: {
+        label: 'Login',
+        onClick: () => {
+          router.push('/login');
+        },
+      },
+      duration: 5000,
+    });
+  }, [router]);
+
+  // Main like toggle handler
+  const handleToggleLike = async (productId: string) => {
+    // Check if user is logged in
+    // Note: You need to implement your auth check logic here
+    // const isLoggedIn = userIsLoggedIn; // Use your auth hook
+    
+    // For now, let's check if we have a token in localStorage
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const isLoggedIn = !!token || userIsLoggedIn;
+
+    if (!isLoggedIn) {
+      showLoginPrompt(productId);
+      return;
+    }
+
+    const isCurrentlyLiked = localLikedProducts.has(productId);
+
+    // Optimistic UI update
+    setLocalLikedProducts(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyLiked) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+
+    // Make API call
+    const result = await addToFavoritesAPI(productId);
+
+    if (!result.success) {
+      // Revert optimistic update on failure
+      setLocalLikedProducts(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.add(productId);
+        } else {
+          newSet.delete(productId);
+        }
+        return newSet;
+      });
+
+      if (result.requiresLogin) {
+        showLoginPrompt(productId);
+      } else {
+        toast.error('Failed to update favorites. Please try again.');
+      }
+    } else {
+      // Success - show appropriate message
+      if (result.liked) {
+        toast.success('Added to favorites!');
+      } else {
+        toast.info('Removed from favorites');
+      }
+    }
+  };
+
   // Derived UI categories matching previous structure (no products yet)
   const uiCategories: Category[] = categoriesApi.map(c => ({
     name: c.categoryName,
@@ -444,24 +581,6 @@ export default function CategoryBrowsePage({
     return [];
   }; 
 
-  const handleToggleLike = (productId: string) => {
-    if (onToggleLike) {
-      onToggleLike(productId);
-    } else {
-      setLocalLikedProducts(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(productId)) {
-          newSet.delete(productId);
-          toast.success('Removed from favorites');
-        } else {
-          newSet.add(productId);
-          toast.success('Added to favorites');
-        }
-        return newSet;
-      });
-    }
-  }; 
-
   const handleAddToCart = (productName: string) => {
     onCartCountChange(cartCount + 1);
     toast.success(`${productName} added to cart!`);
@@ -471,17 +590,11 @@ export default function CategoryBrowsePage({
     <div className="min-h-screen bg-gray-50 w-full px-0">
       <Toaster position="top-right" richColors />
 
-      {/* <Header
-        cartCount={cartCount}
-        searchQuery=""
-        onSearchChange={() => { }}
-        onCartClick={onCartClick || onBackToHome}
-        onFavoritesClick={onBackToHome}
-        favoritesCount={localLikedProducts.size}
-      /> */}
-
       <Navigation
         currentPage="category"
+        cartCount={cartCount}
+        favoritesCount={localLikedProducts.size}
+        onCartCountChange={onCartCountChange}
       />
 
       {/* Main Content */}
@@ -619,6 +732,7 @@ export default function CategoryBrowsePage({
                         key={product._id}
                         product={product}
                         isLiked={localLikedProducts.has(product._id)}
+                        isLoadingLike={isProcessingLike === product._id}
                         onToggleLike={() => handleToggleLike(product._id)}
                         onAddToCart={() => handleAddToCart(product.name)}
                       />
@@ -713,6 +827,7 @@ export default function CategoryBrowsePage({
                                       key={product._id}
                                       product={product}
                                       isLiked={localLikedProducts.has(product._id)}
+                                      isLoadingLike={isProcessingLike === product._id}
                                       onToggleLike={() => handleToggleLike(product._id)}
                                       onAddToCart={() => handleAddToCart(product.name)}
                                     />
@@ -751,8 +866,6 @@ export default function CategoryBrowsePage({
           </div>
         </div>
       </div>
-
-      {/* <Footer /> */}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {

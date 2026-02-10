@@ -16,12 +16,20 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   isLiked: boolean;
+  isLoadingLike?: boolean; // Add this
   onToggleLike: (id: string | number) => void;
   onAddToCart: () => void;
   onProductClick?: (productId: string | number) => void;
 }
 
-export default function ProductCard({ product, isLiked, onToggleLike, onAddToCart, onProductClick }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  isLiked,
+  isLoadingLike = false, // Add default value
+  onToggleLike,
+  onAddToCart,
+  onProductClick
+}: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -32,9 +40,12 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
   };
 
   const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
+    if (isLoadingLike) return;
     onToggleLike(product.id);
   };
+
+
 
   const handleCardClick = () => {
     if (onProductClick) {
@@ -55,6 +66,7 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
       onClick={handleCardClick}
       className="group border-2 border-transparent hover:border-blue-600 rounded-2xl p-3 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white cursor-pointer"
     >
+
       <div className="relative mb-3 overflow-hidden rounded-xl">
         <div className="aspect-square bg-gray-100 overflow-hidden">
           <img
@@ -83,18 +95,21 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
 
         {/* Like Button */}
         <button
-          onClick={handleLike}
-          className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200"
-          aria-label={isLiked ? "Unlike product" : "Like product"}
+          onClick={handleLike} // Use handleLike function here
+          className={`
+            absolute top-2 right-2 z-10 p-2 rounded-full transition-all duration-300 
+            ${isLiked
+              ? 'bg-red-500 text-white scale-110'
+              : 'bg-white/80 text-gray-600 hover:bg-red-50 hover:text-red-500'
+            }
+            ${isLoadingLike ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+          disabled={isLoadingLike}
         >
-          <Heart
-            className={`w-5 h-5 transition-all duration-300 ${isLiked
-                ? 'fill-blue-600 stroke-blue-600 scale-110'
-                : 'stroke-gray-600 group-hover:stroke-blue-600'
-              }`}
-          />
-          {isLiked && (
-            <span className="absolute inset-0 rounded-full bg-blue-600/20 animate-ping" />
+          {isLoadingLike ? (
+            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
           )}
         </button>
 
@@ -132,10 +147,10 @@ export default function ProductCard({ product, isLiked, onToggleLike, onAddToCar
           onClick={handleAddToCart}
           disabled={isAdding || isOutOfStock}
           className={`relative px-4 py-1.5 rounded-full font-medium text-sm transition-all duration-300 overflow-hidden ${isOutOfStock
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : isAdding
-                ? 'bg-green-600 text-white scale-95'
-                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:scale-105 active:scale-95'
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : isAdding
+              ? 'bg-green-600 text-white scale-95'
+              : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:scale-105 active:scale-95'
             }`}
         >
           <span className={`inline-block transition-all duration-300 ${isAdding ? 'opacity-0 scale-0' : 'opacity-100 scale-100'}`}>

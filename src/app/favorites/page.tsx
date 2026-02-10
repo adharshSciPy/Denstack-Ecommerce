@@ -6,6 +6,7 @@ import { toast, Toaster } from 'sonner';
 
 interface FavoritesPageProps {
     cartCount: number;
+    favoritesCount: number;
     onCartCountChange: (count: number) => void;
     onBackToHome: () => void;
     onCartClick?: () => void;
@@ -143,6 +144,7 @@ function FavoriteProductCard({
 
 export default function FavoritesPage({
     cartCount,
+    favoritesCount,
     onCartCountChange,
     onBackToHome,
     onCartClick,
@@ -228,6 +230,8 @@ export default function FavoritesPage({
             {/* Navigation */}
             <Navigation
                 currentPage="favorites"
+                cartCount={cartCount}
+                favoritesCount={favoritesCount ?? 0}
             />
 
             {/* Hero Section */}
