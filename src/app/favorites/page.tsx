@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Navigation from '../components/Navigation';
 import { Heart, ShoppingCart, Trash2, Star, Filter, ChevronDown, Loader2 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -7,21 +7,74 @@ import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import baseUrl from '../baseUrl';
 
-interface FavoritesPageProps {
-    cartCount: number;
-    favoritesCount: number;
-    onCartCountChange: (count: number) => void;
-    onBackToHome: () => void;
-    onCartClick?: () => void;
-    likedProducts?: Set<string>;
-    onToggleLike?: (productId: string | number) => void;
-    onBrandClick?: () => void;
-    onBuyingGuideClick?: () => void;
-    onEventsClick?: () => void;
-    onMembershipClick?: () => void;
-    onFreebiesClick?: () => void;
-    onBestSellerClick?: () => void;
-    onClinicSetupClick?: () => void;
+interface ApiFavoriteProduct {
+    _id: string; // This is the favoriteId
+    product: {
+        _id: string; // This is the productId
+        name: string;
+        description: string;
+        basePrice: number;
+        image: string[];
+        variants: Array<{
+            _id: string;
+            size: string;
+            color: string;
+            material: string;
+            originalPrice: number;
+            clinicDiscountPrice: number | null;
+            clinicDiscountPercentage: number | null;
+            doctorDiscountPrice: number | null;
+            doctorDiscountPercentage: number | null;
+            stock: number;
+        }>;
+        brand?: {
+            name: string;
+            brandId: string;
+        };
+        mainCategory?: {
+            categoryName: string;
+            mainCategoryId: string;
+        };
+        subCategory?: {
+            categoryName: string;
+            subCategoryId: string;
+        };
+        status: string;
+        productId: string;
+        createdAt: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface FormattedProduct {
+    id: string; // This is the favoriteId
+    favoriteId: string; // Added this field to store the favorite ID
+    productId: string;
+    name: string;
+    price: string;
+    originalPrice?: string;
+    discountPercentage?: number;
+    image: string;
+    rating: number;
+    category: string;
+    brand?: string;
+    inStock: boolean;
+    createdAt: string;
+    variants: Array<{
+        _id: string;
+        size: string;
+        color: string;
+        material: string;
+        originalPrice: number;
+        clinicDiscountPrice: number | null;
+        clinicDiscountPercentage: number | null;
+        doctorDiscountPrice: number | null;
+        doctorDiscountPercentage: number | null;
+        stock: number;
+    }>;
+    numericPrice: number;
+    numericOriginalPrice: number;
 }
 
 interface FavoriteProductCardProps {
@@ -36,6 +89,7 @@ interface FavoriteProductCardProps {
     brand?: string;
     inStock: boolean;
     productId: string;
+    favoriteId: string; // Added this prop
     isLoadingLike?: boolean;
     onRemove: () => void;
     onAddToCart: () => void;
@@ -53,6 +107,7 @@ function FavoriteProductCard({
     brand,
     inStock,
     productId,
+    favoriteId,
     isLoadingLike = false,
     onRemove,
     onAddToCart,
@@ -202,89 +257,7 @@ function FavoriteProductCard({
     );
 }
 
-interface ApiFavoriteProduct {
-    _id: string;
-    product: {
-        _id: string;
-        name: string;
-        description: string;
-        basePrice: number;
-        image: string[];
-        variants: Array<{
-            _id: string;
-            size: string;
-            color: string;
-            material: string;
-            originalPrice: number;
-            clinicDiscountPrice: number | null;
-            clinicDiscountPercentage: number | null;
-            doctorDiscountPrice: number | null;
-            doctorDiscountPercentage: number | null;
-            stock: number;
-        }>;
-        brand?: {
-            name: string;
-            brandId: string;
-        };
-        mainCategory?: {
-            categoryName: string;
-            mainCategoryId: string;
-        };
-        subCategory?: {
-            categoryName: string;
-            subCategoryId: string;
-        };
-        status: string;
-        productId: string;
-        createdAt: string;
-    };
-    createdAt: string;
-    updatedAt: string;
-}
-
-interface FormattedProduct {
-    id: string;
-    productId: string;
-    name: string;
-    price: string;
-    originalPrice?: string;
-    discountPercentage?: number;
-    image: string;
-    rating: number;
-    category: string;
-    brand?: string;
-    inStock: boolean;
-    createdAt: string;
-    variants: Array<{
-        _id: string;
-        size: string;
-        color: string;
-        material: string;
-        originalPrice: number;
-        clinicDiscountPrice: number | null;
-        clinicDiscountPercentage: number | null;
-        doctorDiscountPrice: number | null;
-        doctorDiscountPercentage: number | null;
-        stock: number;
-    }>;
-}
-
-export default function FavoritesPage({
-    cartCount,
-    favoritesCount,
-    onCartCountChange,
-    onBackToHome,
-    onCartClick,
-    likedProducts: externalLikedProducts,
-    onToggleLike: externalOnToggleLike,
-    onBrandClick,
-    onBuyingGuideClick,
-    onEventsClick,
-    onMembershipClick,
-    onFreebiesClick,
-    onBestSellerClick,
-    onClinicSetupClick
-}: FavoritesPageProps) {
+export default function FavoritesPage() {
     const [sortBy, setSortBy] = useState('Recently Added');
     const [filterCategory, setFilterCategory] = useState('All Categories');
     const [showSortFilter, setShowSortFilter] = useState(false);
@@ -296,17 +269,43 @@ export default function FavoritesPage({
     const [error, setError] = useState<string | null>(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     
+    // Filter states
+    const [filterBrand, setFilterBrand] = useState('All Brands');
+    const [showBrandFilter, setShowBrandFilter] = useState(false);
+    const [showInStockOnly, setShowInStockOnly] = useState(false);
+    const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+    const [availablePriceRange, setAvailablePriceRange] = useState<[number, number]>([0, 100000]);
+    
     const router = useRouter();
     const { isLoggedIn: userIsLoggedIn } = useAuth();
 
     const sortOptions = ['Recently Added', 'Price: Low to High', 'Price: High to Low', 'Highest Rated', 'Name: A-Z'];
-    const categories = ['All Categories', 'Dental Chairs', 'Instruments', 'Equipment', 'Consumables', 'Sterilization'];
+    
+    // Generate categories and brands from data
+    const categories = useMemo(() => {
+        const allCategories = ['All Categories'];
+        favoriteProducts.forEach(product => {
+            if (product.category && !allCategories.includes(product.category)) {
+                allCategories.push(product.category);
+            }
+        });
+        return allCategories.sort();
+    }, [favoriteProducts]);
+    
+    const brands = useMemo(() => {
+        const allBrands = ['All Brands'];
+        favoriteProducts.forEach(product => {
+            if (product.brand && !allBrands.includes(product.brand)) {
+                allBrands.push(product.brand);
+            }
+        });
+        return allBrands.sort();
+    }, [favoriteProducts]);
 
-    // Use refs to prevent infinite re-renders
     const hasFetchedRef = useRef(false);
     const initialLikedProductsLoadedRef = useRef(false);
 
-    // Load liked products from localStorage on component mount - only once
+    // Load liked products from localStorage
     useEffect(() => {
         if (initialLikedProductsLoadedRef.current) return;
         
@@ -321,24 +320,21 @@ export default function FavoritesPage({
         initialLikedProductsLoadedRef.current = true;
     }, []);
 
-    // Save liked products to localStorage when they change
+    // Save liked products to localStorage
     useEffect(() => {
         localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
     }, [localLikedProducts]);
 
-    // Use external likedProducts if provided, otherwise use local state
-    const likedProducts = externalLikedProducts || localLikedProducts;
+    const likedProducts = localLikedProducts;
 
-    // Fetch favorite products from API - fixed to prevent infinite loops
+    // Fetch favorite products from API
     const fetchFavoriteProducts = useCallback(async () => {
-        // Prevent multiple calls
         if (hasFetchedRef.current && !isInitialLoad) return;
         
         try {
             setLoading(true);
             setError(null);
             
-            // Check if user is logged in
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             if (!token && !userIsLoggedIn) {
                 setError('Please login to view favorites');
@@ -367,7 +363,6 @@ export default function FavoritesPage({
             }
 
             const data = await response.json();
-            console.log('Favorites API response:', data);
 
             if (data.success && Array.isArray(data.data)) {
                 const formattedProducts: FormattedProduct[] = data.data.map((item: ApiFavoriteProduct) => {
@@ -390,15 +385,16 @@ export default function FavoritesPage({
                         : 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
                     
                     // Check stock
-                    const totalStock = product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
+                    const totalStock = product.variants?.reduce((sum: number, variant: any) => sum + (variant.stock || 0), 0) || 0;
                     const inStock = totalStock > 0;
                     
-                    // Generate consistent rating from product ID
-                    const hash = product._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                    const rating = 3 + (hash % 3); // Returns 3, 4, or 5 consistently
+                    // Generate consistent rating
+                    const hash = product._id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+                    const rating = 3 + (hash % 3);
 
                     return {
                         id: item._id,
+                        favoriteId: item._id, // Store the favorite ID
                         productId: product._id,
                         name: product.name,
                         price: `₹${bestPrice.toFixed(2)}`,
@@ -410,13 +406,15 @@ export default function FavoritesPage({
                         brand: product.brand?.name,
                         inStock,
                         createdAt: item.createdAt,
-                        variants: product.variants || []
+                        variants: product.variants || [],
+                        numericPrice: bestPrice,
+                        numericOriginalPrice: originalPriceValue
                     };
                 });
 
                 setFavoriteProducts(formattedProducts);
-                
-                // Update local liked products set without triggering re-fetch
+                                
+                // Update liked products
                 const likedIds = formattedProducts.map(p => p.productId);
                 setLocalLikedProducts(prev => {
                     const newSet = new Set(prev);
@@ -436,19 +434,58 @@ export default function FavoritesPage({
             setLoading(false);
             setIsInitialLoad(false);
         }
-    }, [router, userIsLoggedIn]); // Removed localLikedProducts from dependencies
+    }, [router, userIsLoggedIn]);
 
-    // Load favorite products on component mount - only once
+    // Load favorite products on component mount
     useEffect(() => {
         fetchFavoriteProducts();
         
-        // Cleanup function
         return () => {
             hasFetchedRef.current = false;
         };
     }, [fetchFavoriteProducts]);
 
-    // API function for adding/removing favorites
+    // NEW: API function for removing favorites by favoriteId
+    const removeFavoriteByIdAPI = useCallback(async (favoriteId: string) => {
+        try {
+            setIsProcessingLike(favoriteId);
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+            const response = await fetch(
+                `${baseUrl.INVENTORY}/api/v1/product/favorites/remove/${favoriteId}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: "include",
+                }
+            );  
+            
+            if (response.status === 401) {
+                return { success: false, requiresLogin: true };
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return {
+                success: true,
+                message: data.message,
+                productId: data.data?.productId,
+            };
+        } catch (err) {
+            console.error("Error removing favorite by ID:", err);
+            return { success: false, error: err };
+        } finally {
+            setIsProcessingLike(null);
+        }
+    }, []);
+
+    // OLD: API function for adding/removing favorites (still used for toggle)
     const addToFavoritesAPI = useCallback(async (productId: string) => {
         try {
             setIsProcessingLike(productId);
@@ -501,11 +538,10 @@ export default function FavoritesPage({
         });
     }, [router]);
 
-    // Main like toggle handler
-    const handleToggleLike = async (productId: string | number) => {
+    // Main like toggle handler - UPDATED to use removeFavoriteByIdAPI
+    const handleToggleLike = async (productId: string | number, favoriteId?: string) => {
         const productIdStr = String(productId);
         
-        // Check if user is logged in
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const isLoggedIn = !!token || userIsLoggedIn;
 
@@ -516,12 +552,51 @@ export default function FavoritesPage({
 
         const isCurrentlyLiked = likedProducts.has(productIdStr);
 
-        // If external handler is provided, use it
-        if (externalOnToggleLike) {
-            externalOnToggleLike(productId);
+        // If we have a favoriteId (from the favorites page), use the DELETE endpoint
+        if (favoriteId && isCurrentlyLiked) {
+            // Optimistic UI update
+            setLocalLikedProducts(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(productIdStr);
+                return newSet;
+            });
+
+            // Remove from favorites list immediately
+            setFavoriteProducts(prev => prev.filter(p => p.favoriteId !== favoriteId));
+
+            // Make DELETE API call
+            const result = await removeFavoriteByIdAPI(favoriteId);
+
+            if (!result.success) {
+                // Revert optimistic update on failure
+                setLocalLikedProducts(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(productIdStr);
+                    return newSet;
+                });
+
+                // Re-fetch to restore the product
+                hasFetchedRef.current = false;
+                fetchFavoriteProducts();
+
+                if (result.requiresLogin) {
+                    showLoginPrompt(productIdStr);
+                } else {
+                    toast.error('Failed to remove from favorites. Please try again.');
+                }
+            } else {
+                toast.success('Removed from favorites');
+                // Update local liked products
+                setLocalLikedProducts(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(productIdStr);
+                    return newSet;
+                });
+            }
             return;
         }
 
+        // For adding or when no favoriteId is provided, use the toggle endpoint
         // Optimistic UI update for local state
         setLocalLikedProducts(prev => {
             const newSet = new Set(prev);
@@ -533,12 +608,12 @@ export default function FavoritesPage({
             return newSet;
         });
 
-        // Remove from favorites list immediately
+        // Remove from favorites list immediately if removing
         if (isCurrentlyLiked) {
             setFavoriteProducts(prev => prev.filter(p => p.productId !== productIdStr));
         }
 
-        // Make API call
+        // Make API call to toggle favorite
         const result = await addToFavoritesAPI(productIdStr);
 
         if (!result.success) {
@@ -565,10 +640,8 @@ export default function FavoritesPage({
                 toast.error('Failed to update favorites. Please try again.');
             }
         } else {
-            // Success - show appropriate message
             if (result.liked) {
                 toast.success('Added to favorites!');
-                // Re-fetch to get the updated list
                 hasFetchedRef.current = false;
                 fetchFavoriteProducts();
             } else {
@@ -577,48 +650,39 @@ export default function FavoritesPage({
         }
     };
 
+    // NEW: Specific handler for removing from favorites page (with favoriteId)
+    const handleRemoveFavorite = async (favoriteId: string, productId: string) => {
+        await handleToggleLike(productId, favoriteId);
+    };
+
     const handleAddToCart = (productName: string) => {
-        onCartCountChange(cartCount + 1);
+        // This would typically update a global cart state
         toast.success('🎉 Added to cart!', {
             description: `${productName.slice(0, 40)}...`,
             duration: 2000,
         });
     };
 
-    const handleAddAllToCart = () => {
-        const inStockCount = favoriteProducts.filter((p: FormattedProduct) => p.inStock).length;
+    // const handleAddAllToCart = () => {
+    //     const inStockCount = favoriteProducts.filter((p: FormattedProduct) => p.inStock).length;
 
-        if (inStockCount > 0) {
-            onCartCountChange(cartCount + inStockCount);
-            toast.success(`🎉 Added ${inStockCount} items to cart!`);
-        } else {
-            toast.error('No items in stock to add');
-        }
-    };
-
-    const handleClearAll = async () => {
-        if (window.confirm('Are you sure you want to remove all favorites?')) {
-            try {
-                // Optimistically clear all
-                setFavoriteProducts([]);
-                setLocalLikedProducts(new Set());
-                
-                // Remove from localStorage
-                localStorage.removeItem('likedProducts');
-                
-                toast.success('All favorites cleared');
-            } catch (error) {
-                console.error('Error clearing favorites:', error);
-                toast.error('Failed to clear favorites');
-                // Re-fetch to restore state
-                hasFetchedRef.current = false;
-                fetchFavoriteProducts();
-            }
-        }
-    };
+    //     if (inStockCount > 0) {
+    //         toast.success(`🎉 Added ${inStockCount} items to cart!`);
+    //     } else {
+    //         toast.error('No items in stock to add');
+    //     }
+    // };
 
     const handleProductClick = (productId: string) => {
         router.push(`/productdetailpage/${productId}`);
+    };
+
+    // Reset all filters
+    const resetFilters = () => {
+        setFilterCategory('All Categories');
+        setFilterBrand('All Brands');
+        setShowInStockOnly(false);
+        setPriceRange(availablePriceRange);
     };
 
     // Apply filtering and sorting
@@ -630,20 +694,22 @@ export default function FavoritesPage({
             filtered = filtered.filter(product => product.category === filterCategory);
         }
 
+        // Apply brand filter
+        if (filterBrand !== 'All Brands') {
+            filtered = filtered.filter(product => product.brand === filterBrand);
+        }
+
+        // Apply stock filter
+        if (showInStockOnly) {
+            filtered = filtered.filter(product => product.inStock);
+        }
+
         // Apply sorting
         switch (sortBy) {
             case 'Price: Low to High':
-                return filtered.sort((a, b) => {
-                    const priceA = parseFloat(a.price.replace('₹', '').replace(',', ''));
-                    const priceB = parseFloat(b.price.replace('₹', '').replace(',', ''));
-                    return priceA - priceB;
-                });
+                return filtered.sort((a, b) => a.numericPrice - b.numericPrice);
             case 'Price: High to Low':
-                return filtered.sort((a, b) => {
-                    const priceA = parseFloat(a.price.replace('₹', '').replace(',', ''));
-                    const priceB = parseFloat(b.price.replace('₹', '').replace(',', ''));
-                    return priceB - priceA;
-                });
+                return filtered.sort((a, b) => b.numericPrice - a.numericPrice);
             case 'Highest Rated':
                 return filtered.sort((a, b) => b.rating - a.rating);
             case 'Name: A-Z':
@@ -652,18 +718,19 @@ export default function FavoritesPage({
             default:
                 return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
-    }, [favoriteProducts, filterCategory, sortBy]);
+    }, [favoriteProducts, filterCategory, filterBrand, priceRange, showInStockOnly, sortBy]);
 
     const filteredProducts = getFilteredAndSortedProducts();
 
+    // Loading state
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50">
                 <Navigation
                     currentPage="favorites"
-                    cartCount={cartCount}
-                    favoritesCount={favoritesCount ?? 0}
-                    onCartCountChange={onCartCountChange}
+                    cartCount={0}
+                    favoritesCount={likedProducts.size}
+                    onCartCountChange={() => {}}
                 />
                 <div className="flex items-center justify-center h-[60vh]">
                     <div className="text-center">
@@ -675,14 +742,15 @@ export default function FavoritesPage({
         );
     }
 
+    // Error state
     if (error) {
         return (
             <div className="min-h-screen bg-gray-50">
                 <Navigation
                     currentPage="favorites"
-                    cartCount={cartCount}
-                    favoritesCount={favoritesCount ?? 0}
-                    onCartCountChange={onCartCountChange}
+                    cartCount={0}
+                    favoritesCount={likedProducts.size}
+                    onCartCountChange={() => {}}
                 />
                 <div className="flex items-center justify-center h-[60vh]">
                     <div className="text-center">
@@ -720,9 +788,9 @@ export default function FavoritesPage({
             {/* Navigation */}
             <Navigation
                 currentPage="favorites"
-                cartCount={cartCount}
+                cartCount={0}
                 favoritesCount={likedProducts.size}
-                onCartCountChange={onCartCountChange}
+                onCartCountChange={() => {}}
             />
 
             {/* Hero Section */}
@@ -739,7 +807,7 @@ export default function FavoritesPage({
                             </p>
                         </div>
 
-                        {filteredProducts.length > 0 && (
+                        {/* {filteredProducts.length > 0 && (
                             <div className="flex gap-3">
                                 <button
                                     onClick={handleAddAllToCart}
@@ -748,21 +816,14 @@ export default function FavoritesPage({
                                     <ShoppingCart className="w-5 h-5" />
                                     Add All to Cart
                                 </button>
-                                <button
-                                    onClick={handleClearAll}
-                                    className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                    Clear All
-                                </button>
                             </div>
-                        )}
+                        )} */}
                     </div>
                 </div>
             </div>
 
             {/* Empty State */}
-            {filteredProducts.length === 0 && (
+            {filteredProducts.length === 0 && favoriteProducts.length === 0 ? (
                 <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-20">
                     <div className="bg-white rounded-3xl shadow-2xl p-12 md:p-16 text-center animate-fade-in">
                         <Heart className="w-24 h-24 text-gray-300 mx-auto mb-6" />
@@ -771,14 +832,30 @@ export default function FavoritesPage({
                             Start adding products to your favorites by clicking the heart icon on any product
                         </p>
                         <button
-                            onClick={onBackToHome}
+                            onClick={() => router.push('/')}
                             className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-all hover:shadow-xl hover:scale-105 active:scale-95"
                         >
                             Continue Shopping
                         </button>
                     </div>
                 </div>
-            )}
+            ) : filteredProducts.length === 0 ? (
+                <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-20">
+                    <div className="bg-white rounded-3xl shadow-2xl p-12 md:p-16 text-center animate-fade-in">
+                        <Heart className="w-24 h-24 text-gray-300 mx-auto mb-6" />
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">No Products Match Your Filters</h2>
+                        <p className="text-gray-600 text-lg mb-8">
+                            Try adjusting your filters to see more products
+                        </p>
+                        <button
+                            onClick={resetFilters}
+                            className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+                        >
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
+            ) : null}
 
             {/* Filters & Products */}
             {filteredProducts.length > 0 && (
@@ -786,68 +863,117 @@ export default function FavoritesPage({
                     {/* Filters Section */}
                     <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 mt-8 mb-6">
                         <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-                            <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                                 <div className="flex items-center gap-3">
                                     <Filter className="w-5 h-5 text-gray-600" />
                                     <span className="text-gray-700 font-semibold text-sm md:text-base">FILTER & SORT</span>
                                 </div>
 
-                                <div className="flex gap-3 flex-wrap">
-                                    {/* Category Filter */}
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-                                            className="px-4 py-2.5 border-2 border-gray-300 rounded-xl text-gray-900 font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
-                                        >
-                                            <span>{filterCategory}</span>
-                                            <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryFilter ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        {showCategoryFilter && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl z-20 min-w-[200px]">
-                                                {categories.map((category) => (
-                                                    <button
-                                                        key={category}
-                                                        onClick={() => {
-                                                            setFilterCategory(category);
-                                                            setShowCategoryFilter(false);
-                                                        }}
-                                                        className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${filterCategory === category ? 'bg-blue-100 font-semibold' : ''
-                                                            }`}
-                                                    >
-                                                        {category}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                <button
+                                    onClick={resetFilters}
+                                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 font-medium"
+                                >
+                                    Reset Filters
+                                </button>
+                            </div>
 
-                                    {/* Sort By */}
+                            <div className="flex flex-wrap gap-3 mb-4">
+                                {/* Category Filter */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                                        className="px-4 py-2.5 border-2 border-gray-300 rounded-xl text-gray-900 font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
+                                    >
+                                        <span>{filterCategory}</span>
+                                        <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryFilter ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showCategoryFilter && (
+                                        <div className="absolute top-full left-0 mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl z-20 min-w-[200px] max-h-60 overflow-y-auto">
+                                            {categories.map((category) => (
+                                                <button
+                                                    key={category}
+                                                    onClick={() => {
+                                                        setFilterCategory(category);
+                                                        setShowCategoryFilter(false);
+                                                    }}
+                                                    className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${filterCategory === category ? 'bg-blue-100 font-semibold' : ''
+                                                        }`}
+                                                >
+                                                    {category}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Brand Filter */}
+                                {brands.length > 1 && (
                                     <div className="relative">
                                         <button
-                                            onClick={() => setShowSortFilter(!showSortFilter)}
+                                            onClick={() => setShowBrandFilter(!showBrandFilter)}
                                             className="px-4 py-2.5 border-2 border-gray-300 rounded-xl text-gray-900 font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
                                         >
-                                            <span>Sort: {sortBy}</span>
-                                            <ChevronDown className={`w-4 h-4 transition-transform ${showSortFilter ? 'rotate-180' : ''}`} />
+                                            <span>{filterBrand}</span>
+                                            <ChevronDown className={`w-4 h-4 transition-transform ${showBrandFilter ? 'rotate-180' : ''}`} />
                                         </button>
-                                        {showSortFilter && (
-                                            <div className="absolute top-full right-0 mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl z-20 min-w-[220px]">
-                                                {sortOptions.map((option) => (
+                                        {showBrandFilter && (
+                                            <div className="absolute top-full left-0 mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl z-20 min-w-[200px] max-h-60 overflow-y-auto">
+                                                {brands.map((brand) => (
                                                     <button
-                                                        key={option}
+                                                        key={brand}
                                                         onClick={() => {
-                                                            setSortBy(option);
-                                                            setShowSortFilter(false);
+                                                            setFilterBrand(brand);
+                                                            setShowBrandFilter(false);
                                                         }}
-                                                        className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${sortBy === option ? 'bg-blue-100 font-semibold' : ''
+                                                        className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${filterBrand === brand ? 'bg-blue-100 font-semibold' : ''
                                                             }`}
                                                     >
-                                                        {option}
+                                                        {brand}
                                                     </button>
                                                 ))}
                                             </div>
                                         )}
                                     </div>
+                                )}
+
+                                {/* Stock Filter */}
+                                <button
+                                    onClick={() => setShowInStockOnly(!showInStockOnly)}
+                                    className={`px-4 py-2.5 border-2 rounded-xl font-medium text-sm transition-colors flex items-center gap-2 ${showInStockOnly
+                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                        : 'border-gray-300 text-gray-900 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <div className={`w-3 h-3 rounded-full ${showInStockOnly ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                    In Stock Only
+                                </button>
+
+                                {/* Sort By */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowSortFilter(!showSortFilter)}
+                                        className="px-4 py-2.5 border-2 border-gray-300 rounded-xl text-gray-900 font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
+                                    >
+                                        <span>Sort: {sortBy}</span>
+                                        <ChevronDown className={`w-4 h-4 transition-transform ${showSortFilter ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showSortFilter && (
+                                        <div className="absolute top-full right-0 mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl z-20 min-w-[220px]">
+                                            {sortOptions.map((option) => (
+                                                <button
+                                                    key={option}
+                                                    onClick={() => {
+                                                        setSortBy(option);
+                                                        setShowSortFilter(false);
+                                                    }}
+                                                    className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${sortBy === option ? 'bg-blue-100 font-semibold' : ''
+                                                        }`}
+                                                >
+                                                    {option}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -860,6 +986,10 @@ export default function FavoritesPage({
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                                     <span>{filteredProducts.filter(p => !p.inStock).length} Out of Stock</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    <span>{filteredProducts.length} Products</span>
                                 </div>
                             </div>
                         </div>
@@ -879,8 +1009,9 @@ export default function FavoritesPage({
                                 >
                                     <FavoriteProductCard
                                         {...product}
-                                        isLoadingLike={isProcessingLike === product.productId}
-                                        onRemove={() => handleToggleLike(product.productId)}
+                                        favoriteId={product.favoriteId} // Pass the favoriteId
+                                        isLoadingLike={isProcessingLike === product.favoriteId}
+                                        onRemove={() => handleRemoveFavorite(product.favoriteId, product.productId)}
                                         onAddToCart={() => handleAddToCart(product.name)}
                                         onProductClick={() => handleProductClick(product.productId)}
                                     />
