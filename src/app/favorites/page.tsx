@@ -1,8 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Navigation from '../components/Navigation';
-import { Heart, ShoppingCart, Trash2, Star, Filter, ChevronDown } from 'lucide-react';
+import { Heart, ShoppingCart, Trash2, Star, Filter, ChevronDown, Loader2 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import baseUrl from '../baseUrl';
 
 interface FavoritesPageProps {
     cartCount: number;
@@ -10,9 +13,8 @@ interface FavoritesPageProps {
     onCartCountChange: (count: number) => void;
     onBackToHome: () => void;
     onCartClick?: () => void;
-    likedProducts: Set<string>;
-    // Accept string|number for flexibility with different product id types
-    onToggleLike: (productId: string | number) => void;
+    likedProducts?: Set<string>;
+    onToggleLike?: (productId: string | number) => void;
     onBrandClick?: () => void;
     onBuyingGuideClick?: () => void;
     onEventsClick?: () => void;
@@ -23,50 +25,93 @@ interface FavoritesPageProps {
 }
 
 interface FavoriteProductCardProps {
-    id: number;
+    id: string;
     name: string;
     price: string;
+    originalPrice?: string;
+    discountPercentage?: number;
     image: string;
     rating: number;
     category: string;
+    brand?: string;
     inStock: boolean;
+    productId: string;
+    isLoadingLike?: boolean;
     onRemove: () => void;
     onAddToCart: () => void;
+    onProductClick?: () => void;
 }
 
 function FavoriteProductCard({
     name,
     price,
+    originalPrice,
+    discountPercentage,
     image,
     rating,
     category,
+    brand,
     inStock,
+    productId,
+    isLoadingLike = false,
     onRemove,
-    onAddToCart
+    onAddToCart,
+    onProductClick
 }: FavoriteProductCardProps) {
     const [isHovered, setIsHovered] = useState(false);
 
+    const handleCardClick = () => {
+        if (onProductClick) {
+            onProductClick();
+        }
+    };
+
     return (
         <div
-            className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-red-400 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] animate-fade-in"
+            className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-red-400 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] animate-fade-in cursor-pointer"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onClick={handleCardClick}
         >
-            {/* Remove Button */}
+            {/* Remove Button with loading state */}
             <button
                 onClick={(e) => {
                     e.stopPropagation();
-                    onRemove();
+                    if (!isLoadingLike) {
+                        onRemove();
+                    }
                 }}
-                className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white flex items-center justify-center transition-all duration-300 shadow-lg text-red-500 hover:bg-red-500 hover:text-white hover:scale-110"
+                className={`absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white flex items-center justify-center transition-all duration-300 shadow-lg ${isLoadingLike
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'text-red-500 hover:bg-red-500 hover:text-white hover:scale-110'
+                    }`}
+                disabled={isLoadingLike}
             >
-                <Trash2 className="w-5 h-5" />
+                {isLoadingLike ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+                ) : (
+                    <Trash2 className="w-5 h-5" />
+                )}
             </button>
 
             {/* Category Badge */}
             <div className="absolute top-3 left-3 z-10 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
                 {category}
             </div>
+
+            {/* Brand Badge */}
+            {brand && (
+                <div className="absolute top-14 left-3 z-10 bg-purple-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                    {brand}
+                </div>
+            )}
+
+            {/* Discount Badge */}
+            {discountPercentage && discountPercentage > 0 && (
+                <div className="absolute top-3 right-16 z-10 bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
+                    {discountPercentage}% OFF
+                </div>
+            )}
 
             {/* Stock Status */}
             {!inStock && (
@@ -82,6 +127,9 @@ function FavoriteProductCard({
                     alt={name}
                     className={`w-full h-full object-contain transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
                         } ${!inStock ? 'opacity-50' : ''}`}
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
+                    }}
                 />
                 {!inStock && (
                     <div className="absolute inset-0 bg-gray-900/20 flex items-center justify-center">
@@ -114,24 +162,36 @@ function FavoriteProductCard({
                 </h3>
 
                 {/* Price */}
-                <p className="text-blue-600 font-bold text-lg mb-3">{price}</p>
+                <div className="mb-3">
+                    {originalPrice && (
+                        <p className="text-gray-400 line-through text-sm">
+                            {originalPrice}
+                        </p>
+                    )}
+                    <p className="text-blue-600 font-bold text-lg">{price}</p>
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
                     <button
-                        onClick={onAddToCart}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (inStock) {
+                                onAddToCart();
+                            }
+                        }}
                         disabled={!inStock}
                         className={`
-              flex-1 py-2.5 px-4 rounded-xl font-bold text-sm
-              transition-all duration-300 flex items-center justify-center gap-2
-              ${inStock
+                            flex-1 py-2.5 px-4 rounded-xl font-bold text-sm
+                            transition-all duration-300 flex items-center justify-center gap-2
+                            ${inStock
                                 ? isHovered
                                     ? 'bg-blue-700 text-white shadow-xl translate-y-[-2px]'
                                     : 'bg-blue-600 text-white shadow-lg'
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }
-              hover:shadow-2xl active:scale-95 disabled:scale-100 disabled:translate-y-0
-            `}
+                            hover:shadow-2xl active:scale-95 disabled:scale-100 disabled:translate-y-0
+                        `}
                     >
                         <ShoppingCart className="w-4 h-4" />
                         {inStock ? 'Add to Cart' : 'Out of Stock'}
@@ -142,14 +202,81 @@ function FavoriteProductCard({
     );
 }
 
+interface ApiFavoriteProduct {
+    _id: string;
+    product: {
+        _id: string;
+        name: string;
+        description: string;
+        basePrice: number;
+        image: string[];
+        variants: Array<{
+            _id: string;
+            size: string;
+            color: string;
+            material: string;
+            originalPrice: number;
+            clinicDiscountPrice: number | null;
+            clinicDiscountPercentage: number | null;
+            doctorDiscountPrice: number | null;
+            doctorDiscountPercentage: number | null;
+            stock: number;
+        }>;
+        brand?: {
+            name: string;
+            brandId: string;
+        };
+        mainCategory?: {
+            categoryName: string;
+            mainCategoryId: string;
+        };
+        subCategory?: {
+            categoryName: string;
+            subCategoryId: string;
+        };
+        status: string;
+        productId: string;
+        createdAt: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface FormattedProduct {
+    id: string;
+    productId: string;
+    name: string;
+    price: string;
+    originalPrice?: string;
+    discountPercentage?: number;
+    image: string;
+    rating: number;
+    category: string;
+    brand?: string;
+    inStock: boolean;
+    createdAt: string;
+    variants: Array<{
+        _id: string;
+        size: string;
+        color: string;
+        material: string;
+        originalPrice: number;
+        clinicDiscountPrice: number | null;
+        clinicDiscountPercentage: number | null;
+        doctorDiscountPrice: number | null;
+        doctorDiscountPercentage: number | null;
+        stock: number;
+    }>;
+}
+
 export default function FavoritesPage({
     cartCount,
     favoritesCount,
     onCartCountChange,
     onBackToHome,
     onCartClick,
-    likedProducts,
-    onToggleLike,
+    likedProducts: externalLikedProducts,
+    onToggleLike: externalOnToggleLike,
     onBrandClick,
     onBuyingGuideClick,
     onEventsClick,
@@ -162,31 +289,292 @@ export default function FavoritesPage({
     const [filterCategory, setFilterCategory] = useState('All Categories');
     const [showSortFilter, setShowSortFilter] = useState(false);
     const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+    const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
+    const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(new Set());
+    const [favoriteProducts, setFavoriteProducts] = useState<FormattedProduct[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    
+    const router = useRouter();
+    const { isLoggedIn: userIsLoggedIn } = useAuth();
 
     const sortOptions = ['Recently Added', 'Price: Low to High', 'Price: High to Low', 'Highest Rated', 'Name: A-Z'];
     const categories = ['All Categories', 'Dental Chairs', 'Instruments', 'Equipment', 'Consumables', 'Sterilization'];
 
-    const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
+    // Use refs to prevent infinite re-renders
+    const hasFetchedRef = useRef(false);
+    const initialLikedProductsLoadedRef = useRef(false);
 
-    // Generate favorite products based on liked IDs
+    // Load liked products from localStorage on component mount - only once
     useEffect(() => {
-        const products = Array.from({ length: 12 }, (_, i) => ({
-            id: i + 1,
-            name: `${['Rovena Riva Series', 'Premium Dental', 'Professional', 'Elite Medical', 'Advanced'][i % 5]} ${i + 1} Pcs. Wide Seating Claret Red Chair`,
-            price: `$${(789 + i * 50).toFixed(2)}`,
-            image: "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400",
-            rating: Math.floor(Math.random() * 2) + 4,
-            category: categories[Math.floor(Math.random() * (categories.length - 1)) + 1],
-            inStock: Math.random() > 0.2,
-        }));
-
-        setFavoriteProducts(products);
+        if (initialLikedProductsLoadedRef.current) return;
+        
+        const savedLikedProducts = localStorage.getItem('likedProducts');
+        if (savedLikedProducts) {
+            try {
+                setLocalLikedProducts(new Set(JSON.parse(savedLikedProducts)));
+            } catch (error) {
+                console.error('Error parsing liked products:', error);
+            }
+        }
+        initialLikedProductsLoadedRef.current = true;
     }, []);
 
+    // Save liked products to localStorage when they change
+    useEffect(() => {
+        localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
+    }, [localLikedProducts]);
 
-    const handleRemove = (productId: number) => {
-        onToggleLike(String(productId));
-        toast.success('Removed from favorites');
+    // Use external likedProducts if provided, otherwise use local state
+    const likedProducts = externalLikedProducts || localLikedProducts;
+
+    // Fetch favorite products from API - fixed to prevent infinite loops
+    const fetchFavoriteProducts = useCallback(async () => {
+        // Prevent multiple calls
+        if (hasFetchedRef.current && !isInitialLoad) return;
+        
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Check if user is logged in
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!token && !userIsLoggedIn) {
+                setError('Please login to view favorites');
+                setLoading(false);
+                setIsInitialLoad(false);
+                return;
+            }
+
+            const response = await fetch(`${baseUrl.INVENTORY}/api/v1/product/favorites`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+
+            if (response.status === 401) {
+                setError('Session expired. Please login again.');
+                router.push('/login');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch favorites: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Favorites API response:', data);
+
+            if (data.success && Array.isArray(data.data)) {
+                const formattedProducts: FormattedProduct[] = data.data.map((item: ApiFavoriteProduct) => {
+                    const product = item.product;
+                    const firstVariant = product.variants?.[0];
+                    
+                    // Calculate price
+                    const bestPrice = firstVariant?.doctorDiscountPrice || 
+                                     firstVariant?.clinicDiscountPrice || 
+                                     firstVariant?.originalPrice || 
+                                     product.basePrice || 0;
+                    
+                    const originalPriceValue = firstVariant?.originalPrice || product.basePrice || 0;
+                    const discountPercentage = firstVariant?.doctorDiscountPercentage || 
+                                              firstVariant?.clinicDiscountPercentage || 0;
+                    
+                    // Get image URL
+                    const imageUrl = product.image?.[0] 
+                        ? `${baseUrl.INVENTORY}${product.image[0]}`
+                        : 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
+                    
+                    // Check stock
+                    const totalStock = product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
+                    const inStock = totalStock > 0;
+                    
+                    // Generate consistent rating from product ID
+                    const hash = product._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const rating = 3 + (hash % 3); // Returns 3, 4, or 5 consistently
+
+                    return {
+                        id: item._id,
+                        productId: product._id,
+                        name: product.name,
+                        price: `₹${bestPrice.toFixed(2)}`,
+                        originalPrice: discountPercentage > 0 ? `₹${originalPriceValue.toFixed(2)}` : undefined,
+                        discountPercentage,
+                        image: imageUrl,
+                        rating,
+                        category: product.mainCategory?.categoryName || 'Uncategorized',
+                        brand: product.brand?.name,
+                        inStock,
+                        createdAt: item.createdAt,
+                        variants: product.variants || []
+                    };
+                });
+
+                setFavoriteProducts(formattedProducts);
+                
+                // Update local liked products set without triggering re-fetch
+                const likedIds = formattedProducts.map(p => p.productId);
+                setLocalLikedProducts(prev => {
+                    const newSet = new Set(prev);
+                    likedIds.forEach(id => newSet.add(id));
+                    return newSet;
+                });
+                
+                hasFetchedRef.current = true;
+            } else {
+                setFavoriteProducts([]);
+            }
+        } catch (err) {
+            console.error('Error fetching favorite products:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load favorites');
+            toast.error('Failed to load favorite products');
+        } finally {
+            setLoading(false);
+            setIsInitialLoad(false);
+        }
+    }, [router, userIsLoggedIn]); // Removed localLikedProducts from dependencies
+
+    // Load favorite products on component mount - only once
+    useEffect(() => {
+        fetchFavoriteProducts();
+        
+        // Cleanup function
+        return () => {
+            hasFetchedRef.current = false;
+        };
+    }, [fetchFavoriteProducts]);
+
+    // API function for adding/removing favorites
+    const addToFavoritesAPI = useCallback(async (productId: string) => {
+        try {
+            setIsProcessingLike(productId);
+
+            const response = await fetch(
+                `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+                {
+                    method: "POST",
+                    credentials: "include",
+                }
+            );  
+            
+            if (response.status === 401) {
+                return { success: false, requiresLogin: true };
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return {
+                success: true,
+                liked: data.liked,
+                message: data.message,
+                data: data.data,
+            };
+        } catch (err) {
+            console.error("Error adding to favorites:", err);
+            return { success: false, error: err };
+        } finally {
+            setIsProcessingLike(null);
+        }
+    }, []);
+
+    // Function to show login prompt
+    const showLoginPrompt = useCallback((productId: string) => {
+        sessionStorage.setItem('productToLikeAfterLogin', productId);
+        sessionStorage.setItem('redirectAfterLogin', '/favorites');
+        
+        toast.error('Login Required', {
+            description: 'You need to login to manage favorites',
+            action: {
+                label: 'Login',
+                onClick: () => {
+                    router.push('/login');
+                },
+            },
+            duration: 5000,
+        });
+    }, [router]);
+
+    // Main like toggle handler
+    const handleToggleLike = async (productId: string | number) => {
+        const productIdStr = String(productId);
+        
+        // Check if user is logged in
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const isLoggedIn = !!token || userIsLoggedIn;
+
+        if (!isLoggedIn) {
+            showLoginPrompt(productIdStr);
+            return;
+        }
+
+        const isCurrentlyLiked = likedProducts.has(productIdStr);
+
+        // If external handler is provided, use it
+        if (externalOnToggleLike) {
+            externalOnToggleLike(productId);
+            return;
+        }
+
+        // Optimistic UI update for local state
+        setLocalLikedProducts(prev => {
+            const newSet = new Set(prev);
+            if (isCurrentlyLiked) {
+                newSet.delete(productIdStr);
+            } else {
+                newSet.add(productIdStr);
+            }
+            return newSet;
+        });
+
+        // Remove from favorites list immediately
+        if (isCurrentlyLiked) {
+            setFavoriteProducts(prev => prev.filter(p => p.productId !== productIdStr));
+        }
+
+        // Make API call
+        const result = await addToFavoritesAPI(productIdStr);
+
+        if (!result.success) {
+            // Revert optimistic update on failure
+            setLocalLikedProducts(prev => {
+                const newSet = new Set(prev);
+                if (isCurrentlyLiked) {
+                    newSet.add(productIdStr);
+                } else {
+                    newSet.delete(productIdStr);
+                }
+                return newSet;
+            });
+
+            if (isCurrentlyLiked) {
+                // Re-fetch to restore the product in the list
+                hasFetchedRef.current = false;
+                fetchFavoriteProducts();
+            }
+
+            if (result.requiresLogin) {
+                showLoginPrompt(productIdStr);
+            } else {
+                toast.error('Failed to update favorites. Please try again.');
+            }
+        } else {
+            // Success - show appropriate message
+            if (result.liked) {
+                toast.success('Added to favorites!');
+                // Re-fetch to get the updated list
+                hasFetchedRef.current = false;
+                fetchFavoriteProducts();
+            } else {
+                toast.info('Removed from favorites');
+            }
+        }
     };
 
     const handleAddToCart = (productName: string) => {
@@ -198,12 +586,7 @@ export default function FavoritesPage({
     };
 
     const handleAddAllToCart = () => {
-        const inStockCount = favoriteProducts.filter(p => p.inStock).length;
-
-        if (!onCartCountChange) {
-            console.error('onCartCountChange not provided');
-            return;
-        }
+        const inStockCount = favoriteProducts.filter((p: FormattedProduct) => p.inStock).length;
 
         if (inStockCount > 0) {
             onCartCountChange(cartCount + inStockCount);
@@ -213,25 +596,133 @@ export default function FavoritesPage({
         }
     };
 
-
-    const handleClearAll = () => {
+    const handleClearAll = async () => {
         if (window.confirm('Are you sure you want to remove all favorites?')) {
-            favoriteProducts.forEach(product => onToggleLike(String(product.id)));
-            toast.success('All favorites cleared');
+            try {
+                // Optimistically clear all
+                setFavoriteProducts([]);
+                setLocalLikedProducts(new Set());
+                
+                // Remove from localStorage
+                localStorage.removeItem('likedProducts');
+                
+                toast.success('All favorites cleared');
+            } catch (error) {
+                console.error('Error clearing favorites:', error);
+                toast.error('Failed to clear favorites');
+                // Re-fetch to restore state
+                hasFetchedRef.current = false;
+                fetchFavoriteProducts();
+            }
         }
     };
+
+    const handleProductClick = (productId: string) => {
+        router.push(`/productdetailpage/${productId}`);
+    };
+
+    // Apply filtering and sorting
+    const getFilteredAndSortedProducts = useCallback((): FormattedProduct[] => {
+        let filtered = [...favoriteProducts];
+
+        // Apply category filter
+        if (filterCategory !== 'All Categories') {
+            filtered = filtered.filter(product => product.category === filterCategory);
+        }
+
+        // Apply sorting
+        switch (sortBy) {
+            case 'Price: Low to High':
+                return filtered.sort((a, b) => {
+                    const priceA = parseFloat(a.price.replace('₹', '').replace(',', ''));
+                    const priceB = parseFloat(b.price.replace('₹', '').replace(',', ''));
+                    return priceA - priceB;
+                });
+            case 'Price: High to Low':
+                return filtered.sort((a, b) => {
+                    const priceA = parseFloat(a.price.replace('₹', '').replace(',', ''));
+                    const priceB = parseFloat(b.price.replace('₹', '').replace(',', ''));
+                    return priceB - priceA;
+                });
+            case 'Highest Rated':
+                return filtered.sort((a, b) => b.rating - a.rating);
+            case 'Name: A-Z':
+                return filtered.sort((a, b) => a.name.localeCompare(b.name));
+            case 'Recently Added':
+            default:
+                return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+    }, [favoriteProducts, filterCategory, sortBy]);
+
+    const filteredProducts = getFilteredAndSortedProducts();
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <Navigation
+                    currentPage="favorites"
+                    cartCount={cartCount}
+                    favoritesCount={favoritesCount ?? 0}
+                    onCartCountChange={onCartCountChange}
+                />
+                <div className="flex items-center justify-center h-[60vh]">
+                    <div className="text-center">
+                        <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                        <p className="text-gray-700 font-medium">Loading your favorites...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <Navigation
+                    currentPage="favorites"
+                    cartCount={cartCount}
+                    favoritesCount={favoritesCount ?? 0}
+                    onCartCountChange={onCartCountChange}
+                />
+                <div className="flex items-center justify-center h-[60vh]">
+                    <div className="text-center">
+                        <Heart className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Favorites</h2>
+                        <p className="text-gray-600 mb-6">{error}</p>
+                        {error.includes('login') ? (
+                            <button
+                                onClick={() => router.push('/login')}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                Go to Login
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => {
+                                    hasFetchedRef.current = false;
+                                    fetchFavoriteProducts();
+                                }}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                Try Again
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
             <Toaster position="top-right" richColors />
 
-
-
             {/* Navigation */}
             <Navigation
                 currentPage="favorites"
                 cartCount={cartCount}
-                favoritesCount={favoritesCount ?? 0}
+                favoritesCount={likedProducts.size}
+                onCartCountChange={onCartCountChange}
             />
 
             {/* Hero Section */}
@@ -244,11 +735,11 @@ export default function FavoritesPage({
                                 <h1 className="text-4xl md:text-5xl font-bold">My Favorites</h1>
                             </div>
                             <p className="text-white/90 text-lg md:text-xl">
-                                {favoriteProducts.length} {favoriteProducts.length === 1 ? 'item' : 'items'} saved for later
+                                {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'} saved for later
                             </p>
                         </div>
 
-                        {favoriteProducts.length > 0 && (
+                        {filteredProducts.length > 0 && (
                             <div className="flex gap-3">
                                 <button
                                     onClick={handleAddAllToCart}
@@ -271,7 +762,7 @@ export default function FavoritesPage({
             </div>
 
             {/* Empty State */}
-            {favoriteProducts.length === 0 && (
+            {filteredProducts.length === 0 && (
                 <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 py-20">
                     <div className="bg-white rounded-3xl shadow-2xl p-12 md:p-16 text-center animate-fade-in">
                         <Heart className="w-24 h-24 text-gray-300 mx-auto mb-6" />
@@ -290,7 +781,7 @@ export default function FavoritesPage({
             )}
 
             {/* Filters & Products */}
-            {favoriteProducts.length > 0 && (
+            {filteredProducts.length > 0 && (
                 <>
                     {/* Filters Section */}
                     <div className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 mt-8 mb-6">
@@ -364,11 +855,11 @@ export default function FavoritesPage({
                             <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-4 text-sm text-gray-600">
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <span>{favoriteProducts.filter(p => p.inStock).length} In Stock</span>
+                                    <span>{filteredProducts.filter(p => p.inStock).length} In Stock</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                    <span>{favoriteProducts.filter(p => !p.inStock).length} Out of Stock</span>
+                                    <span>{filteredProducts.filter(p => !p.inStock).length} Out of Stock</span>
                                 </div>
                             </div>
                         </div>
@@ -377,7 +868,7 @@ export default function FavoritesPage({
                     {/* Products Grid */}
                     <main className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 pb-12">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                            {favoriteProducts.map((product, index) => (
+                            {filteredProducts.map((product, index) => (
                                 <div
                                     key={product.id}
                                     className="animate-fade-in-up"
@@ -388,8 +879,10 @@ export default function FavoritesPage({
                                 >
                                     <FavoriteProductCard
                                         {...product}
-                                        onRemove={() => handleRemove(product.id)}
+                                        isLoadingLike={isProcessingLike === product.productId}
+                                        onRemove={() => handleToggleLike(product.productId)}
                                         onAddToCart={() => handleAddToCart(product.name)}
+                                        onProductClick={() => handleProductClick(product.productId)}
                                     />
                                 </div>
                             ))}
@@ -397,8 +890,6 @@ export default function FavoritesPage({
                     </main>
                 </>
             )}
-
-
         </div>
     );
 }
