@@ -1,23 +1,70 @@
 "use client";
 
-import { useState } from "react";
-import Navigation from '../components/Navigation';
+import { useState, useEffect, useRef } from "react";
+import Navigation from "../components/Navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import baseUrl from "../baseUrl";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 export default function UserLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
 
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
+
+  const hasAutoLoggedIn = useRef(false);
+
+  // ✅ SUPPORT BOTH PARAM NAMES
+  const accessToken =
+    searchParams.get("accessToken") || searchParams.get("clinicToken");
+
+  // ✅ AUTO LOGIN FROM CLINIC
+  useEffect(() => {
+    if (!accessToken) return;
+    if (hasAutoLoggedIn.current) return;
+
+    hasAutoLoggedIn.current = true;
+
+    try {
+      setIsAutoLoggingIn(true);
+      setIsSubmitting(true);
+
+      console.log("Auto login token received:", accessToken);
+
+      // ✅ Store clinic token in ecommerce cookie
+      Cookies.set("accessToken", accessToken, {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+      });
+
+      toast.success("🎉 Logged in via Clinic successfully!");
+
+      // ✅ Remove token from URL (security)
+      window.history.replaceState({}, document.title, "/");
+
+      // ✅ Redirect to homepage
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 800);
+
+    } catch (error) {
+      console.error("Auto login failed:", error);
+      toast.error("Automatic login failed.");
+      setIsAutoLoggingIn(false);
+      setIsSubmitting(false);
+    }
+  }, [accessToken]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -26,8 +73,11 @@ export default function UserLoginPage() {
     });
   };
 
+  // ✅ MANUAL LOGIN (unchanged)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isAutoLoggingIn) return;
 
     if (!formData.email || !formData.password) {
       toast.error("Please fill all required fields");
@@ -43,24 +93,21 @@ export default function UserLoginPage() {
           email: formData.email,
           password: formData.password,
         },
-        {
-          withCredentials: true, // 🔥 REQUIRED FOR COOKIES
-        }
+        { withCredentials: true }
       );
+
+      const token = response.data?.token;
+
+      if (token) {
+        Cookies.set("accessToken", token, { expires: 7 });
+      }
 
       toast.success("🎉 Login successful!");
 
-      setFormData({
-        email: "",
-        password: "",
-      });
+      setTimeout(() => router.replace("/"), 800);
 
-      // Optional redirect
-      setTimeout(() => router.push("/"), 1500);
     } catch (error: any) {
-      console.error(error);
-
-      toast.error(error?.response?.data?.message || "Registration failed");
+      toast.error(error?.response?.data?.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -69,104 +116,79 @@ export default function UserLoginPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-
       <Navigation currentPage="login" />
 
-      {/* Hero */}
       <div className="bg-gradient-to-r from-blue-50 to-white py-12 mt-6">
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Welcome Back
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            {isAutoLoggingIn ? "Logging you in..." : "Welcome Back"}
           </h1>
           <p className="text-gray-600 text-lg">
-            Log in to continue to your account
+            {isAutoLoggingIn
+              ? "Authenticating with Clinic account..."
+              : "Log in to continue"}
           </p>
         </div>
       </div>
 
-      {/* Login Form */}
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12">
-          <h2 className="text-2xl text-black font-bold text-center mb-8">
-            User <span className="text-blue-600">Login</span>
-          </h2>
+      {!isAutoLoggingIn && (
+        <div className="max-w-3xl mx-auto px-6 py-12">
+          <div className="bg-white rounded-3xl shadow-xl p-8">
+            <h2 className="text-2xl font-bold text-center mb-8">
+              User Login
+            </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
-            <div>
-              <label className="block text-black text-sm font-semibold mb-2">
-                Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Email *
+                </label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-3 text-black border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
+                  className="w-full border-2 rounded-lg p-3"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-black text-sm font-semibold mb-2">
-                Password *
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Enter your password"
-                  className="w-full pl-10 pr-4 py-3 text-black border-2 rounded-lg focus:ring-2 focus:ring-blue-600"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Password *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full border-2 rounded-lg p-3"
+                    required
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Submit */}
-            <div className="text-center">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-10 py-4 rounded-lg font-bold text-lg transition-all ${
-                  isSubmitting
-                    ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
-                } text-white`}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold"
               >
                 {isSubmitting ? "Logging in..." : "Login"}
               </button>
-            </div>
-            {/* Register Redirect */}
-            <div className="text-center pt-4">
-              <p className="text-sm text-gray-600">
-                Don’t have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push("/register")}
-                  className="text-blue-600 font-semibold hover:underline"
-                >
-                  Register
-                </button>
-              </p>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
