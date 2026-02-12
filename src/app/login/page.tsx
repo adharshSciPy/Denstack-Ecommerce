@@ -45,7 +45,8 @@ export default function UserLoginPage() {
       Cookies.set("accessToken", accessToken, {
         expires: 7,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "Strict",
+        sameSite: "lax",
+        path: '/'
       });
 
       toast.success("🎉 Logged in via Clinic successfully!");
@@ -99,7 +100,12 @@ export default function UserLoginPage() {
       const token = response.data?.token;
 
       if (token) {
-        Cookies.set("accessToken", token, { expires: 7 });
+        Cookies.set("accessToken", token, {
+          expires: 7,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/"
+        });
       }
 
       toast.success("🎉 Login successful!");

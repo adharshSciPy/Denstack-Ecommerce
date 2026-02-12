@@ -29,6 +29,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useRouter } from "next/navigation";
 import baseUrl from "../baseUrl";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 interface AccountPageProps {
   cartCount: number;
@@ -232,6 +233,12 @@ export default function AccountPage({
   const router = useRouter();
 
   useEffect(() => {
+
+    const token = Cookies.get("accessToken");
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+
     const fetchProfile = async () => {
       try {
         const res = await axios.get(
@@ -243,8 +250,33 @@ export default function AccountPage({
         setUserData(mergedData);
         setTempUserData(mergedData);
       } catch (error: any) {
+        if (error?.response?.status === 401) {
+          // Check if token exists but still unauthorized
+          const tokenExists = Cookies.get("accessToken");
+          if (tokenExists) {
+            // Try with Authorization header
+            try {
+              const res = await axios.get(
+                `${baseUrl.AUTH}/api/v1/ecommerceuser/getProfile`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${tokenExists}`
+                  }
+                }
+              );
+              // Handle success
+              const mergedData = { ...emptyProfile, ...res.data.data };
+              setUserData(mergedData);
+              setTempUserData(mergedData);
+              return;
+            } catch (headerError) {
+              // Both methods failed
+            }
+          }
+        }
         toast.error("Session expired. Please login again.");
         router.push("/login");
+
       }
     };
 
