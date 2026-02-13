@@ -383,6 +383,7 @@ export default function App() {
           onBackToDetails={() => setCurrentPage('event-details')}
           onCartClick={() => setCurrentPage('cart')}
           eventId={selectedEventId}
+          favoritesCount={likedProducts.size}
         />
         <WhatsAppButton />
       </div>
@@ -429,6 +430,7 @@ export default function App() {
             setSelectedProductId(productId);
             setCurrentPage('productdetailpage/[id]');
           }}
+          favoritesCount={likedProducts.size}
         />
         <WhatsAppButton />
       </div>
@@ -469,19 +471,19 @@ export default function App() {
     return (
       <div>
         <FavoritesPage
-          cartCount={cartCount}
-          onCartCountChange={setCartCount}
-          onBackToHome={() => setCurrentPage('home')}
-          onCartClick={() => setCurrentPage('cart')}
-          likedProducts={likedProducts}
-          onToggleLike={toggleLike}
-          onBrandClick={() => setCurrentPage('brands')}
-          onBuyingGuideClick={() => setCurrentPage('buying-guide')}
-          onEventsClick={() => setCurrentPage('events')}
-          onMembershipClick={() => setCurrentPage('membership')}
-          onFreebiesClick={() => setCurrentPage('freebies')}
-          onBestSellerClick={() => setCurrentPage('bestseller')}
-          onClinicSetupClick={() => setCurrentPage('clinic-setup')}
+          // cartCount={cartCount}
+          // onCartCountChange={setCartCount}
+          // onBackToHome={() => setCurrentPage('home')}
+          // onCartClick={() => setCurrentPage('cart')}
+          // likedProducts={likedProducts}
+          // onToggleLike={toggleLike}
+          // onBrandClick={() => setCurrentPage('brands')}
+          // onBuyingGuideClick={() => setCurrentPage('buying-guide')}
+          // onEventsClick={() => setCurrentPage('events')}
+          // onMembershipClick={() => setCurrentPage('membership')}
+          // onFreebiesClick={() => setCurrentPage('freebies')}
+          // onBestSellerClick={() => setCurrentPage('bestseller')}
+          // onClinicSetupClick={() => setCurrentPage('clinic-setup')}
         />
         <WhatsAppButton />
       </div>

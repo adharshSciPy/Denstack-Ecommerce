@@ -140,13 +140,13 @@ export default function UserLoginPage() {
       {!isAutoLoggingIn && (
         <div className="max-w-3xl mx-auto px-6 py-12">
           <div className="bg-white rounded-3xl shadow-xl p-8">
-            <h2 className="text-2xl font-bold text-center mb-8">
-              User Login
+            <h2 className="text-2xl text-black font-bold text-center mb-8">
+              User <span className="text-blue-600">Login</span>
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold mb-2">
+                <label className="block text-black text-sm font-semibold mb-2">
                   Email *
                 </label>
                 <input
@@ -154,14 +154,14 @@ export default function UserLoginPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full border-2 rounded-lg p-3"
+                  className="w-full text-black border-2 rounded-lg p-3"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">
+                <label className="block text-black text-sm font-semibold mb-2">
                   Password *
                 </label>
                 <div className="relative">
@@ -170,7 +170,7 @@ export default function UserLoginPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full border-2 rounded-lg p-3"
+                    className="w-full text-black border-2 rounded-lg p-3"
                     required
                     disabled={isSubmitting}
                   />
@@ -191,6 +191,18 @@ export default function UserLoginPage() {
               >
                 {isSubmitting ? "Logging in..." : "Login"}
               </button>
+              <div className="text-center pt-4">
+                <p className="text-sm text-gray-600">
+                  Create an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => router.push("/register")}
+                    className="text-blue-600 font-semibold hover:underline"
+                  >
+                    Register
+                  </button>
+                </p>
+              </div>
             </form>
           </div>
         </div>
