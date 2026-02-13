@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Navigation from './components/Navigation';
 import HeroBanner from './components/HeroBanner';
 import PromoBanner from './components/PromoBanner';
@@ -34,9 +34,13 @@ import AccountPage from './account/page';
 import WhatsAppButton from './components/WhatsAppButton';
 import AllProductsPage from './allproducts/page';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useAuth } from './hooks/useAuth'; // Add this import
+import baseUrl from './baseUrl'; // Add this import
 
 export default function App() {
   const router = useRouter();
+  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Get auth status
   const [cartCount, setCartCount] = useState(16);
   // Store liked product IDs as strings (MongoDB _id or numeric ids coerced to string)
   const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set(['2', '3']));
@@ -49,9 +53,97 @@ export default function App() {
   const [selectedBrandId, setSelectedBrandId] = useState('1');
   const [selectedBrandName, setSelectedBrandName] = useState('');
   const [selectedGuideId, setSelectedGuideId] = useState(1);
+  const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null); // Track processing likes
 
-  const toggleLike = (productId: number | string) => {
+  // Load liked products from localStorage on component mount
+  useEffect(() => {
+    const savedLikedProducts = localStorage.getItem('likedProducts');
+    if (savedLikedProducts) {
+      try {
+        setLikedProducts(new Set(JSON.parse(savedLikedProducts)));
+      } catch (error) {
+        console.error('Error parsing liked products:', error);
+      }
+    }
+  }, []);
+
+  // Save liked products to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('likedProducts', JSON.stringify(Array.from(likedProducts)));
+  }, [likedProducts]);
+
+  // API function for adding/removing favorites
+  const addToFavoritesAPI = useCallback(async (productId: string) => {
+    try {
+      setIsProcessingLike(productId);
+
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      console.log(response);
+
+      if (response.status === 401) {
+        return { success: false, requiresLogin: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        liked: data.liked,
+        message: data.message,
+        data: data.data,
+      };
+    } catch (err) {
+      console.error("Error adding to favorites:", err);
+      return { success: false, error: err };
+    } finally {
+      setIsProcessingLike(null);
+    }
+  }, []);
+
+  // Function to show login prompt
+  const showLoginPrompt = useCallback((productId: string) => {
+    // Store the product ID to like after login
+    sessionStorage.setItem('productToLikeAfterLogin', productId);
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+
+    toast.error('Login Required', {
+      description: 'You need to login to add products to favorites',
+      action: {
+        label: 'Login',
+        onClick: () => {
+          router.push('/login');
+        },
+      },
+      duration: 5000,
+    });
+  }, [router]);
+
+  // Main like toggle handler
+  const toggleLike = async (productId: number | string) => {
     const idStr = String(productId);
+
+    // Check if user is logged in
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const isLoggedIn = !!token || userIsLoggedIn;
+
+    if (!isLoggedIn) {
+      showLoginPrompt(idStr);
+      return;
+    }
+
+    const isCurrentlyLiked = likedProducts.has(idStr);
+
+    // Optimistic UI update
     setLikedProducts(prev => {
       const newSet = new Set(prev);
       if (newSet.has(idStr)) {
@@ -61,11 +153,48 @@ export default function App() {
       }
       return newSet;
     });
-  }; 
+
+    // Make API call
+    const result = await addToFavoritesAPI(idStr);
+
+    if (!result.success) {
+      // Revert optimistic update on failure
+      setLikedProducts(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.add(idStr);
+        } else {
+          newSet.delete(idStr);
+        }
+        return newSet;
+      });
+
+      if (result.requiresLogin) {
+        showLoginPrompt(idStr);
+      } else {
+        toast.error('Failed to update favorites. Please try again.');
+      }
+    } else {
+      // Success - show appropriate message
+      if (result.liked) {
+        toast.success('Added to favorites!');
+      } else {
+        toast.info('Removed from favorites');
+      }
+    }
+  };
+
+  // Helper function to check if a product is currently processing like
+  const isProductLoadingLike = (productId: string | number) => {
+    return isProcessingLike === String(productId);
+  };
 
   const addToCart = () => {
     setCartCount(prev => prev + 1);
   };
+
+  // Update Navigation component to pass favoritesCount and cart props
+  // Update ProductGrid to pass loading state
 
   // Render Brands Page
   if (currentPage === 'brands') {
@@ -441,6 +570,7 @@ export default function App() {
           onBackToHome={() => setCurrentPage('home')}
           onCartClick={() => setCurrentPage('cart')}
           isLiked={likedProducts.has(String(selectedProductId))}
+          isLoadingLike={isProductLoadingLike(selectedProductId)}
           onToggleLike={toggleLike}
           onBrandClick={() => setCurrentPage('brands')}
           onBuyingGuideClick={() => setCurrentPage('buying-guide')}
@@ -667,19 +797,11 @@ export default function App() {
   // Render Home Page
   return (
     <div className="min-h-screen bg-white">
-      {/* <Header 
-        cartCount={cartCount} 
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onCartClick={() => setCurrentPage('cart')}
-        onFavoritesClick={() => setCurrentPage('favorites')}
-        onOrdersClick={() => setCurrentPage('order-history')}
-        onLogoClick={() => setCurrentPage('home')}
-        onAccountClick={() => setCurrentPage('account')}
-        favoritesCount={likedProducts.size}
-      /> */}
       <Navigation
         currentPage="/"
+        cartCount={cartCount}
+        favoritesCount={likedProducts.size}
+        onCartCountChange={setCartCount}
       />
       <main>
         <HeroBanner />
@@ -689,22 +811,15 @@ export default function App() {
         }} />
         <TopCategories onCategoryClick={() => setCurrentPage('category-browse')} />
         <ProductGrid
-          likedProducts={likedProducts as any}
+          likedProducts={likedProducts}
           onToggleLike={toggleLike}
           onAddToCart={addToCart}
           onProductClick={(productId: string | number) => {
             router.push(`/productdetailpage/${productId}`);
           }}
-        // onViewAllClick={() => setCurrentPage('all-products')}
         />
-        <FeaturedProducts
-        // onViewAllClick={() => setCurrentPage('all-products')}
-        />
+        <FeaturedProducts />
       </main>
-      {/* <Footer 
-        onPrivacyPolicyClick={() => setCurrentPage('privacy-policy')}
-        onTermsClick={() => setCurrentPage('terms-and-conditions')}
-      /> */}
       <WhatsAppButton />
     </div>
   );

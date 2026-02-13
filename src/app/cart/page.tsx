@@ -309,13 +309,8 @@ export default function CartPage({
       {/* Navigation */}
       <Navigation
         currentPage="cart"
-        // onBrandClick={onBrandClick}
-        // onBuyingGuideClick={onBuyingGuideClick}
-        // onEventsClick={onEventsClick}
-        // onMembershipClick={onMembershipClick}
-        // onFreebiesClick={onFreebiesClick}
-        // onBestSellerClick={onBestSellerClick}
-        // onClinicSetupClick={onClinicSetupClick}
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
       />
 
       {/* Page Title */}

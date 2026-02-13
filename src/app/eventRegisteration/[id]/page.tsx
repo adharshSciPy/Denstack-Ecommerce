@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Navigation from '../../components/Navigation';
-import { 
-  ArrowLeft, User, Mail, Phone, Building, MapPin, 
+import {
+  ArrowLeft, User, Mail, Phone, Building, MapPin,
   CreditCard, Calendar, CheckCircle, AlertCircle, Users, Clock
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
@@ -11,6 +11,7 @@ import baseUrl from '../../baseUrl';
 
 interface EventRegistrationPageProps {
   cartCount: number;
+  favoritesCount: number; 
   onCartCountChange: (count: number) => void;
   onBackToDetails: () => void;
   onCartClick?: () => void;
@@ -20,6 +21,7 @@ interface EventRegistrationPageProps {
 
 export default function EventRegistrationPage({
   cartCount,
+  favoritesCount,
   onCartCountChange,
   onBackToDetails,
   onCartClick,
@@ -92,7 +94,7 @@ export default function EventRegistrationPage({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
@@ -111,22 +113,22 @@ export default function EventRegistrationPage({
 
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email';
     }
-    
+
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
     } else if (!/^\+?[\d\s\-()]+$/.test(formData.phone)) {
       newErrors.phone = 'Please enter a valid phone number';
     }
-    
+
     if (!formData.organization.trim()) newErrors.organization = 'Organization is required';
     if (!formData.jobTitle.trim()) newErrors.jobTitle = 'Job title is required';
-    
+
     if (!formData.agreeToTerms) {
       newErrors.agreeToTerms = 'You must agree to the terms and conditions';
     }
@@ -225,7 +227,7 @@ export default function EventRegistrationPage({
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
-      
+
       {/* Header */}
       {/* <Header 
         cartCount={cartCount}
@@ -233,11 +235,13 @@ export default function EventRegistrationPage({
       /> */}
 
       {/* Navigation */}
-      <Navigation 
+      <Navigation
         currentPage="eventRegistration"
-        // onBrandClick={onBackToDetails}
-        // onBuyingGuideClick={onBackToDetails}
-        // onEventsClick={onBackToDetails}
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
+      // onBrandClick={onBackToDetails}
+      // onBuyingGuideClick={onBackToDetails}
+      // onEventsClick={onBackToDetails}
       />
 
       {/* Back Button */}
@@ -287,7 +291,7 @@ export default function EventRegistrationPage({
                   <User className="w-6 h-6 text-blue-600" />
                   Personal Information
                 </h2>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-gray-700 font-semibold mb-2">
@@ -298,11 +302,10 @@ export default function EventRegistrationPage({
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
-                        errors.firstName 
-                          ? 'border-red-500 focus:border-red-600' 
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${errors.firstName
+                          ? 'border-red-500 focus:border-red-600'
                           : 'border-gray-200 focus:border-blue-500'
-                      }`}
+                        }`}
                       placeholder="John"
                     />
                     {errors.firstName && (
@@ -322,11 +325,10 @@ export default function EventRegistrationPage({
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
-                        errors.lastName 
-                          ? 'border-red-500 focus:border-red-600' 
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${errors.lastName
+                          ? 'border-red-500 focus:border-red-600'
                           : 'border-gray-200 focus:border-blue-500'
-                      }`}
+                        }`}
                       placeholder="Doe"
                     />
                     {errors.lastName && (
@@ -346,11 +348,10 @@ export default function EventRegistrationPage({
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
-                        errors.email 
-                          ? 'border-red-500 focus:border-red-600' 
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${errors.email
+                          ? 'border-red-500 focus:border-red-600'
                           : 'border-gray-200 focus:border-blue-500'
-                      }`}
+                        }`}
                       placeholder="john.doe@example.com"
                     />
                     {errors.email && (
@@ -370,11 +371,10 @@ export default function EventRegistrationPage({
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
-                        errors.phone 
-                          ? 'border-red-500 focus:border-red-600' 
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${errors.phone
+                          ? 'border-red-500 focus:border-red-600'
                           : 'border-gray-200 focus:border-blue-500'
-                      }`}
+                        }`}
                       placeholder="+1 (555) 123-4567"
                     />
                     {errors.phone && (
@@ -393,7 +393,7 @@ export default function EventRegistrationPage({
                   <Building className="w-6 h-6 text-blue-600" />
                   Professional Information
                 </h2>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-gray-700 font-semibold mb-2">
@@ -404,11 +404,10 @@ export default function EventRegistrationPage({
                       name="organization"
                       value={formData.organization}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
-                        errors.organization 
-                          ? 'border-red-500 focus:border-red-600' 
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${errors.organization
+                          ? 'border-red-500 focus:border-red-600'
                           : 'border-gray-200 focus:border-blue-500'
-                      }`}
+                        }`}
                       placeholder="ABC Dental Clinic"
                     />
                     {errors.organization && (
@@ -428,11 +427,10 @@ export default function EventRegistrationPage({
                       name="jobTitle"
                       value={formData.jobTitle}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${
-                        errors.jobTitle 
-                          ? 'border-red-500 focus:border-red-600' 
+                      className={`w-full px-4 py-3 border-2 text-black rounded-xl focus:outline-none transition-colors ${errors.jobTitle
+                          ? 'border-red-500 focus:border-red-600'
                           : 'border-gray-200 focus:border-blue-500'
-                      }`}
+                        }`}
                       placeholder="Dentist"
                     />
                     {errors.jobTitle && (
@@ -451,7 +449,7 @@ export default function EventRegistrationPage({
                   <MapPin className="w-6 h-6 text-blue-600" />
                   Address Information
                 </h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-gray-700 font-semibold mb-2">
@@ -519,7 +517,7 @@ export default function EventRegistrationPage({
                   <Users className="w-6 h-6 text-blue-600" />
                   Additional Information
                 </h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-gray-700 font-semibold mb-2">
@@ -618,8 +616,8 @@ export default function EventRegistrationPage({
                 className={`
                   w-full py-4 px-6 rounded-xl font-bold text-lg
                   transition-all duration-300 shadow-lg
-                  ${isSubmitting 
-                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                  ${isSubmitting
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl hover:scale-[1.02]'
                   }
                   active:scale-95 flex items-center justify-center gap-2
@@ -644,7 +642,7 @@ export default function EventRegistrationPage({
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Registration Summary</h2>
-              
+
               <div className="space-y-4 mb-6">
                 <div>
                   <div className="text-sm text-gray-600 mb-1">Event</div>

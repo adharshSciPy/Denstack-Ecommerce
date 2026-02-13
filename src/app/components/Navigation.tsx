@@ -8,7 +8,23 @@ import imgCategoryIcon from '../../assets/a4d35fff5f39c96948ff5815ff167b65baee31
 
 interface NavigationProps {
   currentPage?: string;
+  cartCount?: number;
+  favoritesCount?: number;
   mobileMenuOpen?: boolean;
+  onCartCountChange?: (count: number) => void;
+
+  onCartClick?: () => void;
+  onFavoritesClick?: () => void;
+  onOrdersClick?: () => void;
+  onAccountClick?: () => void;
+
+  onBrandClick?: () => void;
+  onBuyingGuideClick?: () => void;
+  onEventsClick?: () => void;
+  onMembershipClick?: () => void;
+  onFreebiesClick?: () => void;
+  onBestSellerClick?: () => void;
+  onClinicSetupClick?: () => void;
 }
 
 export default function Navigation({
@@ -27,7 +43,7 @@ export default function Navigation({
 
   const setMobileMenuOpen =
     externalMobileMenuOpen !== undefined
-      ? () => {}
+      ? () => { }
       : setInternalMobileMenuOpen;
 
   /** ✅ Sync active tab from route */
@@ -82,11 +98,10 @@ export default function Navigation({
               <button
                 key={item.label}
                 onClick={() => handleNavigation(item)}
-                className={`relative py-2 transition-colors ${
-                  activeItem === item.label
+                className={`relative py-2 transition-colors ${activeItem === item.label
                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-teal-600 font-semibold'
                     : 'text-gray-900 hover:text-cyan-600'
-                }`}
+                  }`}
               >
                 {item.label === 'Category' && (
                   <Image
@@ -117,11 +132,10 @@ export default function Navigation({
               <button
                 key={item.label}
                 onClick={() => handleNavigation(item)}
-                className={`block w-full text-left px-4 py-2 rounded-lg ${
-                  activeItem === item.label
+                className={`block w-full text-left px-4 py-2 rounded-lg ${activeItem === item.label
                     ? 'bg-gradient-to-r from-cyan-50 to-teal-50 text-cyan-700 font-semibold border border-cyan-200'
                     : 'text-gray-900 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 {item.label}
               </button>

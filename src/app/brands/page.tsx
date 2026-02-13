@@ -41,7 +41,7 @@ interface BrandsPageProps {
   onOrdersClick: () => void;
   onAccountClick: () => void;
   favoritesCount: number;
-  onBrandDetailClick: (brandId: string, brandName: string) => void; 
+  onBrandDetailClick: (brandId: string, brandName: string) => void;
 }
 
 export default function BrandsPage({
@@ -140,7 +140,7 @@ export default function BrandsPage({
 
   const handleBrandClick = (brandId: string, brandName: string) => {
     router.push(`/allbrands?brandId=${brandId}&brandName=${encodeURIComponent(brandName)}`);
-  }; 
+  };
 
   // Filter brands based on selected letter
   const filteredBrands = selectedLetter
@@ -150,13 +150,16 @@ export default function BrandsPage({
   // Filter brands based on search query
   const searchedBrands = searchQuery
     ? filteredBrands.filter(brand =>
-        brand.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      brand.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : filteredBrands;
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation currentPage="brands" />
+      <Navigation currentPage="brands"
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
+      />
 
       <main className="container mx-auto px-4">
         <FeaturedBrands />

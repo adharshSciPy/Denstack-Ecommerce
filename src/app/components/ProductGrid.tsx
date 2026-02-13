@@ -1,13 +1,15 @@
 import { Heart } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ProductCard from "./ProductCard";
 import axios from "axios";
 import baseUrl from "../baseUrl";
 import { useRouter } from "next/navigation"
+import { Toaster, toast } from "sonner";
+import { useAuth } from "../hooks/useAuth"; // Add this import
 
 interface ProductGridProps {
-  likedProducts: Set<string | number>;
-  onToggleLike: (id: string | number) => void;
+  likedProducts?: Set<string | number>;
+  onToggleLike?: (id: string | number) => void;
   onAddToCart: () => void;
   onProductClick?: (productId: string | number) => void;
 }
@@ -58,16 +60,41 @@ interface TransformedProduct {
 }
 
 export default function ProductGrid({
-  likedProducts,
-  onToggleLike,
+  likedProducts: externalLikedProducts,
+  onToggleLike: externalOnToggleLike,
   onAddToCart,
   onProductClick,
 }: ProductGridProps) {
   const [products, setProducts] = useState<TransformedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [localLikedProducts, setLocalLikedProducts] = useState<Set<string | number>>(new Set());
+  const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
 
   const router = useRouter()
+  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Get auth status
+
+  // Load liked products from localStorage on component mount
+  useEffect(() => {
+    const savedLikedProducts = localStorage.getItem('likedProducts');
+    if (savedLikedProducts) {
+      try {
+        const parsedLikedProducts = JSON.parse(savedLikedProducts);
+        // Convert array to Set
+        setLocalLikedProducts(new Set(parsedLikedProducts));
+      } catch (error) {
+        console.error('Error parsing liked products:', error);
+      }
+    }
+  }, []);
+
+  // Save liked products to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
+  }, [localLikedProducts]);
+
+  // Use external likedProducts if provided, otherwise use local state
+  const likedProducts = externalLikedProducts || localLikedProducts;
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -111,7 +138,7 @@ export default function ProductGrid({
           return {
             id: product._id, // Use MongoDB _id instead of index
             mongoId: product._id,
-            name: item.title || product.name,
+            name: product.name,
             price: product.basePrice || 0,
             image: imageUrl,
             badge: item.badge,
@@ -132,6 +159,139 @@ export default function ProductGrid({
     }
   };
 
+  // API function for adding/removing favorites
+  const addToFavoritesAPI = useCallback(async (productId: string) => {
+    try {
+      setIsProcessingLike(productId);
+
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      console.log(response);
+
+      if (response.status === 401) {
+        return { success: false, requiresLogin: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        liked: data.liked,
+        message: data.message,
+        data: data.data,
+      };
+    } catch (err) {
+      console.error("Error adding to favorites:", err);
+      return { success: false, error: err };
+    } finally {
+      setIsProcessingLike(null);
+    }
+  }, []);
+
+  // Function to show login prompt
+  const showLoginPrompt = useCallback((productId: string) => {
+    // Store the product ID to like after login
+    sessionStorage.setItem('productToLikeAfterLogin', productId);
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+
+    toast.error('Login Required', {
+      description: 'You need to login to add products to favorites',
+      action: {
+        label: 'Login',
+        onClick: () => {
+          router.push('/login');
+        },
+      },
+      duration: 5000,
+    });
+  }, [router]);
+
+  // Main like toggle handler
+  const handleToggleLike = async (productId: string | number) => {
+    // Convert productId to string for consistency
+    const productIdStr = String(productId);
+
+    // Check if user is logged in
+    // Note: You need to implement your auth check logic here
+    // const isLoggedIn = userIsLoggedIn; // Use your auth hook
+
+    // For now, let's check if we have a token in localStorage
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const isLoggedIn = !!token || userIsLoggedIn;
+
+    if (!isLoggedIn) {
+      showLoginPrompt(productIdStr);
+      return;
+    }
+
+    const isCurrentlyLiked = likedProducts.has(productId) ||
+      likedProducts.has(productIdStr) ||
+      likedProducts.has(Number(productId));
+
+    // If external handler is provided, use it
+    if (externalOnToggleLike) {
+      externalOnToggleLike(productId);
+      return;
+    }
+
+    // Optimistic UI update for local state
+    setLocalLikedProducts(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyLiked) {
+        newSet.delete(productId);
+        newSet.delete(productIdStr);
+        newSet.delete(Number(productId));
+      } else {
+        newSet.add(productId);
+        newSet.add(productIdStr);
+        newSet.add(Number(productId));
+      }
+      return newSet;
+    });
+
+    // Make API call
+    const result = await addToFavoritesAPI(productIdStr);
+
+    if (!result.success) {
+      // Revert optimistic update on failure
+      setLocalLikedProducts(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.add(productId);
+          newSet.add(productIdStr);
+          newSet.add(Number(productId));
+        } else {
+          newSet.delete(productId);
+          newSet.delete(productIdStr);
+          newSet.delete(Number(productId));
+        }
+        return newSet;
+      });
+
+      if (result.requiresLogin) {
+        showLoginPrompt(productIdStr);
+      } else {
+        toast.error('Failed to update favorites. Please try again.');
+      }
+    } else {
+      // Success - show appropriate message
+      if (result.liked) {
+        toast.success('Added to favorites!');
+      } else {
+        toast.info('Removed from favorites');
+      }
+    }
+  };
+
   // Helper to check if product is liked (handles both string and number IDs)
   const isProductLiked = (productId: string | number) => {
     return likedProducts.has(productId) ||
@@ -139,9 +299,15 @@ export default function ProductGrid({
       likedProducts.has(Number(productId));
   };
 
+  // Helper to check if a product is currently processing like
+  const isProductLoadingLike = (productId: string | number) => {
+    return isProcessingLike === String(productId);
+  };
+
   if (loading) {
     return (
       <section className="container mx-auto px-4 py-12">
+        <Toaster position="top-right"/>
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">
             Featured Products
@@ -224,7 +390,8 @@ export default function ProductGrid({
             <ProductCard
               product={product}
               isLiked={isProductLiked(product.id)}
-              onToggleLike={onToggleLike}
+              isLoadingLike={isProductLoadingLike(product.id)}
+              onToggleLike={() => handleToggleLike(product.id)}
               onAddToCart={onAddToCart}
               onProductClick={onProductClick}
             />

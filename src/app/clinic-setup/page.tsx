@@ -178,7 +178,7 @@ export default function ClinicSetupPage({
     } finally {
       setIsSubmitting(false);
     }
-  }; 
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -187,6 +187,8 @@ export default function ClinicSetupPage({
       {/* Navigation */}
       <Navigation
         currentPage="clinic-setup"
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
       />
 
       {/* Hero Section */}

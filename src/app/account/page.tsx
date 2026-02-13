@@ -29,6 +29,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useRouter } from "next/navigation";
 import baseUrl from "../baseUrl";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 interface AccountPageProps {
   cartCount: number;
@@ -232,6 +233,12 @@ export default function AccountPage({
   const router = useRouter();
 
   useEffect(() => {
+
+    const token = Cookies.get("accessToken");
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+
     const fetchProfile = async () => {
       try {
         const res = await axios.get(
@@ -243,8 +250,33 @@ export default function AccountPage({
         setUserData(mergedData);
         setTempUserData(mergedData);
       } catch (error: any) {
+        if (error?.response?.status === 401) {
+          // Check if token exists but still unauthorized
+          const tokenExists = Cookies.get("accessToken");
+          if (tokenExists) {
+            // Try with Authorization header
+            try {
+              const res = await axios.get(
+                `${baseUrl.AUTH}/api/v1/ecommerceuser/getProfile`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${tokenExists}`
+                  }
+                }
+              );
+              // Handle success
+              const mergedData = { ...emptyProfile, ...res.data.data };
+              setUserData(mergedData);
+              setTempUserData(mergedData);
+              return;
+            } catch (headerError) {
+              // Both methods failed
+            }
+          }
+        }
         toast.error("Session expired. Please login again.");
         router.push("/login");
+
       }
     };
 
@@ -310,7 +342,10 @@ export default function AccountPage({
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
 
-      <Navigation currentPage="account" />
+      <Navigation currentPage="account"
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
+      />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white py-12">
@@ -344,10 +379,9 @@ export default function AccountPage({
                       onClick={() => setActiveTab(tab.id)}
                       className={`
                         flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all
-                        ${
-                          activeTab === tab.id
-                            ? "bg-gradient-to-r from-cyan-500 via-teal-500 to-green-500 text-white shadow-lg"
-                            : "text-gray-700 hover:bg-gray-100"
+                        ${activeTab === tab.id
+                          ? "bg-gradient-to-r from-cyan-500 via-teal-500 to-green-500 text-white shadow-lg"
+                          : "text-gray-700 hover:bg-gray-100"
                         }
                       `}
                     >

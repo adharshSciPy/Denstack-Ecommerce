@@ -2,7 +2,9 @@
 import { ChevronLeft } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { toast } from 'sonner';
+import { useAuth } from '../hooks/useAuth'; // Add this import
 import baseUrl from '../baseUrl';
 
 // Define the product interface based on your API response
@@ -70,8 +72,8 @@ interface AllProductsPageProps {
   onCartCountChange: (count: number) => void;
   onBackToHome: () => void;
   onCartClick: () => void;
-  likedProducts: Set<string>;
-  onToggleLike: (id: string | number) => void;
+  likedProducts?: Set<string>; // Make optional
+  onToggleLike?: (id: string | number) => void; // Make optional
   onProductClick?: (productId: string | number) => void;
   onBrandClick: () => void;
   onBuyingGuideClick: () => void;
@@ -91,8 +93,8 @@ export default function AllProductsPage({
   onCartCountChange,
   onBackToHome,
   onCartClick,
-  likedProducts = new Set<string>(),
-  onToggleLike,
+  likedProducts: externalLikedProducts, // Rename to externalLikedProducts
+  onToggleLike: externalOnToggleLike, // Rename to externalOnToggleLike
   onProductClick,
   onBrandClick,
   onBuyingGuideClick,
@@ -113,19 +115,44 @@ export default function AllProductsPage({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  
+
   // Filter states
   const [sortBy, setSortBy] = useState('featured');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  
+
   // Store available categories and brands from API
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [statuses, setStatuses] = useState<string[]>(['Available', 'Out of Stock']);
 
+  // Like state management
+  const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(new Set());
+  const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
+
   const router = useRouter();
+  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Get auth status
+
+  // Load liked products from localStorage on component mount
+  useEffect(() => {
+    const savedLikedProducts = localStorage.getItem('likedProducts');
+    if (savedLikedProducts) {
+      try {
+        setLocalLikedProducts(new Set(JSON.parse(savedLikedProducts)));
+      } catch (error) {
+        console.error('Error parsing liked products:', error);
+      }
+    }
+  }, []);
+
+  // Save liked products to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
+  }, [localLikedProducts]);
+
+  // Use external likedProducts if provided, otherwise use local state
+  const likedProducts = externalLikedProducts || localLikedProducts;
 
   // Calculate total stock from variants
   const calculateTotalStock = (product: Product): number => {
@@ -148,7 +175,7 @@ export default function AllProductsPage({
   // Determine product status based on stock and isLowStock
   const getProductStatus = (product: Product): string => {
     const totalStock = calculateTotalStock(product);
-    
+
     if (totalStock === 0) {
       return 'Out of Stock';
     } else if (product.isLowStock || totalStock < 10) {
@@ -164,13 +191,13 @@ export default function AllProductsPage({
       try {
         setLoading(true);
         const response = await fetch(`${baseUrl.INVENTORY}/api/v1/product/productsDetails`);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data: ApiResponse = await response.json();
-        
+
         // Process products to calculate actual stock and status
         const processedProducts = data.data.map(product => ({
           ...product,
@@ -181,17 +208,17 @@ export default function AllProductsPage({
           // Determine if actually in stock
           isActuallyInStock: isProductInStock(product)
         }));
-        
+
         // Store all products for client-side filtering
         setAllProducts(processedProducts);
         setProducts(processedProducts); // Initially show all products
         setCurrentPage(data.currentPage);
         setTotalPages(data.totalPages);
         setTotalProducts(data.totalProducts);
-        
+
         // Extract unique categories and brands from products
         extractFiltersFromProducts(processedProducts);
-        
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch products');
         console.error('Error fetching products:', err);
@@ -209,17 +236,17 @@ export default function AllProductsPage({
     const uniqueCategories = Array.from(
       new Map(productsData.map(product => [product.mainCategory, product.mainCategory])).values()
     ).map(id => ({ id, name: `Category ${id.slice(-4)}` })); // Simplified name
-    
+
     // Extract unique brands
     const uniqueBrands = Array.from(
       new Map(productsData.map(product => [product.brand, product.brand])).values()
     ).map(id => ({ id, name: `Brand ${id.slice(-4)}` })); // Simplified name
-    
+
     // Extract unique statuses based on calculated status
     const uniqueStatuses = Array.from(
       new Set(productsData.map(product => getProductStatus(product)))
     ).filter(status => status); // Remove empty/null values
-    
+
     setCategories(uniqueCategories);
     setBrands(uniqueBrands);
     setStatuses(['all', ...uniqueStatuses]);
@@ -228,41 +255,41 @@ export default function AllProductsPage({
   // Apply filters whenever filter states change
   useEffect(() => {
     if (allProducts.length === 0) return;
-    
+
     let filteredProducts = [...allProducts];
-    
+
     // Apply category filter
     if (selectedCategory !== 'all') {
       filteredProducts = filteredProducts.filter(
         product => product.mainCategory === selectedCategory
       );
     }
-    
+
     // Apply brand filter
     if (selectedBrand !== 'all') {
       filteredProducts = filteredProducts.filter(
         product => product.brand === selectedBrand
       );
     }
-    
+
     // Apply status filter
     if (selectedStatus !== 'all') {
       filteredProducts = filteredProducts.filter(
         product => getProductStatus(product) === selectedStatus
       );
     }
-    
+
     // Apply sorting
     filteredProducts = sortProducts(filteredProducts, sortBy);
-    
+
     setProducts(filteredProducts);
-    
+
   }, [selectedCategory, selectedBrand, selectedStatus, sortBy, allProducts]);
 
   // Sort products based on selected sort option
   const sortProducts = (productsToSort: Product[], sortOption: string): Product[] => {
     const sorted = [...productsToSort];
-    
+
     switch (sortOption) {
       case 'price-low':
         return sorted.sort((a, b) => {
@@ -270,37 +297,37 @@ export default function AllProductsPage({
           const priceB = b.variants?.[0]?.originalPrice || b.originalPrice || b.basePrice || 0;
           return priceA - priceB;
         });
-        
+
       case 'price-high':
         return sorted.sort((a, b) => {
           const priceA = a.variants?.[0]?.originalPrice || a.originalPrice || a.basePrice || 0;
           const priceB = b.variants?.[0]?.originalPrice || b.originalPrice || b.basePrice || 0;
           return priceB - priceA;
         });
-        
+
       case 'newest':
-        return sorted.sort((a, b) => 
+        return sorted.sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        
+
       case 'best-selling':
         // Sort by total stock (assuming higher stock = better selling)
-        return sorted.sort((a, b) => 
+        return sorted.sort((a, b) =>
           calculateTotalStock(b) - calculateTotalStock(a)
         );
-        
+
       case 'stock-high':
         // Sort by stock (high to low)
-        return sorted.sort((a, b) => 
+        return sorted.sort((a, b) =>
           calculateTotalStock(b) - calculateTotalStock(a)
         );
-        
+
       case 'stock-low':
         // Sort by stock (low to high)
-        return sorted.sort((a, b) => 
+        return sorted.sort((a, b) =>
           calculateTotalStock(a) - calculateTotalStock(b)
         );
-        
+
       case 'featured':
       default:
         // Default sort - by productId or in-stock first
@@ -310,56 +337,183 @@ export default function AllProductsPage({
           const bInStock = isProductInStock(b);
           if (aInStock && !bInStock) return -1;
           if (!aInStock && bInStock) return 1;
-          
+
           // Then sort by productId
           return b.productId.localeCompare(a.productId);
         });
     }
   };
 
+  // API function for adding/removing favorites
+  const addToFavoritesAPI = useCallback(async (productId: string) => {
+    try {
+      setIsProcessingLike(productId);
+
+      console.log('Making favorites API call for product:', productId);
+      console.log('API URL:', `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`);
+
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      console.log(response);
+
+      if (response.status === 401) {
+        return { success: false, requiresLogin: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        liked: data.liked,
+        message: data.message,
+        data: data.data,
+      };
+    } catch (err) {
+      console.error("Error adding to favorites:", err);
+      return { success: false, error: err };
+    } finally {
+      setIsProcessingLike(null);
+    }
+  }, []);
+
+  // Function to show login prompt
+  const showLoginPrompt = useCallback((productId: string) => {
+    // Store the product ID to like after login
+    sessionStorage.setItem('productToLikeAfterLogin', productId);
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+
+    toast.error('Login Required', {
+      description: 'You need to login to add products to favorites',
+      action: {
+        label: 'Login',
+        onClick: () => {
+          router.push('/login');
+        },
+      },
+      duration: 5000,
+    });
+  }, [router]);
+
+  // Main like toggle handler
+  const handleToggleLike = async (productId: string | number) => {
+    // Convert productId to string for consistency
+    const productIdStr = String(productId);
+
+    // Check if user is logged in
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const isLoggedIn = !!token || userIsLoggedIn;
+
+    if (!isLoggedIn) {
+      showLoginPrompt(productIdStr);
+      return;
+    }
+
+    const isCurrentlyLiked = likedProducts.has(productIdStr);
+
+    // If external handler is provided, use it
+    if (externalOnToggleLike) {
+      externalOnToggleLike(productId);
+      return;
+    }
+
+    // Optimistic UI update for local state
+    setLocalLikedProducts(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyLiked) {
+        newSet.delete(productIdStr);
+      } else {
+        newSet.add(productIdStr);
+      }
+      return newSet;
+    });
+
+    // Make API call
+    const result = await addToFavoritesAPI(productIdStr);
+
+    if (!result.success) {
+      // Revert optimistic update on failure
+      setLocalLikedProducts(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.add(productIdStr);
+        } else {
+          newSet.delete(productIdStr);
+        }
+        return newSet;
+      });
+
+      if (result.requiresLogin) {
+        showLoginPrompt(productIdStr);
+      } else {
+        toast.error('Failed to update favorites. Please try again.');
+      }
+    } else {
+      // Success - show appropriate message
+      if (result.liked) {
+        toast.success('Added to favorites!');
+      } else {
+        toast.info('Removed from favorites');
+      }
+    }
+  };
+
+  // Helper to check if a product is currently processing like
+  const isProductLoadingLike = (productId: string) => {
+    return isProcessingLike === productId;
+  };
+
   // Format product for ProductCard component
   const formatProductForCard = (product: Product) => {
     // Get the first variant or use product level prices
     const firstVariant = product.variants?.[0];
-    
+
     // Determine the price to display - use variant price if available
-    const displayPrice = firstVariant?.originalPrice || 
-                        product.originalPrice || 
-                        product.basePrice || 
-                        0;
-    
+    const displayPrice = firstVariant?.originalPrice ||
+      product.originalPrice ||
+      product.basePrice ||
+      0;
+
     // Determine discounted price if available - prefer variant discounts
-    const discountedPrice = firstVariant?.clinicDiscountPrice || 
-                           firstVariant?.doctorDiscountPrice || 
-                           product.clinicDiscountPrice || 
-                           product.doctorDiscountPrice || 
-                           null;
-    
+    const discountedPrice = firstVariant?.clinicDiscountPrice ||
+      firstVariant?.doctorDiscountPrice ||
+      product.clinicDiscountPrice ||
+      product.doctorDiscountPrice ||
+      null;
+
     // Calculate discount percentage if available
     const discountPercentage = discountedPrice && displayPrice > 0
       ? Math.round(((displayPrice - discountedPrice) / displayPrice) * 100)
       : null;
-    
+
     // Get the first image URL
-    const imageUrl = product.image?.[0] 
+    const imageUrl = product.image?.[0]
       ? `${baseUrl.INVENTORY}${product.image[0]}`
       : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
-    
+
     // Get available variants summary
     const availableVariants = product.variants
       ?.filter(v => v.stock > 0)
       .map(v => v.size)
       .join(', ') || '';
-    
+
     // Calculate total available stock
     const totalStock = calculateTotalStock(product);
-    
+
     // Determine actual status
     const actualStatus = getProductStatus(product);
-    
+
     // Check if product has any stock
     const hasStock = isProductInStock(product);
-    
+
     return {
       id: product._id,
       productId: product.productId,
@@ -411,10 +565,10 @@ export default function AllProductsPage({
 
   // Check if any filter is active
   const isFilterActive = useMemo(() => {
-    return selectedCategory !== 'all' || 
-           selectedBrand !== 'all' || 
-           selectedStatus !== 'all' || 
-           sortBy !== 'featured';
+    return selectedCategory !== 'all' ||
+      selectedBrand !== 'all' ||
+      selectedStatus !== 'all' ||
+      sortBy !== 'featured';
   }, [selectedCategory, selectedBrand, selectedStatus, sortBy]);
 
   // Count in-stock products
@@ -460,6 +614,11 @@ export default function AllProductsPage({
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Add Toaster for notifications */}
+      <div className="fixed top-4 right-4 z-50">
+        {/* Toaster will be rendered by Sonner */}
+      </div>
+
       <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button
@@ -499,9 +658,13 @@ export default function AllProductsPage({
                   <div className="w-2 h-2 rounded-full bg-red-500"></div>
                   {totalProducts - inStockCount} Out of Stock
                 </span>
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                  {likedProducts.size} Favorites
+                </span>
               </div>
             </div>
-            
+
             {isFilterActive && (
               <button
                 onClick={resetFilters}
@@ -516,7 +679,7 @@ export default function AllProductsPage({
         {/* Filters */}
         <div className="mb-8 flex flex-wrap gap-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
           {/* Sort Filter */}
-          <select 
+          <select
             value={sortBy}
             onChange={(e) => handleSortChange(e.target.value)}
             className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"
@@ -531,7 +694,7 @@ export default function AllProductsPage({
           </select>
 
           {/* Category Filter */}
-          <select 
+          <select
             value={selectedCategory}
             onChange={(e) => handleCategoryChange(e.target.value)}
             className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"
@@ -545,7 +708,7 @@ export default function AllProductsPage({
           </select>
 
           {/* Brand Filter */}
-          <select 
+          <select
             value={selectedBrand}
             onChange={(e) => handleBrandChange(e.target.value)}
             className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"
@@ -559,7 +722,7 @@ export default function AllProductsPage({
           </select>
 
           {/* Status Filter */}
-          <select 
+          <select
             value={selectedStatus}
             onChange={(e) => handleStatusChange(e.target.value)}
             className="px-4 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-500 transition-colors"
@@ -597,9 +760,10 @@ export default function AllProductsPage({
                   <ProductCard
                     product={formatProductForCard(product)}
                     isLiked={likedProducts.has(product._id)}
-                    onToggleLike={onToggleLike}
+                    isLoadingLike={isProductLoadingLike(product._id)}
+                    onToggleLike={() => handleToggleLike(product._id)}
                     onAddToCart={addToCart}
-                    onProductClick={()=> router.push(`/productdetailpage/${product._id}`)}
+                    onProductClick={() => router.push(`/productdetailpage/${product._id}`)}
                   />
                 </div>
               ))}
@@ -609,7 +773,7 @@ export default function AllProductsPage({
             {/* For client-side filtering, we're showing all filtered products */}
             {!isFilterActive && currentPage < totalPages && (
               <div className="mt-12 flex justify-center animate-fade-in">
-                <button 
+                <button
                   onClick={() => {
                     // You would implement actual pagination here
                   }}

@@ -223,6 +223,7 @@ function StepCard({
 
 interface BuyingGuideDetailPageProps {
   cartCount: number;
+  favoritesCount: number;
   onCartCountChange: (count: number) => void;
   onBackToGuide: () => void;
   guideTitle?: string;
@@ -239,6 +240,7 @@ interface BuyingGuideDetailPageProps {
 
 export default function BuyingGuideDetailPage({
   cartCount,
+  favoritesCount,
   onCartCountChange,
   onBackToGuide,
   guideTitle = "Maxillary Sinus Augmentation",
@@ -402,6 +404,8 @@ export default function BuyingGuideDetailPage({
       {/* Navigation */}
       <Navigation
         currentPage="detailbuyingguide"
+        cartCount={cartCount}
+        favoritesCount={favoritesCount ?? 0}
       // onBrandClick={onBrandClick}
       // onBuyingGuideClick={onBackToGuide}
       // onEventsClick={onEventsClick}

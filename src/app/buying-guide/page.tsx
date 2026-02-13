@@ -204,6 +204,8 @@ export default function BuyingGuidePage({
             {/* Navigation */}
             <Navigation
                 currentPage="buying-guide"
+                cartCount={cartCount}
+                favoritesCount={favoritesCount ?? 0}
             />
 
             {/* Page Title */}
