@@ -35,36 +35,45 @@ export default function UserLoginPage() {
 
     hasAutoLoggedIn.current = true;
 
-    try {
-      setIsAutoLoggingIn(true);
-      setIsSubmitting(true);
+    const autoLogin = async () => {
+      try {
+        setIsAutoLoggingIn(true);
+        setIsSubmitting(true);
 
-      console.log("Auto login token received:", accessToken);
+        console.log("Clinic token received:", accessToken);
 
-      // ✅ Store clinic token in ecommerce cookie
-      Cookies.set("accessToken", accessToken, {
-        expires: 7,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: '/'
-      });
+        // ✅ Send clinic token to backend SSO endpoint
+        await axios.post(
+          `${baseUrl.AUTH}/api/v1/ecommerceuser/clinic-marketplace-login`,
+          {},
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
 
-      toast.success("🎉 Logged in via Clinic successfully!");
+        // ✅ Backend sets ecommerce cookie
+        toast.success("🎉 Logged in via Clinic successfully!");
 
-      // ✅ Remove token from URL (security)
-      window.history.replaceState({}, document.title, "/");
+        // ✅ Remove token from URL
+        window.history.replaceState({}, document.title, "/");
 
-      // ✅ Redirect to homepage
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 800);
+        // ✅ Redirect home
+        setTimeout(() => {
+          router.replace("/");
+        }, 800);
 
-    } catch (error) {
-      console.error("Auto login failed:", error);
-      toast.error("Automatic login failed.");
-      setIsAutoLoggingIn(false);
-      setIsSubmitting(false);
-    }
+      } catch (error) {
+        console.error("Auto login failed:", error);
+        toast.error("Clinic auto login failed");
+        setIsAutoLoggingIn(false);
+        setIsSubmitting(false);
+      }
+    };
+
+    autoLogin();
   }, [accessToken]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
