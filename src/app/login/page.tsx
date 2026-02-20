@@ -35,36 +35,45 @@ export default function UserLoginPage() {
 
     hasAutoLoggedIn.current = true;
 
-    try {
-      setIsAutoLoggingIn(true);
-      setIsSubmitting(true);
+    const autoLogin = async () => {
+      try {
+        setIsAutoLoggingIn(true);
+        setIsSubmitting(true);
 
-      console.log("Auto login token received:", accessToken);
+        console.log("Clinic token received:", accessToken);
 
-      // ✅ Store clinic token in ecommerce cookie
-      Cookies.set("accessToken", accessToken, {
-        expires: 7,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: '/'
-      });
+        // ✅ Send clinic token to backend SSO endpoint
+        await axios.post(
+          `${baseUrl.AUTH}/api/v1/ecommerceuser/clinic-marketplace-login`,
+          {},
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
 
-      toast.success("🎉 Logged in via Clinic successfully!");
+        // ✅ Backend sets ecommerce cookie
+        toast.success("🎉 Logged in via Clinic successfully!");
 
-      // ✅ Remove token from URL (security)
-      window.history.replaceState({}, document.title, "/");
+        // ✅ Remove token from URL
+        window.history.replaceState({}, document.title, "/");
 
-      // ✅ Redirect to homepage
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 800);
+        // ✅ Redirect home
+        setTimeout(() => {
+          router.replace("/");
+        }, 800);
 
-    } catch (error) {
-      console.error("Auto login failed:", error);
-      toast.error("Automatic login failed.");
-      setIsAutoLoggingIn(false);
-      setIsSubmitting(false);
-    }
+      } catch (error) {
+        console.error("Auto login failed:", error);
+        toast.error("Clinic auto login failed");
+        setIsAutoLoggingIn(false);
+        setIsSubmitting(false);
+      }
+    };
+
+    autoLogin();
   }, [accessToken]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,13 +149,13 @@ export default function UserLoginPage() {
       {!isAutoLoggingIn && (
         <div className="max-w-3xl mx-auto px-6 py-12">
           <div className="bg-white rounded-3xl shadow-xl p-8">
-            <h2 className="text-2xl font-bold text-center mb-8">
-              User Login
+            <h2 className="text-2xl text-black font-bold text-center mb-8">
+              User <span className="text-blue-600">Login</span>
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold mb-2">
+                <label className="block text-black text-sm font-semibold mb-2">
                   Email *
                 </label>
                 <input
@@ -154,14 +163,14 @@ export default function UserLoginPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full border-2 rounded-lg p-3"
+                  className="w-full text-black border-2 rounded-lg p-3"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">
+                <label className="block text-black text-sm font-semibold mb-2">
                   Password *
                 </label>
                 <div className="relative">
@@ -170,7 +179,7 @@ export default function UserLoginPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full border-2 rounded-lg p-3"
+                    className="w-full text-black border-2 rounded-lg p-3"
                     required
                     disabled={isSubmitting}
                   />
@@ -191,6 +200,18 @@ export default function UserLoginPage() {
               >
                 {isSubmitting ? "Logging in..." : "Login"}
               </button>
+              <div className="text-center pt-4">
+                <p className="text-sm text-gray-600">
+                  Create an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => router.push("/register")}
+                    className="text-blue-600 font-semibold hover:underline"
+                  >
+                    Register
+                  </button>
+                </p>
+              </div>
             </form>
           </div>
         </div>

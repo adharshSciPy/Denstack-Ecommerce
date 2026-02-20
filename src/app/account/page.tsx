@@ -247,6 +247,8 @@ export default function AccountPage({
         );
 
         const mergedData = { ...emptyProfile, ...res.data.data };
+
+        console.log("account details", mergedData);
         setUserData(mergedData);
         setTempUserData(mergedData);
       } catch (error: any) {
