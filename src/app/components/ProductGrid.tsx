@@ -21,8 +21,13 @@ interface FeaturedProduct {
     name: string;
     description: string;
     basePrice: number;
+    originalPrice: number;           // ← actual field name in DB
+    clinicDiscountPrice?: number;
+    doctorDiscountPrice?: number;
     image: string[];
     variants: any[];
+    stock: number;                   // ← root-level stock field
+    status: string;                  // ← "Available" | "Out of Stock" | "Low Stock"
     brand?: {
       name: string;
       brandId: string;
@@ -35,7 +40,6 @@ interface FeaturedProduct {
       categoryName: string;
       subCategoryId: string;
     };
-    status: string;
   };
   title: string;
   description: string;
@@ -47,16 +51,21 @@ interface FeaturedProduct {
 }
 
 interface TransformedProduct {
-  id: string; // Changed to string to use MongoDB _id
+  id: string;
   mongoId: string;
   name: string;
   price: number;
+  originalPrice: number;
+  clinicDiscountPrice?: number;
+  doctorDiscountPrice?: number;
   image: string;
   badge: string | null;
   description: string;
   stock?: number;
+  inStock?: boolean;
   category?: string;
   discount?: number;
+  status?: string;
 }
 
 export default function ProductGrid({
@@ -72,7 +81,7 @@ export default function ProductGrid({
   const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
 
   const router = useRouter()
-  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Get auth status
+  const { isLoggedIn: userIsLoggedIn } = useAuth();
 
   // Load liked products from localStorage on component mount
   useEffect(() => {
@@ -80,7 +89,6 @@ export default function ProductGrid({
     if (savedLikedProducts) {
       try {
         const parsedLikedProducts = JSON.parse(savedLikedProducts);
-        // Convert array to Set
         setLocalLikedProducts(new Set(parsedLikedProducts));
       } catch (error) {
         console.error('Error parsing liked products:', error);
@@ -111,7 +119,6 @@ export default function ProductGrid({
 
       console.log("Featured products response:", response);
 
-      // Defensive checks
       if (response.status !== 200) {
         throw new Error(`Unexpected status ${response.status} from featured-products endpoint`);
       }
@@ -130,20 +137,55 @@ export default function ProductGrid({
         .map((item: FeaturedProduct) => {
           const product = item.product;
 
+          // ── FIX 1: PRICE ─────────────────────────────────────────────────────
+          // API returns originalPrice (not basePrice). Fall through all price fields.
+          const price =
+            product.originalPrice ||
+            product.clinicDiscountPrice ||
+            (product as any).basePrice ||
+            product.variants?.[0]?.originalPrice ||
+            product.variants?.[0]?.clinicDiscountPrice ||
+            0;
+
+          // ── FIX 2: STOCK ─────────────────────────────────────────────────────
+          // Stock lives on product root AND/OR in variants. Try root first, then variant.
+          const rootStock = typeof product.stock === 'number' ? product.stock : null;
+          const variantStock = product.variants?.reduce(
+            (sum: number, v: any) => sum + (typeof v.stock === 'number' ? v.stock : 0),
+            0
+          ) ?? 0;
+          const totalStock = rootStock !== null ? rootStock : variantStock;
+
+          // ── FIX 3: inStock ────────────────────────────────────────────────────
+          // Use product.status if present ("Available" = in stock),
+          // otherwise fall back to stock > 0.
+          const inStock =
+            product.status === 'Available'
+              ? true
+              : product.status === 'Out of Stock'
+              ? false
+              : totalStock > 0;
+
+          // ── IMAGE ─────────────────────────────────────────────────────────────
           const imagePath = product.image?.[0];
           const imageUrl = imagePath
-            ? `${baseUrl.INVENTORY}/${imagePath.startsWith("/") ? imagePath.slice(1) : imagePath}`
-            : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
+            ? `${baseUrl.INVENTORY}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`
+            : 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
 
           return {
-            id: product._id, // Use MongoDB _id instead of index
+            id: product._id,
             mongoId: product._id,
             name: product.name,
-            price: product.basePrice || 0,
+            price,
+            originalPrice: product.originalPrice || 0,
+            clinicDiscountPrice: product.clinicDiscountPrice,
+            doctorDiscountPrice: product.doctorDiscountPrice,
             image: imageUrl,
             badge: item.badge,
             description: item.description,
-            stock: product.variants?.[0]?.stock || 0,
+            stock: totalStock,
+            inStock,
+            status: product.status,
             category: product.mainCategory?.categoryName,
             discount: product.variants?.[0]?.discount,
           };
@@ -199,7 +241,6 @@ export default function ProductGrid({
 
   // Function to show login prompt
   const showLoginPrompt = useCallback((productId: string) => {
-    // Store the product ID to like after login
     sessionStorage.setItem('productToLikeAfterLogin', productId);
     sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
 
@@ -217,14 +258,8 @@ export default function ProductGrid({
 
   // Main like toggle handler
   const handleToggleLike = async (productId: string | number) => {
-    // Convert productId to string for consistency
     const productIdStr = String(productId);
 
-    // Check if user is logged in
-    // Note: You need to implement your auth check logic here
-    // const isLoggedIn = userIsLoggedIn; // Use your auth hook
-
-    // For now, let's check if we have a token in localStorage
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const isLoggedIn = !!token || userIsLoggedIn;
 
@@ -237,13 +272,11 @@ export default function ProductGrid({
       likedProducts.has(productIdStr) ||
       likedProducts.has(Number(productId));
 
-    // If external handler is provided, use it
     if (externalOnToggleLike) {
       externalOnToggleLike(productId);
       return;
     }
 
-    // Optimistic UI update for local state
     setLocalLikedProducts(prev => {
       const newSet = new Set(prev);
       if (isCurrentlyLiked) {
@@ -258,11 +291,9 @@ export default function ProductGrid({
       return newSet;
     });
 
-    // Make API call
     const result = await addToFavoritesAPI(productIdStr);
 
     if (!result.success) {
-      // Revert optimistic update on failure
       setLocalLikedProducts(prev => {
         const newSet = new Set(prev);
         if (isCurrentlyLiked) {
@@ -283,7 +314,6 @@ export default function ProductGrid({
         toast.error('Failed to update favorites. Please try again.');
       }
     } else {
-      // Success - show appropriate message
       if (result.liked) {
         toast.success('Added to favorites!');
       } else {
@@ -292,14 +322,12 @@ export default function ProductGrid({
     }
   };
 
-  // Helper to check if product is liked (handles both string and number IDs)
   const isProductLiked = (productId: string | number) => {
     return likedProducts.has(productId) ||
       likedProducts.has(String(productId)) ||
       likedProducts.has(Number(productId));
   };
 
-  // Helper to check if a product is currently processing like
   const isProductLoadingLike = (productId: string | number) => {
     return isProcessingLike === String(productId);
   };
@@ -315,10 +343,7 @@ export default function ProductGrid({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-gray-200 animate-pulse rounded-lg h-80"
-            ></div>
+            <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-80"></div>
           ))}
         </div>
       </section>
@@ -345,9 +370,7 @@ export default function ProductGrid({
     return (
       <section className="container mx-auto px-4 py-12">
         <div className="text-center py-12">
-          <p className="text-gray-600 text-lg">
-            No featured products available
-          </p>
+          <p className="text-gray-600 text-lg">No featured products available</p>
         </div>
       </section>
     );
@@ -359,20 +382,16 @@ export default function ProductGrid({
         <h2 className="text-3xl lg:text-4xl text-gray-900 font-semibold">
           Featured Products
         </h2>
-        <button className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3" onClick={() => router.push("/allproducts")}>
+        <button
+          className="hidden sm:flex items-center gap-2 text-gray-900 hover:text-blue-600 transition-all duration-300 group hover:gap-3"
+          onClick={() => router.push("/allproducts")}
+        >
           <span className="text-lg font-medium">View all</span>
           <svg
             className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>
@@ -382,10 +401,7 @@ export default function ProductGrid({
           <div
             key={product.id}
             className="animate-fade-in-up"
-            style={{
-              animationDelay: `${index * 50}ms`,
-              animationFillMode: "both",
-            }}
+            style={{ animationDelay: `${index * 50}ms`, animationFillMode: "both" }}
           >
             <ProductCard
               product={product}
@@ -401,18 +417,8 @@ export default function ProductGrid({
 
       <button className="sm:hidden w-full mt-8 flex items-center justify-center gap-2 py-3 text-gray-900 hover:text-blue-600 transition-colors border border-gray-300 rounded-lg hover:border-blue-600 hover:shadow-md active:scale-95">
         <span className="font-medium">View all</span>
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
     </section>

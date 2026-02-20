@@ -162,6 +162,7 @@ export default function CategoryBrowsePage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [selectedSubCategoryIndex, setSelectedSubCategoryIndex] = useState(0);
+  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(likedProducts);
   const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
   
@@ -211,99 +212,108 @@ export default function CategoryBrowsePage({
     localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
   }, [localLikedProducts]);
 
+  // ─── REPLACED: single getWithDetails call instead of separate main + sub fetches ───
   useEffect(() => {
-    const fetchMain = async () => {
+    const fetchAllWithDetails = async () => {
       setLoadingCategories(true);
+      setLoadingSubcategories(true);
       setApiError(null);
       try {
-        const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getAll`);
+        const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getWithDetails`);
         if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
         const json = await res.json();
-        setCategoriesApi(json.data || []);
-        // prefetch subcategories for first category
-        if (json.data && json.data.length > 0) {
-          fetchSubCategories(json.data[0]._id);
+        const mainCats: any[] = json.data || [];
+
+        // Seed categoriesApi exactly as before (just _id + categoryName needed)
+        setCategoriesApi(mainCats);
+
+        // Seed subCategoriesMap keyed by mainCategory._id — same shape the rest of the
+        // code expects: array of objects with { _id, categoryName, ... }
+        const subMap: Record<string, any[]> = {};
+        // Seed productsMap keyed by subCategory._id — same shape fetchProductsBySubCategory produces
+        const prodMap: Record<string, Product[]> = {};
+
+        for (const cat of mainCats) {
+          const subCats: any[] = cat.subCategories || [];
+          subMap[cat._id] = subCats;
+
+          for (const sub of subCats) {
+            const brands: any[] = sub.brands || [];
+            // Flatten all products across all brands inside this subcategory
+            const allProducts: Product[] = [];
+            for (const brand of brands) {
+              const brandProducts: any[] = brand.products || [];
+              allProducts.push(...brandProducts.map(mapApiProductToProduct));
+            }
+            prodMap[sub._id] = allProducts;
+          }
         }
+
+        // Seed brandsMap keyed by subCategory._id → array of brand objects with products[]
+        const brandMap: Record<string, any[]> = {};
+        for (const cat of mainCats) {
+          for (const sub of cat.subCategories || []) {
+            brandMap[sub._id] = (sub.brands || []).map((b: any) => ({
+              ...b,
+              products: (b.products || []).map(mapApiProductToProduct),
+            }));
+          }
+        }
+        setBrandsMap(brandMap);
+        setSubCategoriesMap(subMap);
+        setProductsMap(prodMap);
+
       } catch (err: any) {
         setApiError(err.message || 'Error fetching categories');
         toast.error(err.message || 'Error fetching categories');
       } finally {
         setLoadingCategories(false);
+        setLoadingSubcategories(false);
       }
     };
 
-    fetchMain();
+    fetchAllWithDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── KEPT: fetchSubCategories is preserved so existing click handlers that call it
+  // still work. It now just returns early if data is already cached (which it will be
+  // after the initial load), so no extra network calls are made.
   const fetchSubCategories = async (parentId: string) => {
     if (!parentId) return;
-    if (subCategoriesMap[parentId]) return; // cached
+    if (subCategoriesMap[parentId]) return; // cached — no-op after initial load
+
+    // Fallback fetch in case cache is somehow missing (e.g. new category added live)
     setLoadingSubcategories(true);
     setApiError(null);
-
-    const candidates = [
-      `${baseUrl.INVENTORY}/api/v1/landing/sub/getByParent/${parentId}`,
-      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parentId=${parentId}`,
-      `${baseUrl.INVENTORY}/api/v1/landing/sub/getSub?parentId=${parentId}`,
-      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parentCategory=${parentId}`,
-      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parentCategoryId=${parentId}`,
-      `${baseUrl.INVENTORY}/api/v1/landing/main/getSub?parent=${parentId}`,
-      `${baseUrl.INVENTORY}/api/v1/landing/sub/getSub?parentCategoryId=${parentId}`,
-    ];
-
     try {
-      for (const url of candidates) {
-        try {
-          const res = await fetch(url);
-          if (!res.ok) continue;
-          const json = await res.json();
-          if (json?.data && json.data.length > 0) {
-            const normalized = json.data.map((item: any) => ({
-              ...item,
-              _id: getId(item._id ?? item.id ?? item.subCategoryId ?? item.categoryId ?? item._id) ?? (item._id ?? item.id ?? item.subCategoryId ?? item.categoryId)
-            }));
-            setSubCategoriesMap(prev => ({ ...prev, [parentId]: normalized }));
-            return;
-          }
-        } catch (e) {
-          // ignore and try next
-        }
-      }
+      const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getWithDetails/${parentId}`);
+      if (!res.ok) throw new Error(`Failed to fetch subcategories: ${res.status}`);
+      const json = await res.json();
+      const cat = json.data;
+      if (!cat) return;
 
-      // Final fallback: fetch all and filter by parentCategory._id
-      try {
-        const allRes = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getAll`);
-        if (allRes.ok) {
-          const allJson = await allRes.json();
-          const allData = allJson?.data || [];
-          // Consider multiple possible parent references (parentCategory, mainCategory, parent, etc.)
-          const filtered = allData.filter((item: any) => {
-            const possibleParent = item.parentCategory ?? item.mainCategory ?? item.parent ?? item.parentCategoryId ?? item.mainCategoryId ?? item.categoryId;
-            if (!possibleParent) return false;
-            const pId = getId(possibleParent);
-            if (typeof possibleParent === 'string' && possibleParent === parentId) return true;
-            if (pId && pId === parentId) return true;
-            // also accept direct object equality
-            if (possibleParent === parentId) return true;
-            return false;
-          });
-          if (filtered.length > 0) {
-            const normalized = filtered.map((item: any) => ({
-              ...item,
-              _id: getId(item._id ?? item.id ?? item.subCategoryId ?? item.categoryId ?? item._id) ?? (item._id ?? item.id ?? item.subCategoryId ?? item.categoryId)
-            }));
-            setSubCategoriesMap(prev => ({ ...prev, [parentId]: normalized }));
-            console.debug('Found subcategories from getAll fallback', parentId, normalized.length);
-            return;
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
+      const subCats: any[] = cat.subCategories || [];
+      setSubCategoriesMap(prev => ({ ...prev, [parentId]: subCats }));
 
-      // If still no subcategories found, cache empty array
-      setSubCategoriesMap(prev => ({ ...prev, [parentId]: [] }));
+      // Also seed brands + products for each sub from this response
+      const prodEntries: Record<string, Product[]> = {};
+      const brandEntries: Record<string, any[]> = {};
+      for (const sub of subCats) {
+        const brands: any[] = sub.brands || [];
+        brandEntries[sub._id] = brands.map((b: any) => ({
+          ...b,
+          products: (b.products || []).map(mapApiProductToProduct),
+        }));
+        const allProducts: Product[] = [];
+        for (const brand of brands) {
+          allProducts.push(...(brand.products || []).map(mapApiProductToProduct));
+        }
+        prodEntries[sub._id] = allProducts;
+      }
+      setBrandsMap(prev => ({ ...prev, ...brandEntries }));
+      setProductsMap(prev => ({ ...prev, ...prodEntries }));
+
     } catch (err: any) {
       setApiError(err.message || 'Error fetching subcategories');
       toast.error(err.message || 'Error fetching subcategories');
@@ -312,8 +322,10 @@ export default function CategoryBrowsePage({
       setLoadingSubcategories(false);
     }
   };
+  // ─── END REPLACED SECTION ────────────────────────────────────────────────────────
 
   // Products state & fetch helpers (cached by subcategory id)
+  const [brandsMap, setBrandsMap] = useState<Record<string, any[]>>({});
   const [productsMap, setProductsMap] = useState<Record<string, Product[]>>({});
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
@@ -323,7 +335,7 @@ export default function CategoryBrowsePage({
 
   const mapApiProductToProduct = (p: any): Product => {
     const variant = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants[0] : null;
-    const price = variant ? (variant.clinicDiscountPrice ?? variant.discountPrice1 ?? variant.originalPrice ?? 0) : 0;
+    const price = variant ? (variant.clinicDiscountPrice ?? variant.discountPrice1 ?? variant.originalPrice ?? 0) : (p.originalPrice ?? p.price ?? 0);
     const imagePath = Array.isArray(p.image) && p.image.length > 0 ? p.image[0] : '';
 
     const id = getId(p._id ?? p._id?.$oid ?? p.id);
@@ -345,7 +357,7 @@ export default function CategoryBrowsePage({
 
   const fetchProductsBySubCategory = async (subCategoryId: string, force = false) => {
     if (!subCategoryId) return;
-    if (!force && productsMap[subCategoryId]) return; // cached
+    if (!force && productsMap[subCategoryId]) return; // cached — already seeded by getWithDetails
     setLoadingProducts(true);
     setProductsError(null);
     setLastFetchedJson(null);
@@ -530,8 +542,9 @@ export default function CategoryBrowsePage({
     if (apiCat && apiCat._id) {
       fetchSubCategories(apiCat._id);
     }
-    // reset subcategory index
+    // reset subcategory + brand index
     setSelectedSubCategoryIndex(0);
+    setSelectedBrandIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategoryIndex, categoriesApi, searchQuery]);
 
@@ -544,8 +557,19 @@ export default function CategoryBrowsePage({
   // keep a UI-compatible selectedSubCategory for legacy rendering
   const selectedSubCategory = currentSelectedSubCategory ? { name: currentSelectedSubCategory.categoryName, products: [] } : selectedCategory?.subCategories[selectedSubCategoryIndex];
 
-  // When subcategory changes, fetch its products (if not cached)
+  // Brand helpers — derived from brandsMap for the currently selected subcategory
+  const currentBrandsForSub = currentSelectedSubCategory
+    ? (brandsMap[currentSelectedSubCategory._id] || [])
+    : [];
+  const currentSelectedBrand = currentBrandsForSub[selectedBrandIndex] ?? null;
+  // Products for the selected brand only
+  const productsForSelectedBrand: Product[] = currentSelectedBrand
+    ? (currentSelectedBrand.products || [])
+    : [];
+
+  // When subcategory changes, fetch its products (if not cached) and reset brand
   useEffect(() => {
+    setSelectedBrandIndex(0);
     const raw = currentSelectedSubCategory?._id ?? currentSelectedSubCategory ?? currentSelectedSubCategory?.subCategoryId ?? currentSelectedSubCategory?.id;
     const subId = getId(raw);
     if (subId) fetchProductsBySubCategory(subId);
@@ -616,10 +640,10 @@ export default function CategoryBrowsePage({
           </div>
         </div>
 
-        {/* Desktop: Three Column Layout */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-6 bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Desktop: Four Column Layout — Category / Sub / Brand / Products */}
+        <div className="hidden lg:grid lg:grid-cols-12 gap-0 bg-white rounded-2xl shadow-lg overflow-hidden">
           {/* CATEGORY Column */}
-          <div className="col-span-3 bg-gray-50 border-r-2 border-gray-200">
+          <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
             <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
               <h2 className="font-bold text-gray-600 text-sm uppercase">Category</h2>
             </div>
@@ -663,7 +687,7 @@ export default function CategoryBrowsePage({
           </div>
 
           {/* SUB CATEGORY Column */}
-          <div className="col-span-3 bg-gray-50 border-r-2 border-gray-200">
+          <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
             <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
               <h2 className="font-bold text-gray-600 text-sm uppercase">Sub Category</h2>
             </div>
@@ -700,46 +724,75 @@ export default function CategoryBrowsePage({
             </div>
           </div>
 
+          {/* BRAND Column */}
+          <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
+            <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
+              <h2 className="font-bold text-gray-600 text-sm uppercase">Brand</h2>
+            </div>
+            <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
+              {!currentSelectedSubCategory && (
+                <div className="px-4 py-3 text-sm text-gray-400">Select a subcategory</div>
+              )}
+              {currentSelectedSubCategory && currentBrandsForSub.length === 0 && (
+                <div className="px-4 py-3 text-sm text-gray-500">No brands</div>
+              )}
+              {currentBrandsForSub.map((brand, index) => (
+                <button
+                  key={brand._id ?? index}
+                  onClick={() => setSelectedBrandIndex(index)}
+                  className={`
+                    w-full text-left px-4 py-3 flex items-center gap-2 transition-all duration-200
+                    ${selectedBrandIndex === index
+                      ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
+                      : 'text-gray-700 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  {brand.image && (
+                    <img
+                      src={`${baseUrl.INVENTORY}${brand.image}`}
+                      alt={brand.name}
+                      className="w-6 h-6 rounded object-cover flex-shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  <span className="truncate text-sm">{brand.name}</span>
+                  <span className="ml-auto text-xs text-gray-400 flex-shrink-0">{brand.products?.length ?? 0}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* PRODUCTS Column */}
           <div className="col-span-6 bg-white">
             <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
               <h2 className="font-bold text-gray-800 text-sm uppercase">
-                {currentSelectedSubCategory?.categoryName || selectedSubCategory?.name || 'Products'}
+                {currentSelectedBrand?.name
+                  ? `${currentSelectedBrand.name} Products`
+                  : currentSelectedSubCategory?.categoryName || 'Products'}
               </h2>
             </div>
             <div className="overflow-y-auto max-h-[600px] p-4 custom-scrollbar">
-              {/* products for the selected subcategory */}
-              {(() => {
-                const productsForCurrent = getProductsForSub(currentSelectedSubCategory);
-
-                const isLoadingView = loadingProducts && !productsForCurrent.length;
-                if (isLoadingView) {
-                  return <div className="text-sm text-gray-500 p-4">Loading products...</div>;
-                }
-
-                if (!loadingProducts && productsForCurrent.length === 0) {
-                  return (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2 text-center py-12 text-gray-500">No products available in this category</div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
-                    {productsForCurrent.map((product) => (
-                      <ProductCard
-                        key={product._id}
-                        product={product}
-                        isLiked={localLikedProducts.has(product._id)}
-                        isLoadingLike={isProcessingLike === product._id}
-                        onToggleLike={() => handleToggleLike(product._id)}
-                        onAddToCart={() => handleAddToCart(product.name)}
-                      />
-                    ))}
-                  </div>
-                );
-              })()}
+              {!currentSelectedBrand && currentBrandsForSub.length > 0 && (
+                <div className="text-center py-12 text-gray-400 text-sm">Select a brand to view products</div>
+              )}
+              {currentSelectedBrand && productsForSelectedBrand.length === 0 && (
+                <div className="text-center py-12 text-gray-500">No products in this brand</div>
+              )}
+              {currentSelectedBrand && productsForSelectedBrand.length > 0 && (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {productsForSelectedBrand.map((product) => (
+                    <ProductCard
+                      key={product._id}
+                      product={product}
+                      isLiked={localLikedProducts.has(product._id)}
+                      isLoadingLike={isProcessingLike === product._id}
+                      onToggleLike={() => handleToggleLike(product._id)}
+                      onAddToCart={() => handleAddToCart(product.name)}
+                    />
+                  ))}
+                </div>
+              )}
             </div> 
           </div>
         </div>
@@ -806,34 +859,59 @@ export default function CategoryBrowsePage({
                           />
                         </button>
 
-                        {/* Products */}
+                        {/* Brands + Products */}
                         {selectedSubCategoryIndex === subIndex && (
-                          <div className="p-4 bg-white">
+                          <div className="bg-white">
                             {(() => {
-                              const productsForSub = getProductsForSub(subCategory);
-
-                              if (loadingProducts && !productsForSub.length) {
-                                return <div className="text-sm text-gray-500 p-2">Loading products...</div>;
+                              const subBrands = brandsMap[subCategory._id] || [];
+                              if (subBrands.length === 0) {
+                                return <div className="text-center py-4 px-6 text-gray-500 text-sm">No brands in this subcategory</div>;
                               }
-
-                              if (!loadingProducts && productsForSub.length === 0) {
-                                return <div className="text-center py-6 text-gray-500">No products available in this category</div>;
-                              }
-
-                              return (
-                                <div className="grid grid-cols-2 gap-3">
-                                  {productsForSub.map((product) => (
-                                    <ProductCard
-                                      key={product._id}
-                                      product={product}
-                                      isLiked={localLikedProducts.has(product._id)}
-                                      isLoadingLike={isProcessingLike === product._id}
-                                      onToggleLike={() => handleToggleLike(product._id)}
-                                      onAddToCart={() => handleAddToCart(product.name)}
-                                    />
-                                  ))}
+                              return subBrands.map((brand: any, brandIdx: number) => (
+                                <div key={brand._id ?? brandIdx}>
+                                  <button
+                                    onClick={() => setSelectedBrandIndex(selectedBrandIndex === brandIdx && selectedSubCategoryIndex === subIndex ? -1 : brandIdx)}
+                                    className={`
+                                      w-full text-left px-8 py-2.5 text-sm flex items-center gap-2 justify-between border-b border-gray-100
+                                      ${selectedBrandIndex === brandIdx ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 bg-gray-50'}
+                                    `}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {brand.image && (
+                                        <img
+                                          src={`${baseUrl.INVENTORY}${brand.image}`}
+                                          alt={brand.name}
+                                          className="w-5 h-5 rounded object-cover"
+                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                      )}
+                                      <span>{brand.name}</span>
+                                      <span className="text-xs text-gray-400">({brand.products?.length ?? 0})</span>
+                                    </div>
+                                    <ChevronRight className={`w-4 h-4 transition-transform ${selectedBrandIndex === brandIdx ? 'rotate-90' : ''}`} />
+                                  </button>
+                                  {selectedBrandIndex === brandIdx && (
+                                    <div className="p-3 bg-white">
+                                      {(brand.products || []).length === 0 ? (
+                                        <div className="text-center py-4 text-gray-500 text-sm">No products</div>
+                                      ) : (
+                                        <div className="grid grid-cols-2 gap-3">
+                                          {(brand.products || []).map((product: Product) => (
+                                            <ProductCard
+                                              key={product._id}
+                                              product={product}
+                                              isLiked={localLikedProducts.has(product._id)}
+                                              isLoadingLike={isProcessingLike === product._id}
+                                              onToggleLike={() => handleToggleLike(product._id)}
+                                              onAddToCart={() => handleAddToCart(product.name)}
+                                            />
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
-                              );
+                              ));
                             })()}
                           </div>
                         )}

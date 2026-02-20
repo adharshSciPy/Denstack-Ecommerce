@@ -1,11 +1,11 @@
-'use client';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Navigation from '../components/Navigation';
-import { Heart, ChevronDown, Star, TrendingUp, Award, Zap } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '../hooks/useAuth';
-import baseUrl from '../baseUrl';
+"use client";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Navigation from "../components/Navigation";
+import { Heart, ChevronDown, Star, TrendingUp, Award, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "../hooks/useAuth";
+import baseUrl from "../baseUrl";
 
 interface BestSellerPageProps {
   cartCount: number;
@@ -111,7 +111,7 @@ interface ProductCardProps {
   isLiked: boolean;
   rating: number;
   salesCount: number;
-  badge?: 'trending' | 'top-rated' | 'best-value';
+  badge?: "trending" | "top-rated" | "best-value";
   isLoadingLike?: boolean;
   onToggleLike: () => void;
   onAddToCart: () => void;
@@ -137,26 +137,26 @@ function ProductCard({
 
   const getBadgeConfig = () => {
     switch (badge) {
-      case 'trending':
+      case "trending":
         return {
           icon: TrendingUp,
-          text: 'TRENDING',
-          gradient: 'from-orange-500 to-red-600',
-          color: 'text-orange-600'
+          text: "TRENDING",
+          gradient: "from-orange-500 to-red-600",
+          color: "text-orange-600",
         };
-      case 'top-rated':
+      case "top-rated":
         return {
           icon: Award,
-          text: 'TOP RATED',
-          gradient: 'from-purple-500 to-indigo-600',
-          color: 'text-purple-600'
+          text: "TOP RATED",
+          gradient: "from-purple-500 to-indigo-600",
+          color: "text-purple-600",
         };
-      case 'best-value':
+      case "best-value":
         return {
           icon: Zap,
-          text: 'BEST VALUE',
-          gradient: 'from-green-500 to-emerald-600',
-          color: 'text-green-600'
+          text: "BEST VALUE",
+          gradient: "from-green-500 to-emerald-600",
+          color: "text-green-600",
         };
       default:
         return null;
@@ -174,7 +174,9 @@ function ProductCard({
     >
       {/* Badge */}
       {badgeConfig && (
-        <div className={`absolute top-3 left-3 z-10 bg-gradient-to-r ${badgeConfig.gradient} text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg`}>
+        <div
+          className={`absolute top-3 left-3 z-10 bg-gradient-to-r ${badgeConfig.gradient} text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg`}
+        >
           <badgeConfig.icon className="w-3 h-3" />
           {badgeConfig.text}
         </div>
@@ -198,11 +200,12 @@ function ProductCard({
         className={`
           absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white
           flex items-center justify-center transition-all duration-300 shadow-lg
-          ${isLiked
-            ? 'text-red-500 scale-110'
-            : 'text-gray-400 hover:text-red-500 hover:scale-110'
+          ${
+            isLiked
+              ? "text-red-500 scale-110"
+              : "text-gray-400 hover:text-red-500 hover:scale-110"
           }
-          ${isLoadingLike ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isLoadingLike ? "opacity-50 cursor-not-allowed" : ""}
         `}
         disabled={isLoadingLike}
       >
@@ -210,7 +213,7 @@ function ProductCard({
           <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
         ) : (
           <Heart
-            className={`w-5 h-5 transition-all ${isLiked ? 'fill-red-500' : 'fill-none'}`}
+            className={`w-5 h-5 transition-all ${isLiked ? "fill-red-500" : "fill-none"}`}
           />
         )}
       </button>
@@ -220,9 +223,10 @@ function ProductCard({
         <img
           src={image}
           alt={name}
-          className={`w-full h-full object-contain transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'}`}
+          className={`w-full h-full object-contain transition-transform duration-500 ${isHovered ? "scale-110" : "scale-100"}`}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
+            (e.target as HTMLImageElement).src =
+              "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
           }}
         />
       </div>
@@ -235,14 +239,17 @@ function ProductCard({
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
-                className={`w-4 h-4 ${i < rating
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : 'fill-gray-200 text-gray-200'
-                  }`}
+                className={`w-4 h-4 ${
+                  i < rating
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "fill-gray-200 text-gray-200"
+                }`}
               />
             ))}
           </div>
-          <span className="text-xs text-gray-600 font-medium">{salesCount.toLocaleString()}+ sold</span>
+          <span className="text-xs text-gray-600 font-medium">
+            {salesCount.toLocaleString()}+ sold
+          </span>
         </div>
 
         {/* Product Name */}
@@ -269,9 +276,10 @@ function ProductCard({
           className={`
             w-full py-2.5 px-4 rounded-xl font-bold text-sm
             transition-all duration-300
-            ${isHovered
-              ? 'bg-blue-700 text-white shadow-xl translate-y-[-2px]'
-              : 'bg-blue-600 text-white shadow-lg'
+            ${
+              isHovered
+                ? "bg-blue-700 text-white shadow-xl translate-y-[-2px]"
+                : "bg-blue-600 text-white shadow-lg"
             }
             hover:shadow-2xl active:scale-95
           `}
@@ -304,10 +312,10 @@ export default function BestSellerPage({
   const { isLoggedIn: userIsLoggedIn } = useAuth();
 
   const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set());
-  const [selectedBrand, setSelectedBrand] = useState('All Brands');
-  const [selectedPriceRange, setSelectedPriceRange] = useState('All Prices');
-  const [selectedRating, setSelectedRating] = useState('All Ratings');
-  const [sortBy, setSortBy] = useState('Recommended');
+  const [selectedBrand, setSelectedBrand] = useState("All Brands");
+  const [selectedPriceRange, setSelectedPriceRange] = useState("All Prices");
+  const [selectedRating, setSelectedRating] = useState("All Ratings");
+  const [sortBy, setSortBy] = useState("Recommended");
   const [showBrandFilter, setShowBrandFilter] = useState(false);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [showRatingFilter, setShowRatingFilter] = useState(false);
@@ -321,15 +329,21 @@ export default function BestSellerPage({
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const priceRanges = ['All Prices', 'Under ₹500', '₹500 - ₹1000', '₹1000 - ₹2000', 'Over ₹2000'];
-  const ratings = ['All Ratings', '5 Stars', '4+ Stars', '3+ Stars'];
+  const priceRanges = [
+    "All Prices",
+    "Under ₹500",
+    "₹500 - ₹1000",
+    "₹1000 - ₹2000",
+    "Over ₹2000",
+  ];
+  const ratings = ["All Ratings", "5 Stars", "4+ Stars", "3+ Stars"];
   const sortOptions = [
-    'Recommended',
-    'Best Selling',
-    'Price: Low to High',
-    'Price: High to Low',
-    'Top Rated',
-    'Newest First'
+    "Recommended",
+    "Best Selling",
+    "Price: Low to High",
+    "Price: High to Low",
+    "Top Rated",
+    "Newest First",
   ];
 
   // Refs for dropdowns
@@ -345,51 +359,66 @@ export default function BestSellerPage({
 
   // Load liked products from localStorage
   useEffect(() => {
-    const savedLikedProducts = localStorage.getItem('likedProducts');
+    const savedLikedProducts = localStorage.getItem("likedProducts");
     if (savedLikedProducts) {
       try {
         setLikedProducts(new Set(JSON.parse(savedLikedProducts)));
       } catch (error) {
-        console.error('Error parsing liked products:', error);
+        console.error("Error parsing liked products:", error);
       }
     }
   }, []);
 
   // Save liked products to localStorage
   useEffect(() => {
-    localStorage.setItem('likedProducts', JSON.stringify(Array.from(likedProducts)));
+    localStorage.setItem(
+      "likedProducts",
+      JSON.stringify(Array.from(likedProducts)),
+    );
   }, [likedProducts]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (brandFilterRef.current && !brandFilterRef.current.contains(event.target as Node)) {
+      if (
+        brandFilterRef.current &&
+        !brandFilterRef.current.contains(event.target as Node)
+      ) {
         setShowBrandFilter(false);
       }
-      if (priceFilterRef.current && !priceFilterRef.current.contains(event.target as Node)) {
+      if (
+        priceFilterRef.current &&
+        !priceFilterRef.current.contains(event.target as Node)
+      ) {
         setShowPriceFilter(false);
       }
-      if (ratingFilterRef.current && !ratingFilterRef.current.contains(event.target as Node)) {
+      if (
+        ratingFilterRef.current &&
+        !ratingFilterRef.current.contains(event.target as Node)
+      ) {
         setShowRatingFilter(false);
       }
-      if (sortFilterRef.current && !sortFilterRef.current.contains(event.target as Node)) {
+      if (
+        sortFilterRef.current &&
+        !sortFilterRef.current.contains(event.target as Node)
+      ) {
         setShowSortFilter(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Extract unique brands
   const allBrands = useMemo(() => {
     const brands = new Set<string>();
-    allProducts.forEach(product => {
+    allProducts.forEach((product) => {
       if (product.brand?.name) {
         brands.add(product.brand.name);
       }
     });
-    return ['All Brands', ...Array.from(brands).sort()];
+    return ["All Brands", ...Array.from(brands).sort()];
   }, [allProducts]);
 
   // Apply filters when filter criteria change
@@ -399,28 +428,31 @@ export default function BestSellerPage({
     let filtered = [...allProducts];
 
     // Apply brand filter
-    if (selectedBrand !== 'All Brands') {
-      filtered = filtered.filter(product =>
-        product.brand?.name === selectedBrand
+    if (selectedBrand !== "All Brands") {
+      filtered = filtered.filter(
+        (product) => product.brand?.name === selectedBrand,
       );
     }
 
     // Apply price range filter
-    if (selectedPriceRange !== 'All Prices') {
-      filtered = filtered.filter(product => {
+    if (selectedPriceRange !== "All Prices") {
+      filtered = filtered.filter((product) => {
         if (!product.variants || product.variants.length === 0) return false;
 
         const firstVariant = product.variants[0];
-        const bestPrice = firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
+        const bestPrice =
+          firstVariant.doctorDiscountPrice ||
+          firstVariant.clinicDiscountPrice ||
+          firstVariant.originalPrice;
 
         switch (selectedPriceRange) {
-          case 'Under ₹500':
+          case "Under ₹500":
             return bestPrice < 500;
-          case '₹500 - ₹1000':
+          case "₹500 - ₹1000":
             return bestPrice >= 500 && bestPrice <= 1000;
-          case '₹1000 - ₹2000':
+          case "₹1000 - ₹2000":
             return bestPrice >= 1000 && bestPrice <= 2000;
-          case 'Over ₹2000':
+          case "Over ₹2000":
             return bestPrice > 2000;
           default:
             return true;
@@ -429,18 +461,20 @@ export default function BestSellerPage({
     }
 
     // Apply rating filter (consistent rating based on product ID)
-    if (selectedRating !== 'All Ratings') {
-      filtered = filtered.filter(product => {
+    if (selectedRating !== "All Ratings") {
+      filtered = filtered.filter((product) => {
         // Generate consistent rating from product ID
-        const hash = product._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const hash = product._id
+          .split("")
+          .reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const rating = 3 + (hash % 3); // Returns 3, 4, or 5 consistently
 
         switch (selectedRating) {
-          case '5 Stars':
+          case "5 Stars":
             return rating === 5;
-          case '4+ Stars':
+          case "4+ Stars":
             return rating >= 4;
-          case '3+ Stars':
+          case "3+ Stars":
             return rating >= 3;
           default:
             return true;
@@ -453,26 +487,34 @@ export default function BestSellerPage({
       const getPrice = (product: ApiProduct) => {
         if (!product.variants || product.variants.length === 0) return 0;
         const firstVariant = product.variants[0];
-        return firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
+        return (
+          firstVariant.doctorDiscountPrice ||
+          firstVariant.clinicDiscountPrice ||
+          firstVariant.originalPrice
+        );
       };
 
       const getRating = (product: ApiProduct) => {
-        const hash = product._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const hash = product._id
+          .split("")
+          .reduce((acc, char) => acc + char.charCodeAt(0), 0);
         return 3 + (hash % 3);
       };
 
       switch (sortBy) {
-        case 'Best Selling':
+        case "Best Selling":
           return b.totalQuantitySold - a.totalQuantitySold;
-        case 'Price: Low to High':
+        case "Price: Low to High":
           return getPrice(a) - getPrice(b);
-        case 'Price: High to Low':
+        case "Price: High to Low":
           return getPrice(b) - getPrice(a);
-        case 'Top Rated':
+        case "Top Rated":
           return getRating(b) - getRating(a);
-        case 'Newest First':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'Recommended':
+        case "Newest First":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        case "Recommended":
         default:
           return b.totalQuantitySold - a.totalQuantitySold;
       }
@@ -489,7 +531,9 @@ export default function BestSellerPage({
         setIsLoadingMore(true);
       }
 
-      const response = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/topSelling/getAll?page=${pageNum}&limit=20`);
+      const response = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/landing/topSelling/getAll?page=${pageNum}&limit=20`,
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -502,23 +546,27 @@ export default function BestSellerPage({
           setAllProducts(data.data);
           setFilteredProducts(data.data);
         } else {
-          setAllProducts(prev => [...prev, ...data.data]);
-          setFilteredProducts(prev => [...prev, ...data.data]);
+          setAllProducts((prev) => [...prev, ...data.data]);
+          setFilteredProducts((prev) => [...prev, ...data.data]);
         }
 
         setHasMore(data.data.length === 20); // If we got 20 items, there might be more
         setPage(pageNum);
 
         if (pageNum === 1) {
-          toast.success(data.message || 'Products loaded successfully');
+          toast.success(data.message || "Products loaded successfully");
         }
       } else {
-        throw new Error('Invalid API response structure');
+        throw new Error("Invalid API response structure");
       }
     } catch (fetchError) {
-      console.error('Error fetching bestseller products:', fetchError);
-      setError(fetchError instanceof Error ? fetchError.message : 'Failed to load products');
-      toast.error('Failed to load products');
+      console.error("Error fetching bestseller products:", fetchError);
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Failed to load products",
+      );
+      toast.error("Failed to load products");
     } finally {
       setLoading(false);
       setIsLoadingMore(false);
@@ -534,7 +582,7 @@ export default function BestSellerPage({
         {
           method: "POST",
           credentials: "include",
-        }
+        },
       );
       console.log(response);
 
@@ -561,48 +609,86 @@ export default function BestSellerPage({
     }
   };
 
-  const convertToProductCardProps = useCallback((apiProduct: ApiProduct, index: number): ProductCardProps => {
-    const firstVariant = apiProduct.variants[0];
+  const convertToProductCardProps = useCallback(
+    (apiProduct: ApiProduct, index: number): ProductCardProps => {
+      const firstVariant = apiProduct.variants?.[0];
 
-    const bestPrice = firstVariant.doctorDiscountPrice || firstVariant.clinicDiscountPrice || firstVariant.originalPrice;
-    const originalPrice = firstVariant.originalPrice;
-    const discountPercentage = firstVariant.doctorDiscountPercentage || firstVariant.clinicDiscountPercentage || 0;
+      if (!firstVariant) {
+        return {
+          id: apiProduct._id,
+          name: apiProduct.name,
+          price: "₹0.00",
+          image:
+            apiProduct.image && apiProduct.image.length > 0
+              ? `${baseUrl.INVENTORY}${apiProduct.image[0]}`
+              : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400",
+          isLiked: likedProducts.has(apiProduct._id),
+          rating: 3,
+          salesCount: apiProduct.totalQuantitySold,
+          onToggleLike: () => handleToggleLike(apiProduct._id),
+          onAddToCart: () => {},
+          onProductClick: () => handleProductClick(apiProduct._id),
+        };
+      }
 
-    const imageUrl = apiProduct.image && apiProduct.image.length > 0
-      ? `${baseUrl.INVENTORY}${apiProduct.image[0]}`
-      : 'https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400';
+      const bestPrice =
+        firstVariant.doctorDiscountPrice ??
+        firstVariant.clinicDiscountPrice ??
+        firstVariant.originalPrice ??
+        0;
 
-    const getBadgeType = (): 'trending' | 'top-rated' | 'best-value' | undefined => {
-      const totalSold = apiProduct.totalQuantitySold;
-      if (totalSold > 50) return 'trending';
-      if (totalSold > 30) return 'top-rated';
-      if (totalSold > 20) return 'best-value';
-      return undefined;
-    };
+      const originalPrice = firstVariant.originalPrice ?? 0;
 
-    const isCurrentlyProcessing = isProcessingLike === apiProduct._id;
+      const discountPercentage =
+        firstVariant.doctorDiscountPercentage ??
+        firstVariant.clinicDiscountPercentage ??
+        0;
 
-    // Generate consistent rating from product ID
-    const hash = apiProduct._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const rating = 3 + (hash % 3); // Returns 3, 4, or 5 consistently
+      const imageUrl =
+        apiProduct.image && apiProduct.image.length > 0
+          ? `${baseUrl.INVENTORY}${apiProduct.image[0]}`
+          : "https://images.unsplash.com/photo-1704455306251-b4634215d98f?w=400";
 
-    return {
-      id: apiProduct._id,
-      name: apiProduct.name,
-      price: `₹${bestPrice.toFixed(2)}`,
-      originalPrice: discountPercentage > 0 ? `₹${originalPrice.toFixed(2)}` : undefined,
-      discountPercentage,
-      image: imageUrl,
-      isLiked: likedProducts.has(apiProduct._id),
-      isLoadingLike: isCurrentlyProcessing,
-      rating,
-      salesCount: apiProduct.totalQuantitySold,
-      badge: getBadgeType(),
-      onToggleLike: () => handleToggleLike(apiProduct._id),
-      onAddToCart: () => handleAddToCart(apiProduct.name, bestPrice),
-      onProductClick: () => handleProductClick(apiProduct._id)
-    };
-  }, [likedProducts, isProcessingLike]);
+      const getBadgeType = ():
+        | "trending"
+        | "top-rated"
+        | "best-value"
+        | undefined => {
+        const totalSold = apiProduct.totalQuantitySold;
+        if (totalSold > 50) return "trending";
+        if (totalSold > 30) return "top-rated";
+        if (totalSold > 20) return "best-value";
+        return undefined;
+      };
+
+      const isCurrentlyProcessing = isProcessingLike === apiProduct._id;
+
+      // Generate consistent rating from product ID
+      const hash = apiProduct._id
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const rating = 3 + (hash % 3); // Returns 3, 4, or 5 consistently
+
+      return {
+        id: apiProduct._id,
+        name: apiProduct.name,
+        price: `₹${bestPrice.toFixed(2)}`,
+        originalPrice:
+          discountPercentage > 0 ? `₹${originalPrice.toFixed(2)}` : undefined,
+        discountPercentage,
+        image: imageUrl,
+        isLiked: likedProducts.has(apiProduct._id),
+        isLoadingLike: isCurrentlyProcessing,
+        rating,
+        salesCount: apiProduct.totalQuantitySold,
+        badge: getBadgeType(),
+        onToggleLike: () => handleToggleLike(apiProduct._id),
+        onAddToCart: () => handleAddToCart(apiProduct.name, bestPrice),
+        onProductClick: () => handleProductClick(apiProduct._id),
+      };
+    },
+    [likedProducts, isProcessingLike],
+  );
 
   const handleToggleLike = async (productId: string) => {
     // Check if user is logged in using the auth hook
@@ -616,7 +702,7 @@ export default function BestSellerPage({
     const isCurrentlyLiked = likedProducts.has(productId);
 
     // Optimistic UI update
-    setLikedProducts(prev => {
+    setLikedProducts((prev) => {
       const newSet = new Set(prev);
       if (isCurrentlyLiked) {
         newSet.delete(productId);
@@ -631,7 +717,7 @@ export default function BestSellerPage({
 
     if (!result.success) {
       // Revert optimistic update on failure
-      setLikedProducts(prev => {
+      setLikedProducts((prev) => {
         const newSet = new Set(prev);
         if (isCurrentlyLiked) {
           newSet.add(productId);
@@ -644,29 +730,29 @@ export default function BestSellerPage({
       if (result.requiresLogin) {
         showLoginPrompt(productId);
       } else {
-        toast.error('Failed to update favorites. Please try again.');
+        toast.error("Failed to update favorites. Please try again.");
       }
     } else {
       // Success - show appropriate message
       if (result.liked) {
-        toast.success('Added to favorites!');
+        toast.success("Added to favorites!");
       } else {
-        toast.info('Removed from favorites');
+        toast.info("Removed from favorites");
       }
     }
   };
 
   const showLoginPrompt = (productId: string) => {
     // Store the product ID to like after login
-    sessionStorage.setItem('productToLikeAfterLogin', productId);
-    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+    sessionStorage.setItem("productToLikeAfterLogin", productId);
+    sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
 
-    toast.error('Login Required', {
-      description: 'You need to login to add products to favorites',
+    toast.error("Login Required", {
+      description: "You need to login to add products to favorites",
       action: {
-        label: 'Login',
+        label: "Login",
         onClick: () => {
-          router.push('/login');
+          router.push("/login");
         },
       },
       duration: 5000,
@@ -675,12 +761,11 @@ export default function BestSellerPage({
 
   const handleAddToCart = (productName: string, price: number) => {
     onCartCountChange?.(cartCount + 1); // ✅ SAFE
-    toast.success('🎉 Added to cart!', {
+    toast.success("🎉 Added to cart!", {
       description: `${productName.slice(0, 40)}... - ₹${price.toFixed(2)}`,
       duration: 2000,
     });
   };
-
 
   const handleProductClick = (productId: string) => {
     router.push(`/productdetailpage/${productId}`);
@@ -692,10 +777,10 @@ export default function BestSellerPage({
   };
 
   const clearAllFilters = () => {
-    setSelectedBrand('All Brands');
-    setSelectedPriceRange('All Prices');
-    setSelectedRating('All Ratings');
-    setSortBy('Recommended');
+    setSelectedBrand("All Brands");
+    setSelectedPriceRange("All Prices");
+    setSelectedRating("All Ratings");
+    setSortBy("Recommended");
   };
 
   if (loading) {
@@ -703,7 +788,9 @@ export default function BestSellerPage({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-700 font-medium">Loading bestseller products...</p>
+          <p className="text-gray-700 font-medium">
+            Loading bestseller products...
+          </p>
         </div>
       </div>
     );
@@ -727,7 +814,6 @@ export default function BestSellerPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Navigation */}
       <Navigation
         currentPage="bestseller"
@@ -784,10 +870,16 @@ export default function BestSellerPage({
         <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <span className="text-gray-700 font-semibold text-sm md:text-base">FILTERS BY</span>
-              <span className="text-gray-500 text-sm">{filteredProducts.length} products found</span>
+              <span className="text-gray-700 font-semibold text-sm md:text-base">
+                FILTERS BY
+              </span>
+              <span className="text-gray-500 text-sm">
+                {filteredProducts.length} products found
+              </span>
             </div>
-            {(selectedBrand !== 'All Brands' || selectedPriceRange !== 'All Prices' || selectedRating !== 'All Ratings') && (
+            {(selectedBrand !== "All Brands" ||
+              selectedPriceRange !== "All Prices" ||
+              selectedRating !== "All Ratings") && (
               <button
                 onClick={clearAllFilters}
                 className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors"
@@ -810,7 +902,9 @@ export default function BestSellerPage({
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
                 <span className="truncate">Brand: {selectedBrand}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showBrandFilter ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showBrandFilter ? "rotate-180" : ""}`}
+                />
               </button>
               {showBrandFilter && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-blue-600 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
@@ -821,8 +915,11 @@ export default function BestSellerPage({
                         setSelectedBrand(brand);
                         setShowBrandFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${selectedBrand === brand ? 'bg-blue-100 font-semibold' : ''
-                        }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
+                        selectedBrand === brand
+                          ? "bg-blue-100 font-semibold"
+                          : ""
+                      }`}
                     >
                       {brand}
                     </button>
@@ -843,7 +940,9 @@ export default function BestSellerPage({
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
                 <span className="truncate">Price: {selectedPriceRange}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showPriceFilter ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showPriceFilter ? "rotate-180" : ""}`}
+                />
               </button>
               {showPriceFilter && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-blue-600 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
@@ -854,8 +953,11 @@ export default function BestSellerPage({
                         setSelectedPriceRange(range);
                         setShowPriceFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${selectedPriceRange === range ? 'bg-blue-100 font-semibold' : ''
-                        }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
+                        selectedPriceRange === range
+                          ? "bg-blue-100 font-semibold"
+                          : ""
+                      }`}
                     >
                       {range}
                     </button>
@@ -876,7 +978,9 @@ export default function BestSellerPage({
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
                 <span className="truncate">Rating: {selectedRating}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showRatingFilter ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showRatingFilter ? "rotate-180" : ""}`}
+                />
               </button>
               {showRatingFilter && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-blue-600 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
@@ -887,8 +991,11 @@ export default function BestSellerPage({
                         setSelectedRating(rating);
                         setShowRatingFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${selectedRating === rating ? 'bg-blue-100 font-semibold' : ''
-                        }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
+                        selectedRating === rating
+                          ? "bg-blue-100 font-semibold"
+                          : ""
+                      }`}
                     >
                       {rating}
                     </button>
@@ -909,7 +1016,9 @@ export default function BestSellerPage({
                 className="w-full px-4 py-3 border-2 border-blue-600 rounded-xl text-gray-900 font-medium text-sm md:text-base hover:bg-blue-50 transition-colors flex items-center justify-between"
               >
                 <span className="truncate">Sort by - {sortBy}</span>
-                <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${showSortFilter ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 flex-shrink-0 transition-transform ${showSortFilter ? "rotate-180" : ""}`}
+                />
               </button>
               {showSortFilter && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-blue-600 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
@@ -920,8 +1029,9 @@ export default function BestSellerPage({
                         setSortBy(option);
                         setShowSortFilter(false);
                       }}
-                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${sortBy === option ? 'bg-blue-100 font-semibold' : ''
-                        }`}
+                      className={`w-full px-4 py-2.5 text-black text-left hover:bg-blue-50 transition-colors ${
+                        sortBy === option ? "bg-blue-100 font-semibold" : ""
+                      }`}
                     >
                       {option}
                     </button>
@@ -932,36 +1042,38 @@ export default function BestSellerPage({
           </div>
 
           {/* Active Filters Display */}
-          {(selectedBrand !== 'All Brands' || selectedPriceRange !== 'All Prices' || selectedRating !== 'All Ratings') && (
+          {(selectedBrand !== "All Brands" ||
+            selectedPriceRange !== "All Prices" ||
+            selectedRating !== "All Ratings") && (
             <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-gray-200">
               <span className="text-sm text-gray-600">Active filters:</span>
-              {selectedBrand !== 'All Brands' && (
+              {selectedBrand !== "All Brands" && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
                   Brand: {selectedBrand}
                   <button
-                    onClick={() => setSelectedBrand('All Brands')}
+                    onClick={() => setSelectedBrand("All Brands")}
                     className="hover:text-blue-900 ml-1"
                   >
                     ×
                   </button>
                 </span>
               )}
-              {selectedPriceRange !== 'All Prices' && (
+              {selectedPriceRange !== "All Prices" && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
                   Price: {selectedPriceRange}
                   <button
-                    onClick={() => setSelectedPriceRange('All Prices')}
+                    onClick={() => setSelectedPriceRange("All Prices")}
                     className="hover:text-blue-900 ml-1"
                   >
                     ×
                   </button>
                 </span>
               )}
-              {selectedRating !== 'All Ratings' && (
+              {selectedRating !== "All Ratings" && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
                   Rating: {selectedRating}
                   <button
-                    onClick={() => setSelectedRating('All Ratings')}
+                    onClick={() => setSelectedRating("All Ratings")}
                     className="hover:text-blue-900 ml-1"
                   >
                     ×
@@ -977,7 +1089,9 @@ export default function BestSellerPage({
       <main className="max-w-[1760px] mx-auto px-4 md:px-6 lg:px-8 pb-12">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg mb-4">No products found with the selected filters</p>
+            <p className="text-gray-500 text-lg mb-4">
+              No products found with the selected filters
+            </p>
             <button
               onClick={clearAllFilters}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -994,12 +1108,10 @@ export default function BestSellerPage({
                   className="animate-fade-in-up"
                   style={{
                     animationDelay: `${index * 50}ms`,
-                    animationFillMode: 'both'
+                    animationFillMode: "both",
                   }}
                 >
-                  <ProductCard
-                    {...convertToProductCardProps(product, index)}
-                  />
+                  <ProductCard {...convertToProductCardProps(product, index)} />
                 </div>
               ))}
             </div>
@@ -1010,7 +1122,7 @@ export default function BestSellerPage({
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className={`px-12 py-4 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-bold text-lg transition-all hover:shadow-2xl hover:scale-105 active:scale-95 ${isLoadingMore ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600 hover:text-white'}`}
+                  className={`px-12 py-4 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-bold text-lg transition-all hover:shadow-2xl hover:scale-105 active:scale-95 ${isLoadingMore ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600 hover:text-white"}`}
                 >
                   {isLoadingMore ? (
                     <div className="flex items-center gap-2">
@@ -1018,7 +1130,7 @@ export default function BestSellerPage({
                       Loading...
                     </div>
                   ) : (
-                    'Load More Products'
+                    "Load More Products"
                   )}
                 </button>
               </div>
