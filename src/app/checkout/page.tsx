@@ -41,10 +41,22 @@ const loadRazorpayScript = (): Promise<boolean> => {
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
+// ── Read clinicId from clinic JWT token ──────────────────────────────────────
+const getClinicAuth = (): { clinicId: string; token: string } | null => {
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('clinicToken') : null;
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const clinicId = payload.clinicId || payload.hospitalId || payload._id;
+    if (!clinicId) return null;
+    return { clinicId, token };
+  } catch { return null; }
+};
+
 const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const clinicToken = typeof window !== 'undefined' ? localStorage.getItem('clinicToken') : null;
-  if (clinicToken) headers['Authorization'] = `Bearer ${clinicToken}`;
+  const clinicAuth = getClinicAuth();
+  if (clinicAuth) headers['Authorization'] = `Bearer ${clinicAuth.token}`;
   return headers;
 };
 
@@ -110,6 +122,9 @@ export default function CheckoutPage({ orderPayload }: CheckoutPageProps) {
     try {
       toast.loading('Creating your order...', { id: 'order' });
 
+      // ✅ Read clinicId from token if clinic is logged in
+      const clinicAuth = getClinicAuth();
+
       const orderBody = orderPayload || {
         items: cartItems.map((i) => ({
           productId: i.productId,
@@ -119,6 +134,8 @@ export default function CheckoutPage({ orderPayload }: CheckoutPageProps) {
         shippingAddress: getShippingAddress(),
         paymentMethod,
         orderNotes: '',
+        // ✅ Only added when clinic is logged in — ignored for regular users
+        ...(clinicAuth ? { clinicId: clinicAuth.clinicId } : {}),
       };
 
       const orderRes  = await fetch(`${API}/api/v1/ecom-order/create`, {
