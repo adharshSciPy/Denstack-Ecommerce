@@ -365,9 +365,11 @@ export default function FavoritesPage() {
             const data = await response.json();
 
             if (data.success && Array.isArray(data.data)) {
-                const formattedProducts: FormattedProduct[] = data.data.map((item: ApiFavoriteProduct) => {
-                    const product = item.product;
-                    const firstVariant = product.variants?.[0];
+               const formattedProducts: FormattedProduct[] = data.data
+    .filter((item: ApiFavoriteProduct) => item.product != null)  // ✅ skip null products
+    .map((item: ApiFavoriteProduct) => {
+    const product = item.product;
+    const firstVariant = product.variants?.[0];
                     
                     // Calculate price
                     const bestPrice = firstVariant?.doctorDiscountPrice || 

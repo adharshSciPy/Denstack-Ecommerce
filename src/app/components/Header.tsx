@@ -64,7 +64,7 @@ export default function Header({ cartCount = 0, searchQuery, onSearchChange, onC
                   </div>
                 )}
               </div>
-              <span className="hidden sm:inline text-sm text-gray-700 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-600 group-hover:to-teal-600 transition-colors">Shopping</span>
+              <span className="hidden sm:inline text-sm text-gray-700 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-600 group-hover:to-teal-600 transition-colors">Cart</span>
             </button>
 
             <button

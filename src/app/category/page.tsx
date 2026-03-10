@@ -1,12 +1,13 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Navigation from '../components/Navigation';
-import { Search, ChevronRight, Heart, ShoppingCart, Star, Filter } from 'lucide-react';
+import { Search, ChevronRight, Heart, ShoppingCart, Star } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../hooks/useAuth'; // Add this import
+import { useAuth } from '../hooks/useAuth';
 import baseUrl from '../baseUrl';
 
+// Define all interfaces at the top
 interface CategoryBrowsePageProps {
   cartCount: number;
   onCartCountChange: (count: number) => void;
@@ -22,7 +23,19 @@ interface CategoryBrowsePageProps {
   onFullStoreDirectoryClick?: () => void;
   likedProducts?: Set<string>;
   onToggleLike?: (productId: string) => void;
-} 
+}
+
+interface ProductVariant {
+  _id: string;
+  size?: string;
+  color?: string;
+  material?: string;
+  price?: number;
+  originalPrice?: number;
+  clinicDiscountPrice?: number;
+  doctorDiscountPrice?: number;
+  stock?: number;
+}
 
 interface Product {
   _id: string;
@@ -33,30 +46,51 @@ interface Product {
   inStock: boolean;
   productId?: string;
   subCategoryId?: string;
-  variants?: any[];
-} 
+  variants?: ProductVariant[];
+  originalPrice?: number;
+  clinicDiscountPrice?: number;
+  doctorDiscountPrice?: number;
+  stock?: number;
+}
+
+interface Brand {
+  _id?: string;
+  name: string;
+  image?: string;
+  products?: any[];
+}
 
 interface SubCategory {
-  name: string;
-  products: Product[];
+  _id?: string;
+  categoryName: string;
+  brands?: Brand[];
 }
 
 interface Category {
-  name: string;
-  subCategories: SubCategory[];
+  _id?: string;
+  categoryName: string;
+  subCategories?: SubCategory[];
 }
 
-const categoryData: Category[] = [];
-
+// Product Card Props
 interface ProductCardProps {
   product: Product;
   isLiked: boolean;
   isLoadingLike?: boolean;
   onToggleLike: () => void;
   onAddToCart: () => void;
-} 
+  isAddingToCart?: boolean;
+}
 
-function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, onAddToCart }: ProductCardProps) {
+// Product Card Component
+function ProductCard({ 
+  product, 
+  isLiked, 
+  isLoadingLike = false, 
+  onToggleLike, 
+  onAddToCart,
+  isAddingToCart = false 
+}: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -72,7 +106,7 @@ function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, on
         </div>
       )}
 
-      {/* Like Button - Updated with loading state */}
+      {/* Like Button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -80,10 +114,11 @@ function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, on
             onToggleLike();
           }
         }}
-        className={`absolute top-2 right-2 z-10 p-2 rounded-full transition-all duration-300 ${isLiked
-          ? 'bg-red-500 text-white scale-110'
-          : 'bg-white/80 text-gray-600 hover:bg-red-50 hover:text-red-500'
-          } ${isLoadingLike ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`absolute top-2 right-2 z-10 p-2 rounded-full transition-all duration-300 ${
+          isLiked
+            ? 'bg-red-500 text-white scale-110'
+            : 'bg-white/80 text-gray-600 hover:bg-red-50 hover:text-red-500'
+        } ${isLoadingLike ? 'opacity-50 cursor-not-allowed' : ''}`}
         disabled={isLoadingLike}
       >
         {isLoadingLike ? (
@@ -99,6 +134,9 @@ function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, on
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/placeholder-image.png';
+          }}
         />
       </div>
 
@@ -111,12 +149,12 @@ function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, on
         {/* Rating */}
         <div className="flex items-center gap-1 mb-2">
           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-xs text-gray-600">{product.rating}</span>
+          <span className="text-xs text-gray-600">{product.rating || 0}</span>
         </div>
 
         {/* Price */}
         <div className="text-lg font-bold text-blue-600 mb-3">
-          {product.price ? `₹${product.price.toLocaleString()}` : '-'}
+          ₹{product.price?.toLocaleString() || '-'}
         </div>
 
         {/* Add to Cart Button */}
@@ -125,24 +163,35 @@ function ProductCard({ product, isLiked, isLoadingLike = false, onToggleLike, on
             e.stopPropagation();
             onAddToCart();
           }}
+          disabled={isAddingToCart}
           className={`
             w-full py-2 px-3 rounded-lg font-bold text-sm
             transition-all duration-300
-            ${isHovered
+            ${isHovered && !isAddingToCart
               ? 'bg-blue-700 text-white shadow-lg translate-y-[-2px]'
               : 'bg-blue-600 text-white shadow-md'
             }
-            hover:shadow-xl active:scale-95
+            ${isAddingToCart ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-xl active:scale-95'}
           `}
         >
-          <ShoppingCart className="w-4 h-4 inline mr-1" />
-          Add to Cart
+          {isAddingToCart ? (
+            <div className="flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Adding...
+            </div>
+          ) : (
+            <>
+              <ShoppingCart className="w-4 h-4 inline mr-1" />
+              Add to Cart
+            </>
+          )}
         </button>
       </div>
     </div>
   );
 }
 
+// Main Component
 export default function CategoryBrowsePage({
   cartCount,
   onCartCountChange,
@@ -165,23 +214,22 @@ export default function CategoryBrowsePage({
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(likedProducts);
   const [isProcessingLike, setIsProcessingLike] = useState<string | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState<string | null>(null);
   
   const router = useRouter();
-  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Get auth status
+  const { isLoggedIn: userIsLoggedIn } = useAuth(); // Remove 'user' since it's not in the type
 
-  const handleNavigation = (path: string, callback?: () => void) => {
-    router.push(path);
-    callback?.();
-  };
-
-  // API state: fetch main categories and subcategories on demand (cached)
-  const [categoriesApi, setCategoriesApi] = useState<any[]>([]);
-  const [subCategoriesMap, setSubCategoriesMap] = useState<Record<string, any[]>>({});
+  // API state
+  const [categoriesApi, setCategoriesApi] = useState<Category[]>([]);
+  const [subCategoriesMap, setSubCategoriesMap] = useState<Record<string, SubCategory[]>>({});
+  const [brandsMap, setBrandsMap] = useState<Record<string, Brand[]>>({});
+  const [productsMap, setProductsMap] = useState<Record<string, Product[]>>({});
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Normalize ID values that may come as strings or MongoDB objects { $oid: '...' }
+  // Helper to normalize IDs
   const getId = (val: any): string | undefined => {
     if (!val) return undefined;
     if (typeof val === 'string') return val;
@@ -190,12 +238,11 @@ export default function CategoryBrowsePage({
       if (val._id && typeof val._id === 'string') return val._id;
       if (val._id && val._id.$oid) return String(val._id.$oid);
       if (val.id) return String(val.id);
-      if (val.subCategoryId) return String(val.subCategoryId);
     }
     return undefined;
-  }; 
+  };
 
-  // Load liked products from localStorage on component mount
+  // Load liked products from localStorage
   useEffect(() => {
     const savedLikedProducts = localStorage.getItem('likedProducts');
     if (savedLikedProducts) {
@@ -207,280 +254,261 @@ export default function CategoryBrowsePage({
     }
   }, []);
 
-  // Save liked products to localStorage when they change
+  // Save liked products to localStorage
   useEffect(() => {
     localStorage.setItem('likedProducts', JSON.stringify(Array.from(localLikedProducts)));
   }, [localLikedProducts]);
 
-  // ─── REPLACED: single getWithDetails call instead of separate main + sub fetches ───
+  // Map API product to Product interface
+  const mapApiProductToProduct = (p: any): Product => {
+    // Handle variants
+    let variants: ProductVariant[] = [];
+    let price = 0;
+    let stock = 0;
+    
+    if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+      variants = p.variants;
+      const firstVariant = p.variants[0];
+      price = firstVariant.clinicDiscountPrice ?? 
+              firstVariant.discountPrice1 ?? 
+              firstVariant.originalPrice ?? 
+              0;
+      stock = firstVariant.stock || 0;
+    } else {
+      price = p.clinicDiscountPrice ?? 
+              p.doctorDiscountPrice ?? 
+              p.originalPrice ?? 
+              p.price ?? 
+              0;
+      stock = p.stock || 0;
+    }
+    
+    const imagePath = Array.isArray(p.image) && p.image.length > 0 
+      ? p.image[0] 
+      : (typeof p.image === 'string' ? p.image : '');
+
+    const id = getId(p._id) || String(Math.random());
+
+    return {
+      _id: id,
+      name: p.name || p.title || '',
+      price: price,
+      image: imagePath ? `${baseUrl.INVENTORY}${imagePath}` : '/placeholder-image.png',
+      rating: p.rating || 0,
+      inStock: stock > 0,
+      productId: p.productId,
+      subCategoryId: getId(p.subCategory),
+      variants: variants,
+      originalPrice: p.originalPrice,
+      clinicDiscountPrice: p.clinicDiscountPrice,
+      doctorDiscountPrice: p.doctorDiscountPrice,
+      stock: stock
+    };
+  };
+
+  // Fetch all categories with details
   useEffect(() => {
     const fetchAllWithDetails = async () => {
       setLoadingCategories(true);
-      setLoadingSubcategories(true);
       setApiError(null);
       try {
         const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getWithDetails`);
         if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
         const json = await res.json();
-        const mainCats: any[] = json.data || [];
+        const mainCats: Category[] = json.data || [];
 
-        // Seed categoriesApi exactly as before (just _id + categoryName needed)
         setCategoriesApi(mainCats);
 
-        // Seed subCategoriesMap keyed by mainCategory._id — same shape the rest of the
-        // code expects: array of objects with { _id, categoryName, ... }
-        const subMap: Record<string, any[]> = {};
-        // Seed productsMap keyed by subCategory._id — same shape fetchProductsBySubCategory produces
+        // Build maps
+        const subMap: Record<string, SubCategory[]> = {};
+        const brandMap: Record<string, Brand[]> = {};
         const prodMap: Record<string, Product[]> = {};
 
         for (const cat of mainCats) {
-          const subCats: any[] = cat.subCategories || [];
-          subMap[cat._id] = subCats;
+          const subCats: SubCategory[] = cat.subCategories || [];
+          if (cat._id) {
+            subMap[cat._id] = subCats;
+          }
 
           for (const sub of subCats) {
-            const brands: any[] = sub.brands || [];
-            // Flatten all products across all brands inside this subcategory
+            const brands: Brand[] = sub.brands || [];
+            if (sub._id) {
+              brandMap[sub._id] = brands;
+            }
+
             const allProducts: Product[] = [];
             for (const brand of brands) {
               const brandProducts: any[] = brand.products || [];
               allProducts.push(...brandProducts.map(mapApiProductToProduct));
             }
-            prodMap[sub._id] = allProducts;
+            if (sub._id) {
+              prodMap[sub._id] = allProducts;
+            }
           }
         }
 
-        // Seed brandsMap keyed by subCategory._id → array of brand objects with products[]
-        const brandMap: Record<string, any[]> = {};
-        for (const cat of mainCats) {
-          for (const sub of cat.subCategories || []) {
-            brandMap[sub._id] = (sub.brands || []).map((b: any) => ({
-              ...b,
-              products: (b.products || []).map(mapApiProductToProduct),
-            }));
-          }
-        }
-        setBrandsMap(brandMap);
         setSubCategoriesMap(subMap);
+        setBrandsMap(brandMap);
         setProductsMap(prodMap);
-
       } catch (err: any) {
         setApiError(err.message || 'Error fetching categories');
         toast.error(err.message || 'Error fetching categories');
       } finally {
         setLoadingCategories(false);
-        setLoadingSubcategories(false);
       }
     };
 
     fetchAllWithDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── KEPT: fetchSubCategories is preserved so existing click handlers that call it
-  // still work. It now just returns early if data is already cached (which it will be
-  // after the initial load), so no extra network calls are made.
-  const fetchSubCategories = async (parentId: string) => {
-    if (!parentId) return;
-    if (subCategoriesMap[parentId]) return; // cached — no-op after initial load
+  // Fetch cart count on mount and after auth changes
+  const fetchCartCount = useCallback(async () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token || !userIsLoggedIn) return;
 
-    // Fallback fetch in case cache is somehow missing (e.g. new category added live)
-    setLoadingSubcategories(true);
-    setApiError(null);
     try {
-      const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/main/getWithDetails/${parentId}`);
-      if (!res.ok) throw new Error(`Failed to fetch subcategories: ${res.status}`);
-      const json = await res.json();
-      const cat = json.data;
-      if (!cat) return;
+      const response = await fetch(`${baseUrl.INVENTORY}/api/v1/cart/get`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+      });
 
-      const subCats: any[] = cat.subCategories || [];
-      setSubCategoriesMap(prev => ({ ...prev, [parentId]: subCats }));
-
-      // Also seed brands + products for each sub from this response
-      const prodEntries: Record<string, Product[]> = {};
-      const brandEntries: Record<string, any[]> = {};
-      for (const sub of subCats) {
-        const brands: any[] = sub.brands || [];
-        brandEntries[sub._id] = brands.map((b: any) => ({
-          ...b,
-          products: (b.products || []).map(mapApiProductToProduct),
-        }));
-        const allProducts: Product[] = [];
-        for (const brand of brands) {
-          allProducts.push(...(brand.products || []).map(mapApiProductToProduct));
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const cartData = data.data;
+          const totalItems = cartData.totalItems || 
+            cartData.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
+          onCartCountChange(totalItems);
         }
-        prodEntries[sub._id] = allProducts;
+      } else if (response.status === 401) {
+        // Token expired or invalid
+        console.log('Auth required for cart');
       }
-      setBrandsMap(prev => ({ ...prev, ...brandEntries }));
-      setProductsMap(prev => ({ ...prev, ...prodEntries }));
-
-    } catch (err: any) {
-      setApiError(err.message || 'Error fetching subcategories');
-      toast.error(err.message || 'Error fetching subcategories');
-      setSubCategoriesMap(prev => ({ ...prev, [parentId]: [] }));
-    } finally {
-      setLoadingSubcategories(false);
+    } catch (error) {
+      console.error('Error fetching cart:', error);
     }
-  };
-  // ─── END REPLACED SECTION ────────────────────────────────────────────────────────
+  }, [onCartCountChange, userIsLoggedIn]);
 
-  // Products state & fetch helpers (cached by subcategory id)
-  const [brandsMap, setBrandsMap] = useState<Record<string, any[]>>({});
-  const [productsMap, setProductsMap] = useState<Record<string, Product[]>>({});
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [productsError, setProductsError] = useState<string | null>(null);
-  // Debugging helpers
-  const [lastFetchedJson, setLastFetchedJson] = useState<any | null>(null);
-  const [showRawProducts, setShowRawProducts] = useState(false);
+  // Fetch cart on mount and when login status changes
+  useEffect(() => {
+    fetchCartCount();
+  }, [fetchCartCount, userIsLoggedIn]);
 
-  const mapApiProductToProduct = (p: any): Product => {
-    const variant = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants[0] : null;
-    const price = variant ? (variant.clinicDiscountPrice ?? variant.discountPrice1 ?? variant.originalPrice ?? 0) : (p.originalPrice ?? p.price ?? 0);
-    const imagePath = Array.isArray(p.image) && p.image.length > 0 ? p.image[0] : '';
-
-    const id = getId(p._id ?? p._id?.$oid ?? p.id);
-    const productName = p.name ?? p.title ?? '';
-    const subCategoryId = getId(p.subCategory ?? p.subCategoryId ?? p.subCategory?._id);
-
-    return {
-      _id: id ?? String(Math.random()), // fallback to avoid undefined
-      name: productName,
-      price,
-      image: imagePath ? `${baseUrl.INVENTORY}${imagePath}` : '/uploads/placeholder.png',
-      rating: p.rating ?? 0,
-      inStock: Array.isArray(p.variants) ? p.variants.some((v: any) => v.stock && v.stock > 0) : (p.stock ?? true),
-      productId: p.productId,
-      subCategoryId,
-      variants: p.variants
-    };
-  }; 
-
-  const fetchProductsBySubCategory = async (subCategoryId: string, force = false) => {
-    if (!subCategoryId) return;
-    if (!force && productsMap[subCategoryId]) return; // cached — already seeded by getWithDetails
-    setLoadingProducts(true);
-    setProductsError(null);
-    setLastFetchedJson(null);
+  // Add to cart function
+  const handleAddToCart = async (product: Product) => {
     try {
-      console.debug(`Fetching products for subCategoryId: ${subCategoryId}`);
-      const res = await fetch(`${baseUrl.INVENTORY}/api/v1/landing/products/bySubCategory/${subCategoryId}`);
-      if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
-      const json = await res.json();
-      setLastFetchedJson(json);
-      const data = json?.data || [];
-      console.debug(`Fetched ${data.length} products for ${subCategoryId}`, data?.[0]);
-      const mapped = data.map(mapApiProductToProduct);
+      setIsAddingToCart(product._id);
 
-      // Cache under requested id
-      setProductsMap(prev => ({ ...prev, [subCategoryId]: mapped }));
+      // Check if user is logged in
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const isLoggedIn = !!token || userIsLoggedIn;
 
-      // Also cache under any subCategory keys found in product.subCategory (e.g., subCategoryId, _id)
-      if (data.length) {
-        const altKeys = new Set<string>();
-        // extract normalized ids from raw data
-        data.forEach((p: any) => {
-          const sId = getId(p.subCategory) ?? getId(p.subCategoryId);
-          if (sId) altKeys.add(sId);
+      if (!isLoggedIn) {
+        toast.error('Login Required', {
+          description: 'Please login to add items to cart',
+          action: {
+            label: 'Login',
+            onClick: () => router.push('/login')
+          }
         });
-        // also include any subCategoryId we added while mapping
-        mapped.forEach((mp: Product) => {
-          if (mp.subCategoryId) altKeys.add(mp.subCategoryId);
-        });
-        // remove the requested id (already set)
-        altKeys.delete(subCategoryId);
-        if (altKeys.size) {
-          setProductsMap(prev => {
-            const next = { ...prev };
-            altKeys.forEach(k => { next[k] = mapped; });
-            console.debug('Also caching products under alternative subcategory keys:', Array.from(altKeys));
-            return next;
-          });
-        }
+        return;
       }
-    } catch (err: any) {
-      console.error('Error fetching products for', subCategoryId, err);
-      setProductsError(err.message || 'Error fetching products');
-      toast.error(err.message || 'Error fetching products');
-      setProductsMap(prev => ({ ...prev, [subCategoryId]: [] }));
-    } finally {
-      setLoadingProducts(false);
-    }
-  }; 
 
-  // API function for adding/removing favorites
-  const addToFavoritesAPI = useCallback(async (productId: string) => {
-    try {
-      setIsProcessingLike(productId);
-
-      const response = await fetch(
-        `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );  
+      // Determine if product has variants
+      const hasVariants = product.variants && product.variants.length > 0;
       
-      console.log(response);
-      
-      if (response.status === 401) {
-        return { success: false, requiresLogin: true };
+      // Create payload based on product type
+      const payload: any = {
+        productId: product._id,
+        quantity: 1
+      };
+
+      // Only add variantId if product has variants AND we have a variant
+      if (hasVariants && product.variants && product.variants[0]?._id) {
+        payload.variantId = product.variants[0]._id;
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      console.log('Adding to cart with payload:', payload);
+
+      const response = await fetch(`${baseUrl.INVENTORY}/api/v1/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
 
       const data = await response.json();
-      return {
-        success: true,
-        liked: data.liked,
-        message: data.message,
-        data: data.data,
-      };
-    } catch (err) {
-      console.error("Error adding to favorites:", err);
-      return { success: false, error: err };
+      console.log('Cart add response:', data);
+
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 401) {
+          toast.error('Session expired', {
+            description: 'Please login again',
+            action: {
+              label: 'Login',
+              onClick: () => router.push('/login')
+            }
+          });
+          return;
+        }
+        
+        if (response.status === 400) {
+          if (data.message?.includes('stock')) {
+            toast.error('Out of Stock', {
+              description: data.message
+            });
+          } else {
+            toast.error(data.message || 'Failed to add to cart');
+          }
+          return;
+        }
+        
+        throw new Error(data.message || 'Failed to add to cart');
+      }
+
+      // Success - fetch updated cart count
+      await fetchCartCount();
+      
+      toast.success(`${product.name} added to cart!`, {
+        action: {
+          label: 'View Cart',
+          onClick: () => router.push('/cart')
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      toast.error(error.message || 'Failed to add to cart');
     } finally {
-      setIsProcessingLike(null);
+      setIsAddingToCart(null);
     }
-  }, []);
+  };
 
-  // Function to show login prompt
-  const showLoginPrompt = useCallback((productId: string) => {
-    // Store the product ID to like after login
-    sessionStorage.setItem('productToLikeAfterLogin', productId);
-    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
-    
-    toast.error('Login Required', {
-      description: 'You need to login to add products to favorites',
-      action: {
-        label: 'Login',
-        onClick: () => {
-          router.push('/login');
-        },
-      },
-      duration: 5000,
-    });
-  }, [router]);
-
-  // Main like toggle handler
+  // Like/Unlike functions
   const handleToggleLike = async (productId: string) => {
-    // Check if user is logged in
-    // Note: You need to implement your auth check logic here
-    // const isLoggedIn = userIsLoggedIn; // Use your auth hook
-    
-    // For now, let's check if we have a token in localStorage
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const isLoggedIn = !!token || userIsLoggedIn;
 
     if (!isLoggedIn) {
-      showLoginPrompt(productId);
+      toast.error('Login Required', {
+        description: 'Please login to add to favorites',
+        action: {
+          label: 'Login',
+          onClick: () => router.push('/login')
+        }
+      });
       return;
     }
 
     const isCurrentlyLiked = localLikedProducts.has(productId);
 
-    // Optimistic UI update
+    // Optimistic update
     setLocalLikedProducts(prev => {
       const newSet = new Set(prev);
       if (isCurrentlyLiked) {
@@ -491,11 +519,29 @@ export default function CategoryBrowsePage({
       return newSet;
     });
 
-    // Make API call
-    const result = await addToFavoritesAPI(productId);
+    setIsProcessingLike(productId);
 
-    if (!result.success) {
-      // Revert optimistic update on failure
+    try {
+      const endpoint = isCurrentlyLiked 
+        ? `${baseUrl.INVENTORY}/api/v1/product/favorites/remove/${productId}`
+        : `${baseUrl.INVENTORY}/api/v1/product/favorites/add/${productId}`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorites');
+      }
+
+      toast.success(isCurrentlyLiked ? 'Removed from favorites' : 'Added to favorites');
+
+    } catch (error) {
+      // Revert on error
       setLocalLikedProducts(prev => {
         const newSet = new Set(prev);
         if (isCurrentlyLiked) {
@@ -505,110 +551,27 @@ export default function CategoryBrowsePage({
         }
         return newSet;
       });
-
-      if (result.requiresLogin) {
-        showLoginPrompt(productId);
-      } else {
-        toast.error('Failed to update favorites. Please try again.');
-      }
-    } else {
-      // Success - show appropriate message
-      if (result.liked) {
-        toast.success('Added to favorites!');
-      } else {
-        toast.info('Removed from favorites');
-      }
+      toast.error('Failed to update favorites');
+    } finally {
+      setIsProcessingLike(null);
     }
   };
 
-  // Derived UI categories matching previous structure (no products yet)
-  const uiCategories: Category[] = categoriesApi.map(c => ({
-    name: c.categoryName,
-    subCategories: (subCategoriesMap[c._id] || []).map((sc: any) => ({ name: sc.categoryName, products: [] }))
-  }));
-
-  const filteredCategories = uiCategories.filter(cat =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filtered categories
+  const filteredCategories = categoriesApi.filter(cat =>
+    cat.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredApiCategories = categoriesApi.filter(cat =>
-    cat.categoryName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  useEffect(() => {
-    // when selectedCategoryIndex changes, attempt to fetch its subcategories
-    const filtered = categoriesApi.filter(cat => cat.categoryName.toLowerCase().includes(searchQuery.toLowerCase()));
-    const apiCat = filtered[selectedCategoryIndex];
-    if (apiCat && apiCat._id) {
-      fetchSubCategories(apiCat._id);
-    }
-    // reset subcategory + brand index
-    setSelectedSubCategoryIndex(0);
-    setSelectedBrandIndex(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategoryIndex, categoriesApi, searchQuery]);
-
-  const selectedCategory = filteredCategories[selectedCategoryIndex] || filteredCategories[0];
-  // API-aware helpers
-  const filteredApi = filteredApiCategories;
-  const currentApiCategory = filteredApi[selectedCategoryIndex];
-  const currentSubcategoriesApi = currentApiCategory ? (subCategoriesMap[currentApiCategory._id] || []) : [];
-  const currentSelectedSubCategory = currentSubcategoriesApi[selectedSubCategoryIndex];
-  // keep a UI-compatible selectedSubCategory for legacy rendering
-  const selectedSubCategory = currentSelectedSubCategory ? { name: currentSelectedSubCategory.categoryName, products: [] } : selectedCategory?.subCategories[selectedSubCategoryIndex];
-
-  // Brand helpers — derived from brandsMap for the currently selected subcategory
-  const currentBrandsForSub = currentSelectedSubCategory
-    ? (brandsMap[currentSelectedSubCategory._id] || [])
+  const currentCategory = filteredCategories[selectedCategoryIndex];
+  const currentSubCategories = currentCategory?._id ? (subCategoriesMap[currentCategory._id] || []) : [];
+  const currentSubCategory = currentSubCategories[selectedSubCategoryIndex];
+  const currentBrands = currentSubCategory?._id ? (brandsMap[currentSubCategory._id] || []) : [];
+  const currentBrand = currentBrands[selectedBrandIndex];
+  
+  // Get products for current brand
+  const productsForCurrentBrand = currentBrand && currentSubCategory?._id
+    ? (productsMap[currentSubCategory._id] || [])
     : [];
-  const currentSelectedBrand = currentBrandsForSub[selectedBrandIndex] ?? null;
-  // Products for the selected brand only
-  const productsForSelectedBrand: Product[] = currentSelectedBrand
-    ? (currentSelectedBrand.products || [])
-    : [];
-
-  // When subcategory changes, fetch its products (if not cached) and reset brand
-  useEffect(() => {
-    setSelectedBrandIndex(0);
-    const raw = currentSelectedSubCategory?._id ?? currentSelectedSubCategory ?? currentSelectedSubCategory?.subCategoryId ?? currentSelectedSubCategory?.id;
-    const subId = getId(raw);
-    if (subId) fetchProductsBySubCategory(subId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSelectedSubCategory, selectedSubCategoryIndex]);
-
-  // Helper to retrieve products for a subcategory, trying multiple keys (_id, subCategoryId, or direct string)
-  const getProductsForSub = (sub: any): Product[] => {
-    if (sub == null) return [];
-
-    // Build candidate keys depending on structure (string or object)
-    const candidateKeys: Array<string | undefined> = [];
-    if (typeof sub === 'string') {
-      candidateKeys.push(sub);
-    } else if (typeof sub === 'object') {
-      candidateKeys.push(sub._id, sub.subCategoryId, sub.subCategory, sub.id);
-    }
-
-    // Normalize each candidate via getId and try to return the first matching cached products
-    for (const k of candidateKeys) {
-      if (!k) continue;
-      const normalized = getId(k) ?? k;
-      if (normalized && productsMap[normalized] && productsMap[normalized].length) return productsMap[normalized];
-    }
-
-    // Final fallbacks: return any cached entry even if empty (useful to indicate "no products")
-    for (const k of candidateKeys) {
-      if (!k) continue;
-      const normalized = getId(k) ?? k;
-      if (normalized && productsMap[normalized]) return productsMap[normalized];
-    }
-
-    return [];
-  }; 
-
-  const handleAddToCart = (productName: string) => {
-    onCartCountChange(cartCount + 1);
-    toast.success(`${productName} added to cart!`);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 w-full px-0">
@@ -640,289 +603,176 @@ export default function CategoryBrowsePage({
           </div>
         </div>
 
-        {/* Desktop: Four Column Layout — Category / Sub / Brand / Products */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-0 bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* CATEGORY Column */}
-          <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
-            <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
-              <h2 className="font-bold text-gray-600 text-sm uppercase">Category</h2>
-            </div>
-            <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
-              {loadingCategories && (
-                <div className="px-4 py-3 text-sm text-gray-500">Loading categories...</div>
-              )}
+        {/* Loading State */}
+        {loadingCategories && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+            <p className="mt-2 text-gray-600">Loading categories...</p>
+          </div>
+        )}
 
-              {!loadingCategories && filteredCategories.length === 0 && (
-                <div className="px-4 py-3 text-sm text-gray-500">No categories found</div>
-              )}
+        {/* Error State */}
+        {apiError && !loadingCategories && (
+          <div className="text-center py-12">
+            <p className="text-red-500">Error: {apiError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-              {filteredCategories.map((category, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    const apiCategory = filteredApiCategories[index];
-                    // Check if Full Store Directory is clicked
-                    if (apiCategory?.categoryName === 'Full Store Directory' && onFullStoreDirectoryClick) {
-                      onFullStoreDirectoryClick();
-                    } else {
-                      setSelectedCategoryIndex(index);
-                      setSelectedSubCategoryIndex(0);
-                      if (apiCategory?._id) {
-                        fetchSubCategories(apiCategory._id);
+        {/* Desktop: Four Column Layout */}
+        {!loadingCategories && !apiError && (
+          <div className="hidden lg:grid lg:grid-cols-12 gap-0 bg-white rounded-2xl shadow-lg overflow-hidden">
+            {/* Category Column */}
+            <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
+              <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
+                <h2 className="font-bold text-gray-600 text-sm uppercase">Category</h2>
+              </div>
+              <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
+                {filteredCategories.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-gray-500">No categories found</div>
+                )}
+                {filteredCategories.map((category, index) => (
+                  <button
+                    key={category._id || index}
+                    onClick={() => {
+                      if (category.categoryName === 'Full Store Directory' && onFullStoreDirectoryClick) {
+                        onFullStoreDirectoryClick();
+                      } else {
+                        setSelectedCategoryIndex(index);
+                        setSelectedSubCategoryIndex(0);
+                        setSelectedBrandIndex(0);
                       }
-                    }
-                  }}
-                  className={`
-                    w-full text-left px-4 py-3 transition-all duration-200
-                    ${selectedCategoryIndex === index
-                      ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  {category.name}
-                </button>
-              ))}
+                    }}
+                    className={`
+                      w-full text-left px-4 py-3 transition-all duration-200
+                      ${selectedCategoryIndex === index
+                        ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
+                        : 'text-gray-700 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    {category.categoryName}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sub Category Column */}
+            <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
+              <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
+                <h2 className="font-bold text-gray-600 text-sm uppercase">Sub Category</h2>
+              </div>
+              <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
+                {currentSubCategories.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-gray-500">No subcategories</div>
+                )}
+                {currentSubCategories.map((subCategory, index) => (
+                  <button
+                    key={subCategory._id || index}
+                    onClick={() => {
+                      setSelectedSubCategoryIndex(index);
+                      setSelectedBrandIndex(0);
+                    }}
+                    className={`
+                      w-full text-left px-4 py-3 flex items-center justify-between transition-all duration-200
+                      ${selectedSubCategoryIndex === index
+                        ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
+                        : 'text-gray-700 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    <span>{subCategory.categoryName}</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Brand Column */}
+            <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
+              <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
+                <h2 className="font-bold text-gray-600 text-sm uppercase">Brand</h2>
+              </div>
+              <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
+                {!currentSubCategory && (
+                  <div className="px-4 py-3 text-sm text-gray-400">Select a subcategory</div>
+                )}
+                {currentSubCategory && currentBrands.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-gray-500">No brands</div>
+                )}
+                {currentBrands.map((brand, index) => (
+                  <button
+                    key={brand._id || index}
+                    onClick={() => setSelectedBrandIndex(index)}
+                    className={`
+                      w-full text-left px-4 py-3 flex items-center gap-2 transition-all duration-200
+                      ${selectedBrandIndex === index
+                        ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
+                        : 'text-gray-700 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    {brand.image && (
+                      <img
+                        src={`${baseUrl.INVENTORY}${brand.image}`}
+                        alt={brand.name}
+                        className="w-6 h-6 rounded object-cover flex-shrink-0"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                    <span className="truncate text-sm">{brand.name}</span>
+                    <span className="ml-auto text-xs text-gray-400 flex-shrink-0">
+                      {brand.products?.length || 0}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Products Column */}
+            <div className="col-span-6 bg-white">
+              <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
+                <h2 className="font-bold text-gray-800 text-sm uppercase">
+                  {currentBrand?.name
+                    ? `${currentBrand.name} Products`
+                    : currentSubCategory?.categoryName || 'Products'}
+                </h2>
+              </div>
+              <div className="overflow-y-auto max-h-[600px] p-4 custom-scrollbar">
+                {!currentBrand && currentBrands.length > 0 && (
+                  <div className="text-center py-12 text-gray-400 text-sm">
+                    Select a brand to view products
+                  </div>
+                )}
+                {currentBrand && productsForCurrentBrand.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    No products in this brand
+                  </div>
+                )}
+                {currentBrand && productsForCurrentBrand.length > 0 && (
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {productsForCurrentBrand.map((product) => (
+                      <ProductCard
+                        key={product._id}
+                        product={product}
+                        isLiked={localLikedProducts.has(product._id)}
+                        isLoadingLike={isProcessingLike === product._id}
+                        isAddingToCart={isAddingToCart === product._id}
+                        onToggleLike={() => handleToggleLike(product._id)}
+                        onAddToCart={() => handleAddToCart(product)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-
-          {/* SUB CATEGORY Column */}
-          <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
-            <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
-              <h2 className="font-bold text-gray-600 text-sm uppercase">Sub Category</h2>
-            </div>
-            <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
-              {loadingSubcategories && (
-                <div className="px-4 py-3 text-sm text-gray-500">Loading subcategories...</div>
-              )}
-
-              {!loadingSubcategories && currentSubcategoriesApi.length === 0 && (
-                <div className="px-4 py-3 text-sm text-gray-500">No subcategories</div>
-              )}
-
-              {currentSubcategoriesApi.map((subCategory, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setSelectedSubCategoryIndex(index);
-                    // normalize subcategory id (handles string or object)
-                    const sid = getId(subCategory?._id ?? subCategory ?? subCategory?.subCategoryId ?? subCategory?.id);
-                    if (sid) fetchProductsBySubCategory(sid);
-                  }}
-                  className={`
-                    w-full text-left px-4 py-3 flex items-center justify-between transition-all duration-200
-                    ${selectedSubCategoryIndex === index
-                      ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  <span>{subCategory.categoryName}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              ))} 
-            </div>
-          </div>
-
-          {/* BRAND Column */}
-          <div className="col-span-2 bg-gray-50 border-r-2 border-gray-200">
-            <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
-              <h2 className="font-bold text-gray-600 text-sm uppercase">Brand</h2>
-            </div>
-            <div className="overflow-y-auto max-h-[600px] custom-scrollbar">
-              {!currentSelectedSubCategory && (
-                <div className="px-4 py-3 text-sm text-gray-400">Select a subcategory</div>
-              )}
-              {currentSelectedSubCategory && currentBrandsForSub.length === 0 && (
-                <div className="px-4 py-3 text-sm text-gray-500">No brands</div>
-              )}
-              {currentBrandsForSub.map((brand, index) => (
-                <button
-                  key={brand._id ?? index}
-                  onClick={() => setSelectedBrandIndex(index)}
-                  className={`
-                    w-full text-left px-4 py-3 flex items-center gap-2 transition-all duration-200
-                    ${selectedBrandIndex === index
-                      ? 'bg-blue-100 text-blue-700 font-semibold border-l-4 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  {brand.image && (
-                    <img
-                      src={`${baseUrl.INVENTORY}${brand.image}`}
-                      alt={brand.name}
-                      className="w-6 h-6 rounded object-cover flex-shrink-0"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
-                  <span className="truncate text-sm">{brand.name}</span>
-                  <span className="ml-auto text-xs text-gray-400 flex-shrink-0">{brand.products?.length ?? 0}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* PRODUCTS Column */}
-          <div className="col-span-6 bg-white">
-            <div className="sticky top-0 bg-gray-100 px-4 py-3 border-b-2 border-gray-200">
-              <h2 className="font-bold text-gray-800 text-sm uppercase">
-                {currentSelectedBrand?.name
-                  ? `${currentSelectedBrand.name} Products`
-                  : currentSelectedSubCategory?.categoryName || 'Products'}
-              </h2>
-            </div>
-            <div className="overflow-y-auto max-h-[600px] p-4 custom-scrollbar">
-              {!currentSelectedBrand && currentBrandsForSub.length > 0 && (
-                <div className="text-center py-12 text-gray-400 text-sm">Select a brand to view products</div>
-              )}
-              {currentSelectedBrand && productsForSelectedBrand.length === 0 && (
-                <div className="text-center py-12 text-gray-500">No products in this brand</div>
-              )}
-              {currentSelectedBrand && productsForSelectedBrand.length > 0 && (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {productsForSelectedBrand.map((product) => (
-                    <ProductCard
-                      key={product._id}
-                      product={product}
-                      isLiked={localLikedProducts.has(product._id)}
-                      isLoadingLike={isProcessingLike === product._id}
-                      onToggleLike={() => handleToggleLike(product._id)}
-                      onAddToCart={() => handleAddToCart(product.name)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div> 
-          </div>
-        </div>
-
-        {/* Mobile: Accordion Layout */}
-        <div className="lg:hidden space-y-4">
-          {filteredCategories.map((category, catIndex) => (
-            <div key={catIndex} className="bg-white rounded-xl shadow-md overflow-hidden">
-              {/* Category Header */}
-              <button
-                onClick={() => {
-                  setSelectedCategoryIndex(catIndex);
-                  setSelectedSubCategoryIndex(0);
-                  const apiCategory = filteredApiCategories[catIndex];
-                  if (apiCategory?._id) fetchSubCategories(apiCategory._id);
-                }}
-                className={`
-                  w-full text-left px-4 py-4 font-semibold flex items-center justify-between
-                  ${selectedCategoryIndex === catIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-800'}
-                `}
-              >
-                {category.name}
-                <ChevronRight
-                  className={`w-5 h-5 transition-transform ${selectedCategoryIndex === catIndex ? 'rotate-90' : ''
-                    }`}
-                />
-              </button>
-
-              {/* Subcategories */}
-              {selectedCategoryIndex === catIndex && (
-                <div className="border-t border-gray-200">
-                  {(() => {
-                    const apiCat = filteredApiCategories[catIndex];
-                    const subApi = apiCat ? (subCategoriesMap[apiCat._id] || []) : [];
-
-                    if (loadingSubcategories && apiCat && !subApi.length) {
-                      return <div className="px-6 py-3 text-sm text-gray-500">Loading subcategories...</div>;
-                    }
-
-                    if (!loadingSubcategories && subApi.length === 0) {
-                      return <div className="px-6 py-3 text-sm text-gray-500">No subcategories</div>;
-                    }
-
-                    return subApi.map((subCategory, subIndex) => (
-                      <div key={subIndex}>
-                        <button
-                          onClick={() => {
-                            setSelectedSubCategoryIndex(subIndex);
-                            const sid = getId(subCategory?._id ?? subCategory ?? subCategory?.subCategoryId ?? subCategory?.id);
-                            if (sid) fetchProductsBySubCategory(sid);
-                          }}
-                          className={`
-                            w-full text-left px-6 py-3 text-sm flex items-center justify-between
-                            ${selectedSubCategoryIndex === subIndex
-                              ? 'bg-blue-100 text-blue-700 font-semibold'
-                              : 'text-gray-700 bg-gray-50'
-                            }
-                          `}
-                        >
-                          {subCategory.categoryName}
-                          <ChevronRight
-                            className={`w-4 h-4 transition-transform ${selectedSubCategoryIndex === subIndex ? 'rotate-90' : ''
-                              }`}
-                          />
-                        </button>
-
-                        {/* Brands + Products */}
-                        {selectedSubCategoryIndex === subIndex && (
-                          <div className="bg-white">
-                            {(() => {
-                              const subBrands = brandsMap[subCategory._id] || [];
-                              if (subBrands.length === 0) {
-                                return <div className="text-center py-4 px-6 text-gray-500 text-sm">No brands in this subcategory</div>;
-                              }
-                              return subBrands.map((brand: any, brandIdx: number) => (
-                                <div key={brand._id ?? brandIdx}>
-                                  <button
-                                    onClick={() => setSelectedBrandIndex(selectedBrandIndex === brandIdx && selectedSubCategoryIndex === subIndex ? -1 : brandIdx)}
-                                    className={`
-                                      w-full text-left px-8 py-2.5 text-sm flex items-center gap-2 justify-between border-b border-gray-100
-                                      ${selectedBrandIndex === brandIdx ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 bg-gray-50'}
-                                    `}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      {brand.image && (
-                                        <img
-                                          src={`${baseUrl.INVENTORY}${brand.image}`}
-                                          alt={brand.name}
-                                          className="w-5 h-5 rounded object-cover"
-                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                        />
-                                      )}
-                                      <span>{brand.name}</span>
-                                      <span className="text-xs text-gray-400">({brand.products?.length ?? 0})</span>
-                                    </div>
-                                    <ChevronRight className={`w-4 h-4 transition-transform ${selectedBrandIndex === brandIdx ? 'rotate-90' : ''}`} />
-                                  </button>
-                                  {selectedBrandIndex === brandIdx && (
-                                    <div className="p-3 bg-white">
-                                      {(brand.products || []).length === 0 ? (
-                                        <div className="text-center py-4 text-gray-500 text-sm">No products</div>
-                                      ) : (
-                                        <div className="grid grid-cols-2 gap-3">
-                                          {(brand.products || []).map((product: Product) => (
-                                            <ProductCard
-                                              key={product._id}
-                                              product={product}
-                                              isLiked={localLikedProducts.has(product._id)}
-                                              isLoadingLike={isProcessingLike === product._id}
-                                              onToggleLike={() => handleToggleLike(product._id)}
-                                              onAddToCart={() => handleAddToCart(product.name)}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        )}
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        )}
 
         {/* Stats Footer */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">

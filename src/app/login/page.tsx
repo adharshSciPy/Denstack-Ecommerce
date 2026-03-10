@@ -27,6 +27,7 @@ export default function UserLoginPage() {
   // ✅ SUPPORT BOTH PARAM NAMES
   const accessToken =
     searchParams.get("accessToken") || searchParams.get("clinicToken");
+  const clinicId = searchParams.get("clinicId"); // ✅ read clinicId from URL
 
   // ✅ AUTO LOGIN FROM CLINIC
   useEffect(() => {
@@ -54,7 +55,12 @@ export default function UserLoginPage() {
           }
         );
 
-        // ✅ Backend sets ecommerce cookie
+        // ✅ Store clinic token and clinicId for use in API calls
+        localStorage.setItem("clinicToken", accessToken);
+        if (clinicId) {
+          localStorage.setItem("clinicId", clinicId);
+        }
+
         toast.success("🎉 Logged in via Clinic successfully!");
 
         // ✅ Remove token from URL
@@ -67,6 +73,9 @@ export default function UserLoginPage() {
 
       } catch (error) {
         console.error("Auto login failed:", error);
+        // ✅ Clean up on failure
+        localStorage.removeItem("clinicToken");
+        localStorage.removeItem("clinicId");
         toast.error("Clinic auto login failed");
         setIsAutoLoggingIn(false);
         setIsSubmitting(false);
@@ -74,7 +83,7 @@ export default function UserLoginPage() {
     };
 
     autoLogin();
-  }, [accessToken]);
+  }, [accessToken, clinicId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -83,7 +92,7 @@ export default function UserLoginPage() {
     });
   };
 
-  // ✅ MANUAL LOGIN (unchanged)
+  // ✅ MANUAL LOGIN — clear any clinic session on normal user login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -116,6 +125,10 @@ export default function UserLoginPage() {
           path: "/"
         });
       }
+
+      // ✅ Clear any leftover clinic session
+      localStorage.removeItem("clinicToken");
+      localStorage.removeItem("clinicId");
 
       toast.success("🎉 Login successful!");
 

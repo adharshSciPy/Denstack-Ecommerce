@@ -58,7 +58,7 @@ export default function FeaturedProducts({ onCategoryClick }: FeaturedProductsPr
     }
     
     // Navigate to category page with products
-    router.push(`/category/${category._id}?name=${encodeURIComponent(category.categoryName)}`);
+    router.push(`/category?categoryId=${category._id}&name=${encodeURIComponent(category.categoryName)}`);
   };
 
   if (loading) {

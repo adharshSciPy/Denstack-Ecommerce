@@ -1,11 +1,20 @@
-'use client';
-import { useState, useEffect } from 'react';
-import Navigation from '../components/Navigation';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Percent, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { cartService, CartItem as ApiCartItem } from '@/services/cartService';
-import { toast } from 'sonner';
-import Image from 'next/image';
+"use client";
+import { useState, useEffect } from "react";
+import Navigation from "../components/Navigation";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingBag,
+  ArrowRight,
+  Tag,
+  Percent,
+  Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { cartService, CartItem as ApiCartItem } from "@/services/cartService";
+import { toast } from "sonner";
+import Image from "next/image";
 
 interface CartItem {
   id: string;
@@ -27,7 +36,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [couponCode, setCouponCode] = useState('');
+  const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
 
   // Fetch cart on mount
@@ -39,28 +48,30 @@ export default function CartPage() {
     try {
       setLoading(true);
       const response = await cartService.getCart();
-      
+
       if (response.success && response.data) {
-        const formattedItems: CartItem[] = response.data.items.map((item: ApiCartItem) => ({
-          id: item._id,
-          productId: item.product._id,
-          name: item.product.name,
-          price: item.variant.price,
-          quantity: item.quantity,
-          image: item.product.image[0],
-          category: item.product.brand?.name || 'Uncategorized',
-          inStock: true, // You can add stock checking logic
-          variantId: item.variant.variantId,
-          size: item.variant.size,
-          color: item.variant.color,
-          material: item.variant.material,
-        }));
-        
+        const formattedItems: CartItem[] = response.data.items.map(
+          (item: ApiCartItem) => ({
+            id: item._id,
+            productId: item.product._id,
+            name: item.product.name,
+            price: item.variant.price,
+            quantity: item.quantity,
+            image: item.product.image[0],
+            category: item.product.brand?.name || "Uncategorized",
+            inStock: true, // You can add stock checking logic
+            variantId: item.variant.variantId,
+            size: item.variant.size,
+            color: item.variant.color,
+            material: item.variant.material,
+          }),
+        );
+
         setCartItems(formattedItems);
       }
     } catch (error: any) {
-      console.error('Failed to fetch cart:', error);
-      toast.error(error.message || 'Failed to load cart');
+      console.error("Failed to fetch cart:", error);
+      toast.error(error.message || "Failed to load cart");
     } finally {
       setLoading(false);
     }
@@ -72,16 +83,16 @@ export default function CartPage() {
     try {
       setUpdating(true);
       await cartService.updateCartItemQuantity(itemId, newQuantity);
-      
-      setCartItems(prev =>
-        prev.map(item =>
-          item.id === itemId ? { ...item, quantity: newQuantity } : item
-        )
+
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item,
+        ),
       );
-      
-      toast.success('Quantity updated');
+
+      toast.success("Quantity updated");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update quantity');
+      toast.error(error.message || "Failed to update quantity");
     } finally {
       setUpdating(false);
     }
@@ -91,26 +102,26 @@ export default function CartPage() {
     try {
       setUpdating(true);
       await cartService.removeCartItem(itemId);
-      
-      setCartItems(prev => prev.filter(item => item.id !== itemId));
-      toast.success('Item removed from cart');
+
+      setCartItems((prev) => prev.filter((item) => item.id !== itemId));
+      toast.success("Item removed from cart");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to remove item');
+      toast.error(error.message || "Failed to remove item");
     } finally {
       setUpdating(false);
     }
   };
 
   const handleClearCart = async () => {
-    if (!confirm('Are you sure you want to clear your cart?')) return;
+    if (!confirm("Are you sure you want to clear your cart?")) return;
 
     try {
       setUpdating(true);
       await cartService.clearCart();
       setCartItems([]);
-      toast.success('Cart cleared');
+      toast.success("Cart cleared");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to clear cart');
+      toast.error(error.message || "Failed to clear cart");
     } finally {
       setUpdating(false);
     }
@@ -119,12 +130,15 @@ export default function CartPage() {
   const handleApplyCoupon = () => {
     if (couponCode.trim()) {
       setAppliedCoupon(couponCode.toUpperCase());
-      setCouponCode('');
-      toast.success('Coupon applied!');
+      setCouponCode("");
+      toast.success("Coupon applied!");
     }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
   const discount = appliedCoupon ? subtotal * 0.1 : 0;
   const shipping = subtotal > 50000 ? 0 : 500;
   const tax = (subtotal - discount) * 0.18;
@@ -145,7 +159,11 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation currentPage="cart" cartCount={cartItems.length} favoritesCount={0} />
+      <Navigation
+        currentPage="cart"
+        cartCount={cartItems.length}
+        favoritesCount={0}
+      />
 
       {/* Page Title */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white py-6 shadow-lg">
@@ -155,7 +173,8 @@ export default function CartPage() {
             <div>
               <h1 className="text-3xl md:text-4xl font-bold">Shopping Cart</h1>
               <p className="text-blue-100 text-sm mt-1">
-                {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart
+                {cartItems.length} {cartItems.length === 1 ? "item" : "items"}{" "}
+                in your cart
               </p>
             </div>
           </div>
@@ -171,12 +190,14 @@ export default function CartPage() {
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <ShoppingBag className="w-12 h-12 text-gray-400" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">Your cart is empty</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                Your cart is empty
+              </h2>
               <p className="text-gray-600 mb-6">
                 Start shopping to fill it up!
               </p>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push("/")}
                 className="px-8 py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-all font-semibold inline-flex items-center gap-2"
               >
                 Continue Shopping
@@ -211,7 +232,7 @@ export default function CartPage() {
               ))}
 
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push("/")}
                 className="w-full py-3 border-2 border-blue-700 text-blue-700 rounded-lg hover:bg-blue-50 transition-all font-semibold flex items-center justify-center gap-2 mt-6"
               >
                 Continue Shopping
@@ -231,7 +252,13 @@ export default function CartPage() {
               appliedCoupon={appliedCoupon}
               setAppliedCoupon={setAppliedCoupon}
               handleApplyCoupon={handleApplyCoupon}
-              onCheckout={() => router.push('/checkout')}
+              onCheckout={() => {
+                localStorage.setItem(
+                  "checkoutItems",
+                  JSON.stringify(cartItems),
+                );
+                router.push("/checkout");
+              }}
             />
           </div>
         )}
@@ -241,7 +268,13 @@ export default function CartPage() {
 }
 
 // Cart Item Card Component
-function CartItemCard({ item, onQuantityChange, onRemove, index, disabled }: any) {
+function CartItemCard({
+  item,
+  onQuantityChange,
+  onRemove,
+  index,
+  disabled,
+}: any) {
   const [isRemoving, setIsRemoving] = useState(false);
 
   const handleRemove = () => {
@@ -254,7 +287,7 @@ function CartItemCard({ item, onQuantityChange, onRemove, index, disabled }: any
   return (
     <div
       className={`bg-white border border-gray-200 rounded-xl p-4 md:p-6 transition-all duration-300 ${
-        isRemoving ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+        isRemoving ? "opacity-0 scale-95" : "opacity-100 scale-100"
       }`}
     >
       <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_auto] gap-4 md:gap-6 items-center">
@@ -269,9 +302,11 @@ function CartItemCard({ item, onQuantityChange, onRemove, index, disabled }: any
 
         {/* Product Details */}
         <div className="flex flex-col gap-2">
-          <h3 className="text-base md:text-lg font-semibold text-gray-900">{item.name}</h3>
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">
+            {item.name}
+          </h3>
           <p className="text-xs text-gray-500">{item.category}</p>
-          
+
           {/* Variant Info */}
           {(item.size || item.color || item.material) && (
             <div className="text-xs text-gray-600 flex gap-2">
@@ -282,7 +317,7 @@ function CartItemCard({ item, onQuantityChange, onRemove, index, disabled }: any
           )}
 
           <div className="text-lg font-bold text-blue-700">
-            ₹{item.price.toLocaleString('en-IN')}
+            ₹{item.price.toLocaleString("en-IN")}
           </div>
         </div>
 
@@ -296,7 +331,9 @@ function CartItemCard({ item, onQuantityChange, onRemove, index, disabled }: any
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="w-12 text-center font-semibold">{item.quantity}</span>
+            <span className="w-12 text-center font-semibold">
+              {item.quantity}
+            </span>
             <button
               onClick={() => onQuantityChange(item.id, item.quantity + 1)}
               disabled={item.quantity >= 99 || disabled}
@@ -315,7 +352,7 @@ function CartItemCard({ item, onQuantityChange, onRemove, index, disabled }: any
           </button>
 
           <div className="text-xl font-bold text-gray-900">
-            ₹{subtotal.toLocaleString('en-IN')}
+            ₹{subtotal.toLocaleString("en-IN")}
           </div>
         </div>
       </div>
@@ -339,7 +376,9 @@ function OrderSummary({
 }: any) {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 space-y-6 h-fit sticky top-6">
-      <h2 className="text-xl font-bold text-gray-900 pb-4 border-b">Order Summary</h2>
+      <h2 className="text-xl font-bold text-gray-900 pb-4 border-b">
+        Order Summary
+      </h2>
 
       {/* Coupon Code */}
       <div className="space-y-3">
@@ -351,7 +390,9 @@ function OrderSummary({
           <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-2">
               <Percent className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-semibold text-green-700">{appliedCoupon} Applied</span>
+              <span className="text-sm font-semibold text-green-700">
+                {appliedCoupon} Applied
+              </span>
             </div>
             <button
               onClick={() => setAppliedCoupon(null)}
@@ -384,33 +425,43 @@ function OrderSummary({
       <div className="space-y-3 py-4 border-t border-b">
         <div className="flex justify-between">
           <span>Subtotal</span>
-          <span className="font-semibold">₹{subtotal.toLocaleString('en-IN')}</span>
+          <span className="font-semibold">
+            ₹{subtotal.toLocaleString("en-IN")}
+          </span>
         </div>
 
         {discount > 0 && (
           <div className="flex justify-between text-green-600">
             <span>Discount (10%)</span>
-            <span className="font-semibold">-₹{discount.toLocaleString('en-IN')}</span>
+            <span className="font-semibold">
+              -₹{discount.toLocaleString("en-IN")}
+            </span>
           </div>
         )}
 
         <div className="flex justify-between">
           <span>Shipping</span>
           <span className="font-semibold">
-            {shipping === 0 ? <span className="text-green-600">FREE</span> : `₹${shipping}`}
+            {shipping === 0 ? (
+              <span className="text-green-600">FREE</span>
+            ) : (
+              `₹${shipping}`
+            )}
           </span>
         </div>
 
         <div className="flex justify-between">
           <span>Tax (GST 18%)</span>
-          <span className="font-semibold">₹{tax.toLocaleString('en-IN')}</span>
+          <span className="font-semibold">₹{tax.toLocaleString("en-IN")}</span>
         </div>
       </div>
 
       {/* Total */}
       <div className="flex justify-between items-baseline">
         <span className="text-lg font-bold">Total</span>
-        <span className="text-2xl font-bold text-blue-700">₹{total.toLocaleString('en-IN')}</span>
+        <span className="text-2xl font-bold text-blue-700">
+          ₹{total.toLocaleString("en-IN")}
+        </span>
       </div>
 
       {/* Checkout Button */}
