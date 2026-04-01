@@ -5,19 +5,19 @@ const INVENTORY_API = baseUrl.INVENTORY;
 
 /**
  * Smart function that checks which auth method to use
- * - If token exists in localStorage → use Bearer token (Clinic/Doctor)
- * - If no token → use cookies (Normal User)
+ * - If clinicToken exists → use Bearer token (Clinic/Doctor)
+ * - Else → use cookies (Normal User)
  */
 const getAuthConfig = () => {
-  const token = typeof window !== 'undefined' 
-    ? localStorage.getItem('accessToken') 
+  const clinicToken = typeof window !== 'undefined' 
+    ? localStorage.getItem('clinicToken') 
     : null;
 
-  if (token) {
+  if (clinicToken) {
     // ✅ Clinic or Doctor - use Bearer token
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${clinicToken}`,
         'Content-Type': 'application/json',
       },
     };
@@ -27,7 +27,7 @@ const getAuthConfig = () => {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true,
+      withCredentials: true, // ✅ IMPORTANT
     };
   }
 };
@@ -65,7 +65,8 @@ export interface Cart {
 }
 
 export const cartService = {
-  // ✅ Add item to cart (UPDATED - simplified payload)
+
+  // ✅ Add item to cart
   addToCart: async (payload: {
     productId: string;
     variantId?: string | null;
@@ -83,7 +84,7 @@ export const cartService = {
     }
   },
 
-  // Get cart
+  // ✅ Get cart
   getCart: async () => {
     try {
       const response = await axios.get(
@@ -96,7 +97,7 @@ export const cartService = {
     }
   },
 
-  // Update cart item quantity
+  // ✅ Update quantity
   updateCartItemQuantity: async (itemId: string, quantity: number) => {
     try {
       const response = await axios.put(
@@ -110,7 +111,7 @@ export const cartService = {
     }
   },
 
-  // Remove item from cart
+  // ✅ Remove item
   removeCartItem: async (itemId: string) => {
     try {
       const response = await axios.delete(
@@ -123,7 +124,7 @@ export const cartService = {
     }
   },
 
-  // Clear entire cart
+  // ✅ Clear cart
   clearCart: async () => {
     try {
       const response = await axios.delete(
@@ -136,7 +137,7 @@ export const cartService = {
     }
   },
 
-  // Checkout cart
+  // ✅ Checkout
   checkoutCart: async (payload: {
     shippingAddress: any;
     paymentMethod: string;

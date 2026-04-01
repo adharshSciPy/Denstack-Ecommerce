@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Navigation from "../components/Navigation";
 import {
   Trash2, Plus, Minus, ShoppingBag, ArrowRight,
-  Tag, Percent, Loader2,
+  Tag, Percent, Loader2, Check, X, AlertCircle, Truck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cartService, CartItem as ApiCartItem } from "@/services/cartService";
@@ -14,8 +14,8 @@ interface CartItem {
   id: string;
   productId: string;
   name: string;
-  price: number;          // original price (from cart API)
-  discountedPrice: number | null; // backend-calculated price for this user
+  price: number;
+  discountedPrice: number | null;
   quantity: number;
   image: string;
   category: string;
@@ -26,21 +26,29 @@ interface CartItem {
   material: string | null;
 }
 
+interface AppliedCoupon {
+  code: string;
+  discountType: "percent" | "flat";
+  discountValue: number;
+  discountAmount: number;
+  description?: string;
+}
+
 // ── Auth helpers ─────────────────────────────────────────────────────────────
-const getClinicAuth = (): { clinicId: string; token: string } | null => {
+const getClinicAuth = (): { clinicId: string; token: string; name: string; email: string } | null => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("clinicToken") : null;
     if (!token) return null;
     const payload = JSON.parse(atob(token.split(".")[1]));
     const clinicId = payload.clinicId || payload.hospitalId || payload._id;
-    return clinicId ? { clinicId, token } : null;
+    return clinicId ? { clinicId, token, name: payload.name || "", email: payload.email || "" } : null;
   } catch { return null; }
 };
 
 const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const clinicAuth = getClinicAuth();
-  if (clinicAuth) headers["Authorization"] = `Bearer ${clinicAuth.token}`;
+  const clinic = getClinicAuth();
+  if (clinic?.token) headers["Authorization"] = `Bearer ${clinic.token}`;
   return headers;
 };
 
@@ -69,7 +77,6 @@ const fetchDiscountedPrices = async (
     if (!res.ok) return {};
     const data = await res.json();
 
-    // Expect data.items = [{ productId, unitPrice }]
     const map: Record<string, number> = {};
     if (data.success && Array.isArray(data.items)) {
       data.items.forEach((i: any) => { map[i.productId] = i.unitPrice; });
@@ -78,16 +85,76 @@ const fetchDiscountedPrices = async (
   } catch { return {}; }
 };
 
+// ── Validate coupon (preview only, does NOT record usage) ────────────────────
+const validateCouponAPI = async (
+  code: string,
+  orderAmount: number
+): Promise<{ success: boolean; data?: any; message?: string }> => {
+  try {
+    const res = await fetch(`${baseUrl.INVENTORY}/api/v1/coupons/validate`, {
+      method:      "POST",
+      headers:     getAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify({
+        code:        code.toUpperCase().trim(),
+        orderAmount,
+      }),
+    });
+
+    const data = await res.json();
+    return { success: data.success, data: data.data, message: data.message };
+  } catch {
+    return { success: false, message: "Failed to connect. Please try again." };
+  }
+};
+
+// ── ✅ NEW — Fetch shipping charge from backend ───────────────────────────────
+const fetchShippingChargeAPI = async (): Promise<number> => {
+  try {
+    const res = await fetch(`${baseUrl.INVENTORY}/api/v1/shipping/get`, {
+      method:      "GET",
+      headers:     getAuthHeaders(),
+      credentials: "include",
+    });
+
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.success ? (data.shippingCharge ?? 0) : 0;
+  } catch {
+    return 0;
+  }
+};
+
+// ── Main CartPage ─────────────────────────────────────────────────────────────
 export default function CartPage() {
   const router = useRouter();
-  const [loading, setLoading]           = useState(true);
-  const [updating, setUpdating]         = useState(false);
-  const [cartItems, setCartItems]       = useState<CartItem[]>([]);
-  const [couponCode, setCouponCode]     = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
-  const [priceLoading, setPriceLoading] = useState(false);
+  const [loading, setLoading]             = useState(true);
+  const [updating, setUpdating]           = useState(false);
+  const [cartItems, setCartItems]         = useState<CartItem[]>([]);
+  const [priceLoading, setPriceLoading]   = useState(false);
 
-  useEffect(() => { fetchCart(); }, []);
+  // ✅ Shipping state (fetched from backend)
+  const [shipping, setShipping]           = useState<number>(0);
+  const [shippingLoading, setShippingLoading] = useState(false);
+
+  // Coupon state
+  const [couponCode, setCouponCode]       = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError]     = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+
+  useEffect(() => {
+    fetchCart();
+    fetchShipping(); // ✅ fetch shipping charge on mount
+  }, []);
+
+  // ✅ NEW — fetch shipping charge from backend
+  const fetchShipping = async () => {
+    setShippingLoading(true);
+    const charge = await fetchShippingChargeAPI();
+    setShipping(charge);
+    setShippingLoading(false);
+  };
 
   const fetchCart = async () => {
     try {
@@ -96,29 +163,27 @@ export default function CartPage() {
 
       if (response.success && response.data) {
         const formattedItems: CartItem[] = response.data.items.map((item: ApiCartItem) => ({
-          id:             item._id,
-          productId:      item.product._id,
-          name:           item.product.name,
-          price:          item.variant.price,
+          id:              item._id,
+          productId:       item.product._id,
+          name:            item.product.name,
+          price:           item.variant.price,
           discountedPrice: null,
-          quantity:       item.quantity,
-          image:          item.product.image[0],
-          category:       item.product.brand?.name || "Uncategorized",
-          inStock:        true,
-          variantId:      item.variant.variantId,
-          size:           item.variant.size,
-          color:          item.variant.color,
-          material:       item.variant.material,
+          quantity:        item.quantity,
+          image:           item.product.image[0],
+          category:        item.product.brand?.name || "Uncategorized",
+          inStock:         true,
+          variantId:       item.variant.variantId,
+          size:            item.variant.size,
+          color:           item.variant.color,
+          material:        item.variant.material,
         }));
 
         setCartItems(formattedItems);
 
-        // ── Fetch discounted prices for all items ──────────────────────────
         setPriceLoading(true);
         const discountMap = await fetchDiscountedPrices(
           formattedItems.map(i => ({ productId: i.productId, quantity: i.quantity, variantId: i.variantId }))
         );
-
         if (Object.keys(discountMap).length > 0) {
           setCartItems(prev => prev.map(item => ({
             ...item,
@@ -141,7 +206,12 @@ export default function CartPage() {
       setUpdating(true);
       await cartService.updateCartItemQuantity(itemId, newQuantity);
       setCartItems(prev => prev.map(item => item.id === itemId ? { ...item, quantity: newQuantity } : item));
-      toast.success("Quantity updated");
+      if (appliedCoupon) {
+        setAppliedCoupon(null);
+        toast.info("Cart updated — please re-apply your coupon.");
+      } else {
+        toast.success("Quantity updated");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to update quantity");
     } finally {
@@ -154,6 +224,7 @@ export default function CartPage() {
       setUpdating(true);
       await cartService.removeCartItem(itemId);
       setCartItems(prev => prev.filter(item => item.id !== itemId));
+      if (appliedCoupon) setAppliedCoupon(null);
       toast.success("Item removed from cart");
     } catch (error: any) {
       toast.error(error.message || "Failed to remove item");
@@ -168,6 +239,7 @@ export default function CartPage() {
       setUpdating(true);
       await cartService.clearCart();
       setCartItems([]);
+      setAppliedCoupon(null);
       toast.success("Cart cleared");
     } catch (error: any) {
       toast.error(error.message || "Failed to clear cart");
@@ -176,25 +248,44 @@ export default function CartPage() {
     }
   };
 
-  const handleApplyCoupon = () => {
-    if (couponCode.trim()) {
-      setAppliedCoupon(couponCode.toUpperCase());
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponError(null);
+    setCouponLoading(true);
+
+    const result = await validateCouponAPI(couponCode, subtotal);
+
+    if (result.success && result.data) {
+      setAppliedCoupon({
+        code:           result.data.code,
+        discountType:   result.data.discountType,
+        discountValue:  result.data.discountValue,
+        discountAmount: result.data.discountAmount ?? 0,
+        description:    result.data.description,
+      });
       setCouponCode("");
-      toast.success("Coupon applied!");
+      toast.success(`Coupon "${result.data.code}" applied! You save ₹${result.data.discountAmount}`);
+    } else {
+      setCouponError(result.message || "Invalid or expired coupon code.");
     }
+
+    setCouponLoading(false);
   };
 
-  // ── Use discounted price if available, else fall back to original ──────────
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
+
+  // ── Pricing ───────────────────────────────────────────────────────────────
   const effectivePrice = (item: CartItem) =>
     item.discountedPrice !== null ? item.discountedPrice : item.price;
 
-  const subtotal  = cartItems.reduce((sum, i) => sum + effectivePrice(i) * i.quantity, 0);
-  const discount  = appliedCoupon ? subtotal * 0.1 : 0;
-  // ✅ Fixed shipping: matches backend logic (free above ₹500, else ₹50)
-  const shipping  = subtotal > 500 ? 0 : 50;
-  const tax       = Math.round((subtotal - discount) * 0.18);
-  const total     = subtotal - discount + shipping + tax;
-  const isEmpty   = cartItems.length === 0;
+  const subtotal       = cartItems.reduce((sum, i) => sum + effectivePrice(i) * i.quantity, 0);
+  const couponDiscount = appliedCoupon?.discountAmount ?? 0;
+  const total          = subtotal - couponDiscount + shipping; // ✅ uses dynamic shipping state
+
+  const isEmpty = cartItems.length === 0;
 
   if (loading) {
     return (
@@ -277,16 +368,25 @@ export default function CartPage() {
 
             <OrderSummary
               subtotal={subtotal}
-              discount={discount}
+              couponDiscount={couponDiscount}
               shipping={shipping}
-              tax={tax}
+              shippingLoading={shippingLoading}
               total={total}
               couponCode={couponCode}
               setCouponCode={setCouponCode}
               appliedCoupon={appliedCoupon}
-              setAppliedCoupon={setAppliedCoupon}
-              handleApplyCoupon={handleApplyCoupon}
+              couponLoading={couponLoading}
+              couponError={couponError}
+              onApplyCoupon={handleApplyCoupon}
+              onRemoveCoupon={handleRemoveCoupon}
               onCheckout={() => {
+                if (appliedCoupon) {
+                  localStorage.setItem("pendingCoupon", JSON.stringify(appliedCoupon));
+                } else {
+                  localStorage.removeItem("pendingCoupon");
+                }
+                // ✅ Also persist shipping charge so checkout page has it
+                localStorage.setItem("shippingCharge", String(shipping));
                 localStorage.setItem("checkoutItems", JSON.stringify(
                   cartItems.map(i => ({ ...i, price: effectivePrice(i) }))
                 ));
@@ -303,47 +403,32 @@ export default function CartPage() {
 // ── Cart Item Card ────────────────────────────────────────────────────────────
 function CartItemCard({ item, effectivePrice, onQuantityChange, onRemove, disabled }: any) {
   const [isRemoving, setIsRemoving] = useState(false);
-
-  const handleRemove = () => {
-    setIsRemoving(true);
-    setTimeout(() => onRemove(item.id), 300);
-  };
-
+  const handleRemove = () => { setIsRemoving(true); setTimeout(() => onRemove(item.id), 300); };
   const hasDiscount = item.discountedPrice !== null && item.discountedPrice < item.price;
   const itemTotal   = effectivePrice * item.quantity;
 
   return (
     <div className={`bg-white border border-gray-200 rounded-xl p-4 md:p-6 transition-all duration-300 ${isRemoving ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}>
       <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_auto] gap-4 md:gap-6 items-center">
-
-        {/* Image */}
         <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg overflow-hidden w-full md:w-[120px] h-32 md:h-28">
           <img src={item.image} alt={item.name} className="absolute inset-0 w-full h-full object-contain p-3" />
         </div>
 
-        {/* Details */}
         <div className="flex flex-col gap-2">
           <h3 className="text-base md:text-lg font-semibold text-gray-900">{item.name}</h3>
           <p className="text-xs text-gray-500">{item.category}</p>
-
           {(item.size || item.color || item.material) && (
             <div className="text-xs text-gray-600 flex gap-2">
-              {item.size && <span>Size: {item.size}</span>}
-              {item.color && <span>Color: {item.color}</span>}
+              {item.size     && <span>Size: {item.size}</span>}
+              {item.color    && <span>Color: {item.color}</span>}
               {item.material && <span>Material: {item.material}</span>}
             </div>
           )}
-
-          {/* ✅ Price with strikethrough if discounted */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-lg font-bold text-blue-700">
-              ₹{effectivePrice.toLocaleString("en-IN")}
-            </span>
+            <span className="text-lg font-bold text-blue-700">₹{effectivePrice.toLocaleString("en-IN")}</span>
             {hasDiscount && (
               <>
-                <span className="text-sm text-gray-400 line-through">
-                  ₹{item.price.toLocaleString("en-IN")}
-                </span>
+                <span className="text-sm text-gray-400 line-through">₹{item.price.toLocaleString("en-IN")}</span>
                 <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                   {Math.round((1 - item.discountedPrice / item.price) * 100)}% OFF
                 </span>
@@ -352,30 +437,19 @@ function CartItemCard({ item, effectivePrice, onQuantityChange, onRemove, disabl
           </div>
         </div>
 
-        {/* Quantity & Actions */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 border-2 border-gray-300 rounded-lg">
-            <button onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-              disabled={item.quantity <= 1 || disabled}
-              className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-30">
-              <Minus className="w-4 h-4" />
-            </button>
+            <button onClick={() => onQuantityChange(item.id, item.quantity - 1)} disabled={item.quantity <= 1 || disabled}
+              className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-30"><Minus className="w-4 h-4" /></button>
             <span className="w-12 text-center font-semibold">{item.quantity}</span>
-            <button onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-              disabled={item.quantity >= 99 || disabled}
-              className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-30">
-              <Plus className="w-4 h-4" />
-            </button>
+            <button onClick={() => onQuantityChange(item.id, item.quantity + 1)} disabled={item.quantity >= 99 || disabled}
+              className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-30"><Plus className="w-4 h-4" /></button>
           </div>
-
           <button onClick={handleRemove} disabled={disabled}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50">
             <Trash2 className="w-5 h-5" />
           </button>
-
-          <div className="text-xl font-bold text-gray-900">
-            ₹{itemTotal.toLocaleString("en-IN")}
-          </div>
+          <div className="text-xl font-bold text-gray-900">₹{itemTotal.toLocaleString("en-IN")}</div>
         </div>
       </div>
     </div>
@@ -384,36 +458,72 @@ function CartItemCard({ item, effectivePrice, onQuantityChange, onRemove, disabl
 
 // ── Order Summary ─────────────────────────────────────────────────────────────
 function OrderSummary({
-  subtotal, discount, shipping, tax, total,
-  couponCode, setCouponCode, appliedCoupon, setAppliedCoupon,
-  handleApplyCoupon, onCheckout,
+  subtotal, couponDiscount, shipping, shippingLoading, total,
+  couponCode, setCouponCode,
+  appliedCoupon, couponLoading, couponError,
+  onApplyCoupon, onRemoveCoupon, onCheckout,
 }: any) {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 space-y-6 h-fit sticky top-6">
       <h2 className="text-xl font-bold text-gray-900 pb-4 border-b">Order Summary</h2>
 
-      {/* Coupon */}
+      {/* Coupon section */}
       <div className="space-y-3">
         <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           <Tag className="w-4 h-4" /> Have a coupon code?
         </label>
+
         {appliedCoupon ? (
-          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Percent className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-semibold text-green-700">{appliedCoupon} Applied</span>
+          <div className="rounded-xl border border-green-200 bg-green-50 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-green-800 font-mono tracking-wider">{appliedCoupon.code}</div>
+                  <div className="text-xs text-green-600">
+                    {appliedCoupon.discountType === "percent"
+                      ? `${appliedCoupon.discountValue}% off`
+                      : `₹${appliedCoupon.discountValue} flat off`}
+                    {appliedCoupon.description ? ` · ${appliedCoupon.description}` : ""}
+                  </div>
+                </div>
+              </div>
+              <button onClick={onRemoveCoupon}
+                className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1">
+                <X className="w-3.5 h-3.5" /> Remove
+              </button>
             </div>
-            <button onClick={() => setAppliedCoupon(null)} className="text-xs text-red-600 hover:text-red-700 font-semibold">Remove</button>
+            {couponDiscount > 0 && (
+              <div className="px-4 py-2 bg-green-100 border-t border-green-200 text-xs text-green-700 font-semibold">
+                🎉 You save ₹{couponDiscount.toLocaleString("en-IN")} on this order!
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex gap-2">
-            <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value)}
-              placeholder="Enter code"
-              className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
-            <button onClick={handleApplyCoupon} disabled={!couponCode.trim()}
-              className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50">
-              Apply
-            </button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && onApplyCoupon()}
+                placeholder="Enter coupon code"
+                className={`flex-1 px-4 py-2.5 border-2 rounded-lg font-mono tracking-wider text-sm uppercase focus:outline-none transition-colors
+                  ${couponError ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+              />
+              <button onClick={onApplyCoupon} disabled={!couponCode.trim() || couponLoading}
+                className="px-4 py-2.5 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 font-semibold text-sm min-w-[80px] flex items-center justify-center gap-1">
+                {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+              </button>
+            </div>
+            {couponError && (
+              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {couponError}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -421,24 +531,33 @@ function OrderSummary({
       {/* Price Breakdown */}
       <div className="space-y-3 py-4 border-t border-b">
         <div className="flex justify-between">
-          <span>Subtotal</span>
+          <span className="text-gray-600">Subtotal</span>
           <span className="font-semibold">₹{subtotal.toLocaleString("en-IN")}</span>
         </div>
-        {discount > 0 && (
+
+        {couponDiscount > 0 && (
           <div className="flex justify-between text-green-600">
-            <span>Coupon Discount (10%)</span>
-            <span className="font-semibold">-₹{discount.toLocaleString("en-IN")}</span>
+            <span className="flex items-center gap-1.5">
+              <Percent className="w-3.5 h-3.5" /> Coupon Discount
+            </span>
+            <span className="font-semibold">-₹{couponDiscount.toLocaleString("en-IN")}</span>
           </div>
         )}
-        <div className="flex justify-between">
-          <span>Shipping</span>
-          <span className="font-semibold">
-            {shipping === 0 ? <span className="text-green-600">FREE</span> : `₹${shipping}`}
+
+        {/* ✅ Shipping row — shows loader while fetching */}
+        <div className="flex justify-between items-center">
+          <span className="text-gray-600 flex items-center gap-1.5">
+            <Truck className="w-3.5 h-3.5" /> Shipping
           </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Tax (GST 18%)</span>
-          <span className="font-semibold">₹{tax.toLocaleString("en-IN")}</span>
+          <span className="font-semibold">
+            {shippingLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400 inline" />
+            ) : shipping === 0 ? (
+              <span className="text-green-600 font-bold">FREE</span>
+            ) : (
+              `₹${shipping.toLocaleString("en-IN")}`
+            )}
+          </span>
         </div>
       </div>
 

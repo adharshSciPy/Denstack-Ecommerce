@@ -26,64 +26,91 @@ export default function UserLoginPage() {
 
   // ✅ SUPPORT BOTH PARAM NAMES
   const accessToken =
-    searchParams.get("accessToken") || searchParams.get("clinicToken");
+    searchParams.get("accessToken") || searchParams.get("clinicToken")|| searchParams.get("doctorToken");
   const clinicId = searchParams.get("clinicId"); // ✅ read clinicId from URL
+  const doctorId = searchParams.get("doctorId");
 
   // ✅ AUTO LOGIN FROM CLINIC
-  useEffect(() => {
-    if (!accessToken) return;
-    if (hasAutoLoggedIn.current) return;
+useEffect(() => {
+  if (!accessToken) return;
+  if (hasAutoLoggedIn.current) return;
 
-    hasAutoLoggedIn.current = true;
+  hasAutoLoggedIn.current = true;
 
-    const autoLogin = async () => {
-      try {
-        setIsAutoLoggingIn(true);
-        setIsSubmitting(true);
+  const autoLogin = async () => {
+  try {
+    setIsAutoLoggingIn(true);
+    setIsSubmitting(true);
 
-        console.log("Clinic token received:", accessToken);
+    console.log("SSO token received:", accessToken);
 
-        // ✅ Send clinic token to backend SSO endpoint
-        await axios.post(
-          `${baseUrl.AUTH}/api/v1/ecommerceuser/clinic-marketplace-login`,
-          {},
-          {
-            withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
+    let endpoint = `${baseUrl.AUTH}/api/v1/ecommerceuser/`;
 
-        // ✅ Store clinic token and clinicId for use in API calls
-        localStorage.setItem("clinicToken", accessToken);
-        if (clinicId) {
-          localStorage.setItem("clinicId", clinicId);
-        }
+    if (clinicId) {
+      endpoint += "clinic-marketplace-login";
+    } else if (doctorId) {
+      endpoint += "doctor-marketplace-login";
+    } else {
+      toast.error("Invalid login parameters");
+      setIsAutoLoggingIn(false);
+      setIsSubmitting(false);
+      return;
+    }
 
-        toast.success("🎉 Logged in via Clinic successfully!");
-
-        // ✅ Remove token from URL
-        window.history.replaceState({}, document.title, "/");
-
-        // ✅ Redirect home
-        setTimeout(() => {
-          router.replace("/");
-        }, 800);
-
-      } catch (error) {
-        console.error("Auto login failed:", error);
-        // ✅ Clean up on failure
-        localStorage.removeItem("clinicToken");
-        localStorage.removeItem("clinicId");
-        toast.error("Clinic auto login failed");
-        setIsAutoLoggingIn(false);
-        setIsSubmitting(false);
+    const response = await axios.post(
+      endpoint,
+      {},
+      {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
-    };
+    );
 
-    autoLogin();
-  }, [accessToken, clinicId]);
+    // ✅ FIXED STORAGE
+    if (clinicId) {
+      localStorage.setItem("clinicToken", accessToken);
+      localStorage.setItem("clinicId", clinicId);
+    }
+
+    if (doctorId) {
+      localStorage.setItem("clinicToken", accessToken);
+      localStorage.setItem("doctorId", doctorId);
+    }
+
+    const userType = clinicId ? "Clinic" : "Doctor";
+    toast.success(`🎉 Logged in via ${userType} successfully!`);
+
+    window.history.replaceState({}, document.title, "/");
+
+    setTimeout(() => {
+      router.replace("/");
+    }, 800);
+
+  } catch (error) {
+    console.error("Auto login failed:", error);
+
+    if (axios.isAxiosError(error)) {
+      toast.error(error.response?.data?.message || "Auto login failed");
+    } else if (error instanceof Error) {
+      toast.error(error.message);
+    } else {
+      toast.error("An unknown error occurred");
+    }
+
+    // ✅ cleanup
+    localStorage.removeItem("clinicToken");
+    localStorage.removeItem("clinicId");
+    localStorage.removeItem("doctorId");
+
+    setIsAutoLoggingIn(false);
+    setIsSubmitting(false);
+  }
+};
+
+  autoLogin();
+}, [accessToken, clinicId, doctorId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

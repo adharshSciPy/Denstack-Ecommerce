@@ -33,7 +33,7 @@ export default function Navigation({
 }: NavigationProps) {
   const router = useRouter();
 
-  const [activeItem, setActiveItem] = useState('Category');
+  const [activeItem, setActiveItem] = useState('Home');
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
 
   const mobileMenuOpen =
@@ -49,6 +49,8 @@ export default function Navigation({
   /** ✅ Sync active tab from route */
   useEffect(() => {
     const map: Record<string, string> = {
+      '': 'Home',
+      '/': 'Home',
       category: 'Category',
       membership: 'Membership',
       brands: 'Brand',
@@ -60,10 +62,13 @@ export default function Navigation({
       'clinic-setup': 'Clinic Setup',
     };
 
-    setActiveItem(map[currentPage] || 'Category');
+    // Get the current path without leading slash
+    const path = window.location.pathname.replace(/^\//, '');
+    setActiveItem(map[path] || map[currentPage] || 'Home');
   }, [currentPage]);
 
   const menuItems = [
+    { label: 'Home', path: '/' },
     { label: 'Category', path: '/category' },
     { label: 'Brand', path: '/brands' },
     { label: 'Buying Guide', path: '/buying-guide' },
@@ -98,10 +103,11 @@ export default function Navigation({
               <button
                 key={item.label}
                 onClick={() => handleNavigation(item)}
-                className={`relative py-2 transition-colors ${activeItem === item.label
+                className={`relative py-2 transition-colors ${
+                  activeItem === item.label
                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-teal-600 font-semibold'
                     : 'text-gray-900 hover:text-cyan-600'
-                  }`}
+                }`}
               >
                 {item.label === 'Category' && (
                   <Image
@@ -120,7 +126,9 @@ export default function Navigation({
 
           {/* Mobile Active Label */}
           <div className="lg:hidden flex items-center gap-2 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-teal-600">
-            <Image src={imgCategoryIcon} alt="" className="w-5 h-5" />
+            {activeItem === 'Category' && (
+              <Image src={imgCategoryIcon} alt="" className="w-5 h-5" />
+            )}
             <span>{activeItem}</span>
           </div>
         </div>
@@ -132,10 +140,11 @@ export default function Navigation({
               <button
                 key={item.label}
                 onClick={() => handleNavigation(item)}
-                className={`block w-full text-left px-4 py-2 rounded-lg ${activeItem === item.label
+                className={`block w-full text-left px-4 py-2 rounded-lg ${
+                  activeItem === item.label
                     ? 'bg-gradient-to-r from-cyan-50 to-teal-50 text-cyan-700 font-semibold border border-cyan-200'
                     : 'text-gray-900 hover:bg-gray-50'
-                  }`}
+                }`}
               >
                 {item.label}
               </button>

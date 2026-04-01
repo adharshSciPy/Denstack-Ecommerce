@@ -8,6 +8,8 @@ import {
 import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
 import baseUrl from '../baseUrl';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface OrderItem {
   product: { _id: string; name: string; image?: string };
@@ -112,6 +114,7 @@ const STATUS_ICON: Record<string, any> = {
   RETURNED:         RefreshCw,
 };
 
+// ── Auth helpers ──────────────────────────────────────────────────────────────
 const getClinicAuth = (): { clinicId: string; token: string } | null => {
   try {
     const token = localStorage.getItem('clinicToken');
@@ -139,27 +142,199 @@ const getAuthHeaders = (): Record<string, string> => {
   return headers;
 };
 
+// ── Date helpers ──────────────────────────────────────────────────────────────
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const formatDateTime = (dateStr: string) =>
   new Date(dateStr).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+// ── Invoice PDF generator ─────────────────────────────────────────────────────
+const generateInvoicePDF = (order: OrderStatus) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Header background
+  doc.setFillColor(29, 78, 216);
+  doc.rect(0, 0, pageWidth, 34, 'F');
+
+  // Company name (left)
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INVOICE', 14, 22);
+
+  // Company details (right)
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Your Company Name', pageWidth - 14, 12, { align: 'right' });
+  doc.text('support@yourcompany.com', pageWidth - 14, 19, { align: 'right' });
+  doc.text('www.yourcompany.com', pageWidth - 14, 26, { align: 'right' });
+
+  // ── Order meta (left column) ──────────────────────────────────────────────
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Order Details', 14, 46);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(60, 60, 60);
+
+  const placedDate = new Date(order.placedAt).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+
+  const metaLines = [
+    [`Order ID`, order.orderId || order._id],
+    [`Date`, placedDate],
+    [`Status`, order.currentStatus.replace(/_/g, ' ')],
+    [`Payment`, `${order.paymentMethod} — ${order.paymentStatus}`],
+  ];
+
+  metaLines.forEach(([label, value], i) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${label}:`, 14, 54 + i * 7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(value, 46, 54 + i * 7);
+  });
+
+  // ── Shipping address (right column) ──────────────────────────────────────
+  if (order.shippingAddress) {
+    const a = order.shippingAddress;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 30, 30);
+    doc.text('Ship To', pageWidth / 2 + 8, 46);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+
+    const addrLines = [
+      a.fullName,
+      a.phone,
+      a.addressLine1,
+      ...(a.addressLine2 ? [a.addressLine2] : []),
+      `${a.city}, ${a.state} - ${a.pincode}`,
+      a.country,
+    ];
+
+    addrLines.forEach((line, i) => {
+      doc.text(line, pageWidth / 2 + 8, 54 + i * 7);
+    });
+  }
+
+  // ── Divider ───────────────────────────────────────────────────────────────
+  doc.setDrawColor(200, 200, 200);
+  doc.line(14, 88, pageWidth - 14, 88);
+
+  // ── Items table ───────────────────────────────────────────────────────────
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 30, 30);
+  doc.text('Order Items', 14, 96);
+
+  const tableRows = order.items.map((item, i) => [
+    i + 1,
+    item.product?.name || 'Product',
+    item.quantity,
+    `Rs. ${item.price.toLocaleString('en-IN')}`,
+    `Rs. ${(item.price * item.quantity).toLocaleString('en-IN')}`,
+  ]);
+
+  const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  autoTable(doc, {
+    startY: 100,
+    head: [['#', 'Product', 'Qty', 'Unit Price', 'Total']],
+    body: tableRows,
+    foot: [
+      ['', '', '', 'Total Amount', `Rs. ${subtotal.toLocaleString('en-IN')}`],
+    ],
+    headStyles: {
+      fillColor: [29, 78, 216],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    footStyles: {
+      fillColor: [239, 246, 255],
+      textColor: [29, 78, 216],
+      fontStyle: 'bold',
+      fontSize: 10,
+    },
+    bodyStyles: {
+      fontSize: 9,
+      textColor: [40, 40, 40],
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      2: { halign: 'center' },
+      3: { halign: 'right' },
+      4: { halign: 'right', fontStyle: 'bold' },
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+    tableLineColor: [220, 220, 220],
+    tableLineWidth: 0.1,
+  });
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  const finalY = (doc as any).lastAutoTable.finalY + 14;
+
+  // Thank you box
+  doc.setFillColor(239, 246, 255);
+  doc.roundedRect(14, finalY, pageWidth - 28, 20, 3, 3, 'F');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(29, 78, 216);
+  doc.text('Thank you for your order!', pageWidth / 2, finalY + 8, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(8);
+  doc.text(
+    'For any queries, contact us at support@yourcompany.com',
+    pageWidth / 2,
+    finalY + 15,
+    { align: 'center' }
+  );
+
+  // Page number
+  doc.setFontSize(7);
+  doc.setTextColor(180, 180, 180);
+  doc.text(
+    `Generated on ${new Date().toLocaleDateString('en-IN')}`,
+    pageWidth - 14,
+    doc.internal.pageSize.getHeight() - 8,
+    { align: 'right' }
+  );
+
+  // ── Download ──────────────────────────────────────────────────────────────
+  doc.save(`Invoice-${order.orderId || order._id}.pdf`);
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function OrderHistoryPage({
   onBackToHome,
 }: OrderHistoryPageProps) {
   const router = useRouter();
 
-  const [allOrders, setAllOrders]       = useState<Order[]>([]);
-  const [filtered, setFiltered]         = useState<Order[]>([]);
-  const [activeFilter, setActiveFilter] = useState('ALL');
-  const [pagination, setPagination]     = useState<Pagination>({ currentPage: 1, totalPages: 1, totalOrders: 0 });
-  const [currentPage, setCurrentPage]   = useState(1);
-  const [loading, setLoading]           = useState(true);
-  const [statusModal, setStatusModal]   = useState(false);
-  const [statusData, setStatusData]     = useState<OrderStatus | null>(null);
-  const [statusLoading, setStatusLoading] = useState(false);
+  const [allOrders, setAllOrders]           = useState<Order[]>([]);
+  const [filtered, setFiltered]             = useState<Order[]>([]);
+  const [activeFilter, setActiveFilter]     = useState('ALL');
+  const [pagination, setPagination]         = useState<Pagination>({ currentPage: 1, totalPages: 1, totalOrders: 0 });
+  const [currentPage, setCurrentPage]       = useState(1);
+  const [loading, setLoading]               = useState(true);
+  const [statusModal, setStatusModal]       = useState(false);
+  const [statusData, setStatusData]         = useState<OrderStatus | null>(null);
+  const [statusLoading, setStatusLoading]   = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState<string | null>(null); // tracks which order is generating
 
+  // ── Fetch orders ────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async (page = 1) => {
     setLoading(true);
     try {
@@ -169,7 +344,6 @@ export default function OrderHistoryPage({
       let headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
       if (clinicAuth) {
-        // ✅ All orders for clinic (not /deliver/)
         url = `${baseUrl.INVENTORY}/api/v1/ecom-order/clinic/${clinicAuth.clinicId}?${params}`;
         headers.Authorization = `Bearer ${clinicAuth.token}`;
       } else {
@@ -179,7 +353,6 @@ export default function OrderHistoryPage({
           router.push('/login');
           return;
         }
-        // ✅ All orders for user (not /deliver/)
         url = `${baseUrl.INVENTORY}/api/v1/ecom-order/user/${userId}?${params}`;
       }
 
@@ -219,6 +392,9 @@ export default function OrderHistoryPage({
     }
   }, [activeFilter, allOrders]);
 
+  useEffect(() => { fetchOrders(1); }, [fetchOrders]);
+
+  // ── View Details ────────────────────────────────────────────────────────────
   const handleViewDetails = async (orderId: string) => {
     setStatusModal(true);
     setStatusLoading(true);
@@ -239,17 +415,34 @@ export default function OrderHistoryPage({
     }
   };
 
-  useEffect(() => { fetchOrders(1); }, [fetchOrders]);
+  // ── Download Invoice ────────────────────────────────────────────────────────
+  const handleDownloadInvoice = async (orderId: string) => {
+    setInvoiceLoading(orderId);
+    try {
+      const res = await fetch(
+        `${baseUrl.INVENTORY}/api/v1/ecom-order/status/${orderId}`,
+        { method: 'GET', credentials: 'include', headers: getAuthHeaders() }
+      );
+      if (!res.ok) throw new Error('Failed to fetch order details');
+      const data = await res.json();
+      generateInvoicePDF(data.data);
+      toast.success('Invoice downloaded!');
+    } catch (error: any) {
+      toast.error(error.message || 'Could not generate invoice');
+    } finally {
+      setInvoiceLoading(null);
+    }
+  };
 
+  // ── Pagination ──────────────────────────────────────────────────────────────
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchOrders(page);
   };
 
-  const handleDownloadInvoice = (orderId: string) => toast.success(`Invoice for ${orderId} — coming soon!`);
   const handleReorder = (_orderId: string) => toast.success('Items added to cart!');
 
-  // Count per status for badge
+  // Count per status for badges
   const statusCounts = ALL_STATUSES.reduce((acc, s) => {
     acc[s] = s === 'ALL' ? allOrders.length : allOrders.filter(o => o.orderStatus === s).length;
     return acc;
@@ -263,6 +456,7 @@ export default function OrderHistoryPage({
     { label: 'Cancelled',     value: allOrders.filter(o => o.orderStatus === 'CANCELLED').length,                                                  color: 'from-red-500 to-red-600' },
   ];
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" richColors />
@@ -344,6 +538,8 @@ export default function OrderHistoryPage({
             {filtered.map((order) => {
               const StatusIcon  = STATUS_ICON[order.orderStatus] || Package;
               const statusColor = STATUS_COLOR[order.orderStatus] || 'bg-gray-100 text-gray-700 border-gray-200';
+              const isGenerating = invoiceLoading === order._id;
+
               return (
                 <div key={order._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all">
 
@@ -401,12 +597,24 @@ export default function OrderHistoryPage({
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
+
+                      {/* Invoice Download Button */}
                       <button
                         onClick={() => handleDownloadInvoice(order._id)}
-                        className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition-all hover:scale-105"
+                        disabled={isGenerating}
+                        className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition-all hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
-                        <Download className="w-4 h-4" /> Invoice
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4" /> Invoice
+                          </>
+                        )}
                       </button>
+
                       {order.orderStatus === 'DELIVERED' && (
                         <button
                           onClick={() => handleReorder(order._id)}
@@ -415,6 +623,7 @@ export default function OrderHistoryPage({
                           <RotateCcw className="w-4 h-4" /> Reorder
                         </button>
                       )}
+
                       <button
                         onClick={() => handleViewDetails(order._id)}
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all hover:scale-105"
@@ -472,14 +681,15 @@ export default function OrderHistoryPage({
         )}
       </div>
 
+      {/* Back to Home */}
       <button
-        onClick={onBackToHome}
+        onClick={() => router.push('/')}
         className="fixed bottom-8 right-8 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 hover:scale-110 active:scale-95 z-50"
       >
         ← Back to Home
       </button>
 
-      {/* Order Status Modal */}
+      {/* ── Order Status Modal ────────────────────────────────────────────────── */}
       {statusModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -489,9 +699,25 @@ export default function OrderHistoryPage({
                 <h2 className="text-xl font-bold text-gray-900">Order Details</h2>
                 {statusData && <p className="text-sm text-gray-500">#{statusData.orderId}</p>}
               </div>
-              <button onClick={() => setStatusModal(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Invoice button inside modal too */}
+                {statusData && (
+                  <button
+                    onClick={() => handleDownloadInvoice(statusData._id)}
+                    disabled={invoiceLoading === statusData._id}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-all disabled:opacity-60"
+                  >
+                    {invoiceLoading === statusData._id ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                    ) : (
+                      <><Download className="w-4 h-4" /> Invoice</>
+                    )}
+                  </button>
+                )}
+                <button onClick={() => setStatusModal(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
             </div>
 
             {statusLoading ? (
